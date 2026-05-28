@@ -101,7 +101,7 @@ export default function Home() {
             <p style={{ fontSize: '12px', color: '#888', marginBottom: '12px' }}>{filtered.length} listings found</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
               {filtered.map((l: any) => (
-                <div key={l.id} style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eee', overflow: 'hidden', cursor: 'pointer' }}>
+                <div key={l.id} onClick={() => window.location.href = `/listing/${l.id}`} style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eee', overflow: 'hidden', cursor: 'pointer' }}>
                   <div style={{ height: '100px', background: '#f9f9f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px', position: 'relative' }}>
                     {l.emoji}
                     <span style={{ position: 'absolute', top: '8px', left: '8px', fontSize: '10px', background: l.condition === 'New' ? '#E1F5EE' : '#E6F1FB', color: l.condition === 'New' ? '#0F6E56' : '#185FA5', padding: '2px 7px', borderRadius: '99px', fontWeight: 'bold' }}>{l.condition}</span>
