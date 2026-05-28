@@ -33,7 +33,7 @@ export default function Home() {
   useEffect(() => {
     function fetchListings() {
       setLoading(true)
-      fetch('/api/listings', { cache: 'no-store' })
+      fetch('/api/listings?t=' + Date.now(), { cache: 'no-store' })
         .then(res => res.json())
         .then(data => {
           if (Array.isArray(data)) {
@@ -51,8 +51,15 @@ export default function Home() {
 
     fetchListings()
 
-    window.addEventListener('focus', fetchListings)
-    return () => window.removeEventListener('focus', fetchListings)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') fetchListings()
+    })
+
+    return () => {
+      document.removeEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') fetchListings()
+      })
+    }
   }, [])
 
   useEffect(() => {
