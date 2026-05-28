@@ -3,12 +3,30 @@ import { useRouter } from 'next/navigation'
 import { useUser, SignInButton } from '@clerk/nextjs'
 
 const categories = [
-  { name: 'Textbooks', emoji: '📗', desc: 'NCERT, reference books' },
-  { name: 'Novels', emoji: '📘', desc: 'Fiction & literature' },
-  { name: 'Notebooks', emoji: '📓', desc: 'Ruled, plain, spiral' },
-  { name: 'Art supplies', emoji: '🎨', desc: 'Colors, brushes & more' },
-  { name: 'Stationery', emoji: '✏️', desc: 'Pens, files & more' },
-  { name: 'Competitive', emoji: '📙', desc: 'JEE, NEET & exams' },
+  {
+    name: 'Textbooks', desc: 'NCERT & reference', bg: '#E1F5EE', stroke: '#0F6E56',
+    icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0F6E56" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="11" x2="13" y2="11"/></svg>
+  },
+  {
+    name: 'Novels', desc: 'Fiction & literature', bg: '#EFF6FF', stroke: '#185FA5',
+    icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#185FA5" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+  },
+  {
+    name: 'Notebooks', desc: 'Ruled, plain, spiral', bg: '#FEF9C3', stroke: '#854D0E',
+    icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#854D0E" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="12" y2="17"/></svg>
+  },
+  {
+    name: 'Art supplies', desc: 'Colors & brushes', bg: '#FBEAF0', stroke: '#993556',
+    icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#993556" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.22 4.22l2.12 2.12M17.66 17.66l2.12 2.12M2 12h3M19 12h3M4.22 19.78l2.12-2.12M17.66 6.34l2.12-2.12"/></svg>
+  },
+  {
+    name: 'Stationery', desc: 'Pens, files & more', bg: '#F1EFE8', stroke: '#5F5E5A',
+    icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#5F5E5A" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/><path d="M8 21h8"/></svg>
+  },
+  {
+    name: 'Competitive', desc: 'JEE, NEET & exams', bg: '#FAECE7', stroke: '#993C1D',
+    icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#993C1D" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>
+  },
 ]
 
 const sampleListings = [
@@ -37,12 +55,12 @@ export default function LandingPage() {
         .card-hover:hover { transform: translateY(-3px); box-shadow: 0 12px 32px rgba(27,42,74,0.10) !important; }
         .step-card { transition: all 0.2s ease; }
         .step-card:hover { transform: translateY(-4px); }
+        .cat-item { transition: all 0.15s; cursor: pointer; }
+        .cat-item:hover { background: #F0FDF8 !important; border-color: #1D9E75 !important; transform: translateY(-2px); }
         @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
         .float { animation: float 3s ease-in-out infinite; }
         @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .fade-up { animation: fadeUp 0.5s ease forwards; }
-        .cat-item:hover { background: #F5F2ED !important; border-color: #1D9E75 !important; }
-        .cat-item { transition: all 0.15s; }
       `}</style>
 
       <div style={{ minHeight: '100vh', background: '#FAFAF8' }}>
@@ -55,7 +73,8 @@ export default function LandingPage() {
             <span className="kalam" style={{ fontSize: '22px', color: '#1B2A4A', fontWeight: '700' }}>BookMart</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <button onClick={() => router.push('/marketplace')} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#555', fontFamily: 'DM Sans, sans-serif', fontWeight: '500', padding: '8px 12px', borderRadius: '8px', transition: 'all 0.15s' }}
+            <button onClick={() => router.push('/marketplace')}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', color: '#555', fontFamily: 'DM Sans, sans-serif', fontWeight: '500', padding: '8px 12px', borderRadius: '8px', transition: 'all 0.15s' }}
               onMouseEnter={e => (e.currentTarget.style.background = '#F5F2ED')}
               onMouseLeave={e => (e.currentTarget.style.background = 'none')}>
               Browse listings
@@ -96,11 +115,11 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* Sample listing cards */}
+          {/* Sample cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '14px', maxWidth: '680px', margin: '0 auto' }}>
             {sampleListings.map((l, i) => (
               <div key={i} className="card-hover" onClick={() => router.push('/marketplace')}
-                style={{ background: '#FFFEF9', borderRadius: '18px', border: '1.5px solid #EDE9E1', overflow: 'hidden', cursor: 'pointer', boxShadow: '0 2px 8px rgba(27,42,74,0.05)', animationDelay: `${i * 0.08}s` }}>
+                style={{ background: '#FFFEF9', borderRadius: '18px', border: '1.5px solid #EDE9E1', overflow: 'hidden', cursor: 'pointer', boxShadow: '0 2px 8px rgba(27,42,74,0.05)' }}>
                 <div style={{ height: '100px', background: '#F5F2ED', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', position: 'relative' }}>
                   {l.emoji}
                   <span style={{ position: 'absolute', top: '8px', left: '8px', fontSize: '9px', background: l.condition === 'New' ? 'rgba(220,252,231,0.95)' : 'rgba(239,246,255,0.95)', color: l.condition === 'New' ? '#166534' : '#1D4ED8', padding: '2px 7px', borderRadius: '99px', fontWeight: '600' }}>{l.condition}</span>
@@ -125,9 +144,12 @@ export default function LandingPage() {
             <p style={{ fontSize: '14px', color: '#aaa', marginBottom: '36px' }}>Find exactly what you need</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '12px' }}>
               {categories.map(cat => (
-                <div key={cat.name} className="cat-item" onClick={() => router.push('/marketplace')}
-                  style={{ background: '#FAFAF8', border: '1.5px solid #EDE9E1', borderRadius: '16px', padding: '18px 12px', cursor: 'pointer', textAlign: 'center' }}>
-                  <div style={{ fontSize: '28px', marginBottom: '8px' }}>{cat.emoji}</div>
+                <div key={cat.name} className="cat-item"
+                  onClick={() => router.push('/marketplace')}
+                  style={{ background: '#FAFAF8', border: '1.5px solid #EDE9E1', borderRadius: '16px', padding: '20px 12px', textAlign: 'center' }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '14px', background: cat.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
+                    {cat.icon}
+                  </div>
                   <div style={{ fontSize: '12px', fontWeight: '600', color: '#1B2A4A', marginBottom: '3px' }}>{cat.name}</div>
                   <div style={{ fontSize: '10px', color: '#bbb' }}>{cat.desc}</div>
                 </div>
@@ -169,7 +191,8 @@ export default function LandingPage() {
               <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.55)', marginBottom: '28px', lineHeight: 1.6 }}>Your old books are worth more than gathering dust. List them today and earn extra cash.</p>
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
                 <button className="btn-green" onClick={() => router.push('/sell')}>Start selling for free →</button>
-                <button onClick={() => router.push('/marketplace')} style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1.5px solid rgba(255,255,255,0.15)', borderRadius: '14px', padding: '13px 24px', fontSize: '15px', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontWeight: '500', transition: 'all 0.15s' }}
+                <button onClick={() => router.push('/marketplace')}
+                  style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1.5px solid rgba(255,255,255,0.15)', borderRadius: '14px', padding: '13px 24px', fontSize: '15px', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontWeight: '500', transition: 'all 0.15s' }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.14)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}>
                   Browse first
