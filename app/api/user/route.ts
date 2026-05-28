@@ -30,3 +30,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: String(error) }, { status: 500 })
   }
 }
+
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json()
+    const { clerkId, phone } = body
+    const user = await prisma.user.update({
+      where: { id: clerkId },
+      data: { phone },
+    })
+    return NextResponse.json(user)
+  } catch (error) {
+    return NextResponse.json({ error: String(error) }, { status: 500 })
+  }
+}

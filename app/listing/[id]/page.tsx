@@ -68,8 +68,10 @@ export default function ListingPage() {
 
   const discount = listing.origPrice ? Math.round((1 - listing.price / listing.origPrice) * 100) : 0
   const waText = 'Hi, I am interested in your listing on BookMart: ' + listing.title + ' for Rs.' + listing.price
-  const waLink = 'https://wa.me/?text=' + encodeURIComponent(waText)
-
+  const phone = listing.seller?.phone?.replace(/\D/g, '') || ''
+const waLink = phone
+  ? `https://wa.me/91${phone}?text=${encodeURIComponent(waText)}`
+  : `https://wa.me/?text=${encodeURIComponent(waText)}`
   return (
     <div style={{ fontFamily: 'sans-serif', background: '#f5f5f5', minHeight: '100vh' }}>
 

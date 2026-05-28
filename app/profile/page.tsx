@@ -13,6 +13,9 @@ export default function ProfilePage() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<any>({})
   const [saving, setSaving] = useState(false)
+  const [phone, setPhone] = useState('')
+  const [savingPhone, setSavingPhone] = useState(false)
+  const [phoneSaved, setPhoneSaved] = useState(false)
 
   useEffect(() => {
     if (!isSignedIn) return
@@ -20,11 +23,29 @@ export default function ProfilePage() {
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-          setListings(data.filter((l: any) => l.sellerId === user?.id))
+          const mine = data.filter((l: any) => l.sellerId === user?.id)
+          setListings(mine)
+          // Get phone from first listing's seller data
+          if (mine.length > 0 && mine[0].seller?.phone) {
+            setPhone(mine[0].seller.phone)
+          }
         }
         setLoading(false)
       })
   }, [isSignedIn, user])
+
+  async function savePhone() {
+    if (!phone.trim()) return
+    setSavingPhone(true)
+    await fetch('/api/user', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clerkId: user?.id, phone: phone.trim() }),
+    })
+    setSavingPhone(false)
+    setPhoneSaved(true)
+    setTimeout(() => setPhoneSaved(false), 2000)
+  }
 
   function startEdit(l: any) {
     setEditingId(l.id)
@@ -86,15 +107,49 @@ export default function ProfilePage() {
 
       <div style={{ maxWidth: '600px', margin: '16px auto', padding: '0 16px' }}>
 
-        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eee', padding: '20px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#E1F5EE', color: '#0F6E56', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold', flexShrink: 0 }}>
-            {user?.firstName?.charAt(0).toUpperCase()}
+        {/* Profile card */}
+        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eee', padding: '20px', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' }}>
+            <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: '#E1F5EE', color: '#0F6E56', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold', flexShrink: 0 }}>
+              {user?.firstName?.charAt(0).toUpperCase()}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#333' }}>{user?.fullName}</div>
+              <div style={{ fontSize: '12px', color: '#888' }}>{user?.primaryEmailAddress?.emailAddress}</div>
+            </div>
+            <button onClick={() => router.push('/sell')} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>+ New listing</button>
           </div>
-          <div style={{ flex: 1 }}>
-            <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#333' }}>{user?.fullName}</div>
-            <div style={{ fontSize: '12px', color: '#888' }}>{user?.primaryEmailAddress?.emailAddress}</div>
+
+          {/* WhatsApp number */}
+          <div style={{ borderTop: '1px solid #f5f5f5', paddingTop: '14px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#333', marginBottom: '6px' }}>
+              💬 WhatsApp number
+            </div>
+            <div style={{ fontSize: '11px', color: '#888', marginBottom: '8px' }}>
+              Buyers will use this to contact you. Enter your 10-digit Indian mobile number.
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', background: '#f5f5f5', border: '1px solid #ddd', borderRadius: '8px', padding: '0 10px', fontSize: '13px', color: '#555', flexShrink: 0 }}>
+                🇮🇳 +91
+              </div>
+              <input
+                value={phone}
+                onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                placeholder="98765 43210"
+                style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '13px', outline: 'none' }}
+              />
+              <button
+                onClick={savePhone}
+                disabled={savingPhone || phone.length < 10}
+                style={{ background: phoneSaved ? '#E1F5EE' : '#1D9E75', color: phoneSaved ? '#0F6E56' : '#fff', border: 'none', borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: 'bold', cursor: phone.length < 10 ? 'not-allowed' : 'pointer', opacity: phone.length < 10 ? 0.5 : 1, whiteSpace: 'nowrap' }}
+              >
+                {phoneSaved ? '✅ Saved!' : savingPhone ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+            {phone.length > 0 && phone.length < 10 && (
+              <div style={{ fontSize: '11px', color: '#E24B4A', marginTop: '4px' }}>Enter a 10-digit number</div>
+            )}
           </div>
-          <button onClick={() => router.push('/sell')} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 14px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>+ New listing</button>
         </div>
 
         <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#333', marginBottom: '10px', padding: '0 4px' }}>
@@ -167,8 +222,10 @@ export default function ProfilePage() {
                   </div>
                 ) : (
                   <div style={{ display: 'flex', gap: '12px', padding: '12px 14px', alignItems: 'center' }}>
-                    <div style={{ width: '52px', height: '52px', background: '#f9f9f9', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, position: 'relative' }}>
-                      {l.emoji}
+                    <div style={{ width: '52px', height: '52px', background: '#f9f9f9', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
+                      {l.images?.[0]
+                        ? <img src={l.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        : l.emoji}
                       {l.sold && (
                         <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <span style={{ fontSize: '8px', fontWeight: 'bold', color: '#fff', letterSpacing: '1px' }}>SOLD</span>
@@ -192,7 +249,6 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 )}
-
               </div>
             ))}
           </div>
