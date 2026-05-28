@@ -1,29 +1,32 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useUser, SignInButton, UserButton } from '@clerk/nextjs'
 
 const cats = ['All', 'textbook', 'novel', 'notebook', 'art', 'stationery', 'competitive']
 
 export default function Home() {
   const { isSignedIn, user } = useUser()
-  useEffect(() => {
-  if (isSignedIn && user) {
-    fetch('/api/user', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        clerkId: user.id,
-        name: user.fullName,
-        email: user.primaryEmailAddress?.emailAddress,
-      })
-    })
-  }
-}, [isSignedIn, user])
   const [listings, setListings] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [activeCat, setActiveCat] = useState('All')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const searchRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (isSignedIn && user) {
+      fetch('/api/user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clerkId: user.id,
+          name: user.fullName,
+          email: user.primaryEmailAddress?.emailAddress,
+        })
+      })
+    }
+  }, [isSignedIn, user])
 
   useEffect(() => {
     fetch('/api/listings')
@@ -42,23 +45,79 @@ export default function Home() {
       })
   }, [])
 
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
   const filtered = listings.filter((l: any) => {
     const matchCat = activeCat === 'All' || l.category === activeCat
-    const matchSearch = l.title.toLowerCase().includes(search.toLowerCase())
+    const q = search.toLowerCase()
+    const matchSearch = !q ||
+      l.title.toLowerCase().includes(q) ||
+      (l.subtitle && l.subtitle.toLowerCase().includes(q)) ||
+      l.category.toLowerCase().includes(q) ||
+      l.location.toLowerCase().includes(q) ||
+      l.condition.toLowerCase().includes(q)
     return matchCat && matchSearch
   })
+
+  const suggestions = search.length > 1
+    ? listings
+        .filter(l =>
+          l.title.toLowerCase().includes(search.toLowerCase()) ||
+          l.subtitle?.toLowerCase().includes(search.toLowerCase())
+        )
+        .slice(0, 5)
+    : []
 
   return (
     <div style={{ fontFamily: 'sans-serif', background: '#f5f5f5', minHeight: '100vh' }}>
 
       <div style={{ background: '#fff', borderBottom: '1px solid #eee', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
         <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1D9E75' }}>📚 BookMart</span>
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search books, notebooks, stationery…"
-          style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '13px' }}
-        />
+
+        <div ref={searchRef} style={{ flex: 1, position: 'relative' }}>
+          <div style={{ display: 'flex', alignItems: 'center', background: '#f5f5f5', border: '1px solid #ddd', borderRadius: '8px', padding: '0 12px', height: '36px', gap: '8px' }}>
+            <span style={{ fontSize: '14px', color: '#aaa' }}>🔍</span>
+            <input
+              value={search}
+              onChange={e => { setSearch(e.target.value); setShowSuggestions(true) }}
+              onFocus={() => setShowSuggestions(true)}
+              placeholder="Search books, notebooks, stationery…"
+              style={{ border: 'none', background: 'transparent', fontSize: '13px', outline: 'none', flex: 1 }}
+            />
+            {search && (
+              <button onClick={() => { setSearch(''); setShowSuggestions(false) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#aaa', padding: '0', lineHeight: 1 }}>×</button>
+            )}
+          </div>
+
+          {showSuggestions && suggestions.length > 0 && (
+            <div style={{ position: 'absolute', top: '40px', left: 0, right: 0, background: '#fff', border: '1px solid #eee', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', zIndex: 100, overflow: 'hidden' }}>
+              {suggestions.map((l: any) => (
+                <div
+                  key={l.id}
+                  onClick={() => { window.location.href = '/listing/' + l.id }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid #f5f5f5' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#f9f9f9')}
+                  onMouseLeave={e => (e.currentTarget.style.background = '#fff')}
+                >
+                  <span style={{ fontSize: '20px' }}>{l.emoji}</span>
+                  <div>
+                    <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#333' }}>{l.title}</div>
+                    <div style={{ fontSize: '11px', color: '#888' }}>₹{l.price} · {l.location}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {isSignedIn ? (
             <>
@@ -87,21 +146,40 @@ export default function Home() {
       </div>
 
       <div style={{ padding: '16px 20px' }}>
+        {search && (
+          <div style={{ marginBottom: '10px', fontSize: '13px', color: '#888' }}>
+            {filtered.length > 0
+              ? `${filtered.length} result${filtered.length !== 1 ? 's' : ''} for "${search}"`
+              : `No results for "${search}"`}
+            {filtered.length === 0 && (
+              <button onClick={() => setSearch('')} style={{ marginLeft: '8px', color: '#1D9E75', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>Clear search</button>
+            )}
+          </div>
+        )}
+
         {loading ? (
           <p style={{ color: '#888', fontSize: '14px' }}>Loading listings...</p>
         ) : error ? (
           <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', textAlign: 'center' }}>
             <p style={{ color: '#E24B4A', fontSize: '14px', marginBottom: '8px' }}>⚠️ {error}</p>
-            <button onClick={() => window.location.reload()} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontSize: '13px' }}>
-              Try again
-            </button>
+            <button onClick={() => window.location.reload()} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontSize: '13px' }}>Try again</button>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '40px', textAlign: 'center' }}>
+            <div style={{ fontSize: '40px', marginBottom: '12px' }}>🔍</div>
+            <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#333', marginBottom: '6px' }}>No listings found</div>
+            <div style={{ fontSize: '13px', color: '#888', marginBottom: '16px' }}>Try a different search or category</div>
+            <button onClick={() => { setSearch(''); setActiveCat('All') }} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 20px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>Show all listings</button>
           </div>
         ) : (
           <>
-            <p style={{ fontSize: '12px', color: '#888', marginBottom: '12px' }}>{filtered.length} listings found</p>
+            {!search && <p style={{ fontSize: '12px', color: '#888', marginBottom: '12px' }}>{filtered.length} listings found</p>}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
               {filtered.map((l: any) => (
-                <div key={l.id} onClick={() => window.location.href = `/listing/${l.id}`} style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eee', overflow: 'hidden', cursor: 'pointer' }}>
+                <div key={l.id} onClick={() => window.location.href = '/listing/' + l.id} style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eee', overflow: 'hidden', cursor: 'pointer', transition: 'border-color 0.15s' }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = '#1D9E75')}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = '#eee')}
+                >
                   <div style={{ height: '100px', background: '#f9f9f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px', position: 'relative' }}>
                     {l.emoji}
                     <span style={{ position: 'absolute', top: '8px', left: '8px', fontSize: '10px', background: l.condition === 'New' ? '#E1F5EE' : '#E6F1FB', color: l.condition === 'New' ? '#0F6E56' : '#185FA5', padding: '2px 7px', borderRadius: '99px', fontWeight: 'bold' }}>{l.condition}</span>
