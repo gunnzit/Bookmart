@@ -4,7 +4,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { useUser, SignInButton } from '@clerk/nextjs'
 
 export default function ListingPage() {
-  const { id } = useParams()
+  const params = useParams()
+  const id = params.id as string
   const router = useRouter()
   const { isSignedIn } = useUser()
   const [listing, setListing] = useState<any>(null)
