@@ -1,7 +1,6 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useSession, signIn } from 'next-auth/react'
 
 const categories = ['textbook', 'novel', 'notebook', 'art', 'stationery', 'competitive']
 const conditions = ['New', 'Good', 'Fair']
@@ -12,7 +11,6 @@ const emojis: Record<string, string> = {
 
 export default function SellPage() {
   const router = useRouter()
-  const { data: session } = useSession()
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
   const [form, setForm] = useState({
@@ -23,21 +21,6 @@ export default function SellPage() {
 
   function update(field: string, value: string) {
     setForm(prev => ({ ...prev, [field]: value }))
-  }
-
-  if (!session) {
-    return (
-      <div style={{ fontFamily: 'sans-serif', minHeight: '100vh', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ background: '#fff', borderRadius: '16px', padding: '40px', textAlign: 'center', maxWidth: '360px', width: '100%' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔒</div>
-          <h2 style={{ marginBottom: '8px', color: '#333' }}>Sign in to sell</h2>
-          <p style={{ color: '#888', fontSize: '14px', marginBottom: '24px' }}>You need to be signed in to post a listing.</p>
-          <button onClick={() => signIn('google')} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '8px', padding: '12px 24px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', width: '100%' }}>
-            Sign in with Google
-          </button>
-        </div>
-      </div>
-    )
   }
 
   if (done) {
@@ -93,9 +76,7 @@ export default function SellPage() {
       <div style={{ background: '#fff', borderBottom: '1px solid #eee', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
         <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>←</button>
         <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#1D9E75' }}>📚 Post a listing</span>
-        <span style={{ marginLeft: 'auto', fontSize: '13px', color: '#555' }}>Hi, {session.user?.name?.split(' ')[0]}</span>
       </div>
-
       <div style={{ maxWidth: '520px', margin: '20px auto', padding: '0 16px' }}>
         <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eee', padding: '20px', marginBottom: '12px' }}>
           <div style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '14px', color: '#333' }}>📝 Item details</div>
@@ -117,7 +98,7 @@ export default function SellPage() {
               ))}
             </div>
           </div>
-          <div style={{ marginBottom: '0' }}>
+          <div>
             <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '8px' }}>Condition *</label>
             <div style={{ display: 'flex', gap: '8px' }}>
               {conditions.map(c => (
@@ -128,7 +109,6 @@ export default function SellPage() {
             </div>
           </div>
         </div>
-
         <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eee', padding: '20px', marginBottom: '12px' }}>
           <div style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '14px', color: '#333' }}>💰 Pricing</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -142,12 +122,10 @@ export default function SellPage() {
             </div>
           </div>
         </div>
-
         <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eee', padding: '20px', marginBottom: '20px' }}>
           <div style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '14px', color: '#333' }}>📍 Location</div>
           <input value={form.location} onChange={e => update('location', e.target.value)} placeholder="e.g. Sector 40, Chandigarh" style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '13px', boxSizing: 'border-box' }} />
         </div>
-
         <button onClick={submit} disabled={loading} style={{ width: '100%', background: loading ? '#aaa' : '#1D9E75', color: '#fff', border: 'none', borderRadius: '10px', padding: '14px', fontSize: '15px', fontWeight: 'bold', cursor: loading ? 'not-allowed' : 'pointer', marginBottom: '30px' }}>
           {loading ? 'Posting...' : '🚀 Post listing'}
         </button>
