@@ -59,10 +59,10 @@ export default function SellPage() {
       const ext = file.name.split('.').pop()
       const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
       const { error } = await supabase.storage
-        .from('listings')
+        .from('Listings')
         .upload(fileName, file, { cacheControl: '3600', upsert: false })
       if (error) throw new Error('Image upload failed: ' + error.message)
-      const { data } = supabase.storage.from('listings').getPublicUrl(fileName)
+      const { data } = supabase.storage.from('Listings').getPublicUrl(fileName)
       urls.push(data.publicUrl)
     }
     setUploadProgress('')
