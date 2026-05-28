@@ -7,11 +7,12 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  context: any
 ) {
   try {
+    const { id } = await context.params
     const listing = await prisma.listing.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { seller: true },
     })
     if (!listing) {
