@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useUser } from '@clerk/nextjs'
 
 const categories = ['textbook', 'novel', 'notebook', 'art', 'stationery', 'competitive']
 const conditions = ['New', 'Good', 'Fair']
@@ -11,6 +12,7 @@ const emojis: Record<string, string> = {
 
 export default function SellPage() {
   const router = useRouter()
+  const { isSignedIn, user } = useUser()
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
   const [form, setForm] = useState({
@@ -60,7 +62,7 @@ export default function SellPage() {
           category: form.category,
           emoji: emojis[form.category],
           location: form.location,
-          sellerId: 'user_001',
+         sellerId: user?.id || 'user_001',
         }),
       })
       if (res.ok) { setDone(true) }

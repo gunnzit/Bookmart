@@ -6,6 +6,19 @@ const cats = ['All', 'textbook', 'novel', 'notebook', 'art', 'stationery', 'comp
 
 export default function Home() {
   const { isSignedIn, user } = useUser()
+  useEffect(() => {
+  if (isSignedIn && user) {
+    fetch('/api/user', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        clerkId: user.id,
+        name: user.fullName,
+        email: user.primaryEmailAddress?.emailAddress,
+      })
+    })
+  }
+}, [isSignedIn, user])
   const [listings, setListings] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [activeCat, setActiveCat] = useState('All')
