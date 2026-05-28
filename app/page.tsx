@@ -31,20 +31,28 @@ export default function Home() {
   }, [isSignedIn, user])
 
   useEffect(() => {
-    fetch('/api/listings')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setListings(data)
-        } else {
-          setError('Could not load listings')
-        }
-        setLoading(false)
-      })
-      .catch(() => {
-        setError('Could not connect to database')
-        setLoading(false)
-      })
+    function fetchListings() {
+      setLoading(true)
+      fetch('/api/listings', { cache: 'no-store' })
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setListings(data)
+          } else {
+            setError('Could not load listings')
+          }
+          setLoading(false)
+        })
+        .catch(() => {
+          setError('Could not connect to database')
+          setLoading(false)
+        })
+    }
+
+    fetchListings()
+
+    window.addEventListener('focus', fetchListings)
+    return () => window.removeEventListener('focus', fetchListings)
   }, [])
 
   useEffect(() => {
