@@ -105,7 +105,7 @@ export default function LandingPage() {
             {isSignedIn ? (
   <button className="btn-outline" onClick={() => router.push('/sell')}>Sell your books</button>
 ) : (
-  <SignInButton mode="modal" afterSignInUrl="/sell">
+  <SignInButton mode="modal">
     <button className="btn-outline">Sell your books</button>
   </SignInButton>
 )}
