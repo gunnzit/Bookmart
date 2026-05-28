@@ -35,20 +35,24 @@ export async function PATCH(request: Request, context: any) {
   try {
     const { id } = await context.params
     const body = await request.json()
+
+    // Build update object with only fields that were sent
+    const data: any = {}
+    if (body.title !== undefined) data.title = body.title
+    if (body.subtitle !== undefined) data.subtitle = body.subtitle
+    if (body.price !== undefined) data.price = Number(body.price)
+    if (body.origPrice !== undefined) data.origPrice = body.origPrice ? Number(body.origPrice) : null
+    if (body.condition !== undefined) data.condition = body.condition
+    if (body.location !== undefined) data.location = body.location
+    if (body.sold !== undefined) data.sold = body.sold
+
     const listing = await prisma.listing.update({
       where: { id },
-      data: {
-  title: body.title,
-  subtitle: body.subtitle,
-  price: Number(body.price),
-  origPrice: body.origPrice ? Number(body.origPrice) : null,
-  condition: body.condition,
-  location: body.location,
-  sold: body.sold !== undefined ? body.sold : undefined,
-},
+      data,
     })
     return NextResponse.json(listing)
   } catch (error) {
+    console.error('PATCH error:', error)
     return NextResponse.json({ error: String(error) }, { status: 500 })
   }
 }
