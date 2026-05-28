@@ -199,7 +199,7 @@ export default function LandingPage() {
                 {isSignedIn ? (
                  <button className="btn-green" onClick={() => router.push('/sell')}>Start selling for free →</button>
                  ) : (
-                  <SignInButton mode="modal" afterSignInUrl="/sell">
+                  <SignInButton mode="modal">
                   <button className="btn-green">Start selling for free →</button>
                  </SignInButton>
                   )}
