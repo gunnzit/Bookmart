@@ -4,16 +4,25 @@ import { useState, useEffect } from 'react'
 const cats = ['All', 'textbook', 'novel', 'notebook', 'art', 'stationery', 'competitive']
 
 export default function Home() {
-  const [listings, setListings] = useState([])
+  const [listings, setListings] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [activeCat, setActiveCat] = useState('All')
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     fetch('/api/listings')
       .then(res => res.json())
       .then(data => {
-        setListings(data)
+        if (Array.isArray(data)) {
+          setListings(data)
+        } else {
+          setError('Could not load listings')
+        }
+        setLoading(false)
+      })
+      .catch(() => {
+        setError('Could not connect to database')
         setLoading(false)
       })
   }, [])
@@ -55,6 +64,13 @@ export default function Home() {
       <div style={{ padding: '16px 20px' }}>
         {loading ? (
           <p style={{ color: '#888', fontSize: '14px' }}>Loading listings...</p>
+        ) : error ? (
+          <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', textAlign: 'center' }}>
+            <p style={{ color: '#E24B4A', fontSize: '14px', marginBottom: '8px' }}>⚠️ {error}</p>
+            <button onClick={() => window.location.reload()} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontSize: '13px' }}>
+              Try again
+            </button>
+          </div>
         ) : (
           <>
             <p style={{ fontSize: '12px', color: '#888', marginBottom: '12px' }}>{filtered.length} listings found</p>

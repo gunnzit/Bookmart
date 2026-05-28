@@ -1,99 +1,135 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
-const cats = ['All', 'textbook', 'novel', 'notebook', 'art', 'stationery', 'competitive']
+const categories = ['textbook', 'novel', 'notebook', 'art', 'stationery', 'competitive']
+const conditions = ['New', 'Good', 'Fair']
+const emojis: Record<string, string> = {
+  textbook: '📗',  novel: '📘', notebook: '📓',
+  art: '🎨', stationery: '✏️', competitive: '📙'
+}
 
-export default function Home() {
-  const [listings, setListings] = useState([])
-  const [search, setSearch] = useState('')
-  const [activeCat, setActiveCat] = useState('All')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState('')
-
-  useEffect(() => {
-    fetch('/api/listings')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          setListings(data)
-        } else {
-          setError('Could not load listings')
-        }
-        setLoading(false)
-      })
-      .catch(() => {
-        setError('Could not connect to database')
-        setLoading(false)
-      })
-  }, [])
-
-  const filtered = listings.filter((l: any) => {
-    const matchCat = activeCat === 'All' || l.category === activeCat
-    const matchSearch = l.title.toLowerCase().includes(search.toLowerCase())
-    return matchCat && matchSearch
+export default function SellPage() {
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
+  const [done, setDone] = useState(false)
+  const [form, setForm] = useState({
+    title: '', subtitle: '', price: '',
+    origPrice: '', condition: 'Good',
+    category: 'textbook', location: '',
   })
+
+  function update(field: string, value: string) {
+    setForm(prev => ({ ...prev, [field]: value }))
+  }
+
+  if (done) {
+    return (
+      <div style={{ fontFamily: 'sans-serif', minHeight: '100vh', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ background: '#fff', borderRadius: '16px', padding: '40px', textAlign: 'center', maxWidth: '360px', width: '100%' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
+          <h2 style={{ color: '#1D9E75', marginBottom: '8px' }}>Listing posted!</h2>
+          <p style={{ color: '#888', fontSize: '14px', marginBottom: '24px' }}>Your item is now live on BookMart.</p>
+          <button onClick={() => router.push('/')} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '8px', padding: '12px 24px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', width: '100%', marginBottom: '10px' }}>
+            View marketplace
+          </button>
+          <button onClick={() => { setDone(false); setForm({ title: '', subtitle: '', price: '', origPrice: '', condition: 'Good', category: 'textbook', location: '' }) }} style={{ background: 'transparent', color: '#1D9E75', border: '1px solid #1D9E75', borderRadius: '8px', padding: '12px 24px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', width: '100%' }}>
+            Post another listing
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  async function submit() {
+    if (!form.title || !form.price || !form.location) {
+      alert('Please fill in title, price and location')
+      return
+    }
+    setLoading(true)
+    try {
+      const res = await fetch('/api/listings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: form.title,
+          subtitle: form.subtitle,
+          price: parseInt(form.price),
+          origPrice: form.origPrice ? parseInt(form.origPrice) : null,
+          condition: form.condition,
+          category: form.category,
+          emoji: emojis[form.category],
+          location: form.location,
+          sellerId: 'user_001',
+        }),
+      })
+      if (res.ok) { setDone(true) }
+      else { alert('Something went wrong. Try again.') }
+    } catch {
+      alert('Could not connect. Try again.')
+    }
+    setLoading(false)
+  }
 
   return (
     <div style={{ fontFamily: 'sans-serif', background: '#f5f5f5', minHeight: '100vh' }}>
-
       <div style={{ background: '#fff', borderBottom: '1px solid #eee', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1D9E75' }}>📚 BookMart</span>
-        <input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search books, notebooks, stationery…"
-          style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '13px' }}
-        />
-        <button onClick={() => window.location.href = '/sell'} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: 'bold', cursor: 'pointer' }}>
-          + Sell
-        </button>
+        <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>←</button>
+        <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#1D9E75' }}>📚 Post a listing</span>
       </div>
-
-      <div style={{ background: '#fff', borderBottom: '1px solid #eee', padding: '0 20px', display: 'flex', gap: '4px', overflowX: 'auto' }}>
-        {cats.map(cat => (
-          <button key={cat} onClick={() => setActiveCat(cat)} style={{
-            padding: '10px 16px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '13px',
-            borderBottom: activeCat === cat ? '2px solid #1D9E75' : '2px solid transparent',
-            color: activeCat === cat ? '#1D9E75' : '#888',
-            fontWeight: activeCat === cat ? 'bold' : 'normal',
-            whiteSpace: 'nowrap', textTransform: 'capitalize'
-          }}>{cat}</button>
-        ))}
-      </div>
-
-      <div style={{ padding: '16px 20px' }}>
-        {loading ? (
-          <p style={{ color: '#888', fontSize: '14px' }}>Loading listings...</p>
-        ) : error ? (
-          <div style={{ background: '#fff', borderRadius: '12px', padding: '24px', textAlign: 'center' }}>
-            <p style={{ color: '#E24B4A', fontSize: '14px', marginBottom: '8px' }}>⚠️ {error}</p>
-            <button onClick={() => window.location.reload()} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', cursor: 'pointer', fontSize: '13px' }}>
-              Try again
-            </button>
+      <div style={{ maxWidth: '520px', margin: '20px auto', padding: '0 16px' }}>
+        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eee', padding: '20px', marginBottom: '12px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '14px', color: '#333' }}>📝 Item details</div>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '5px' }}>Title *</label>
+            <input value={form.title} onChange={e => update('title', e.target.value)} placeholder="e.g. NCERT Physics Part 1 — Class 12" style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '13px', boxSizing: 'border-box' }} />
           </div>
-        ) : (
-          <>
-            <p style={{ fontSize: '12px', color: '#888', marginBottom: '12px' }}>{filtered.length} listings found</p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
-              {filtered.map((l: any) => (
-                <div key={l.id} style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eee', overflow: 'hidden', cursor: 'pointer' }}>
-                  <div style={{ height: '100px', background: '#f9f9f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px', position: 'relative' }}>
-                    {l.emoji}
-                    <span style={{ position: 'absolute', top: '8px', left: '8px', fontSize: '10px', background: l.condition === 'New' ? '#E1F5EE' : '#E6F1FB', color: l.condition === 'New' ? '#0F6E56' : '#185FA5', padding: '2px 7px', borderRadius: '99px', fontWeight: 'bold' }}>{l.condition}</span>
-                  </div>
-                  <div style={{ padding: '10px 12px' }}>
-                    <div style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.title}</div>
-                    <div style={{ fontSize: '11px', color: '#888', marginBottom: '6px' }}>{l.subtitle}</div>
-                    <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#1D9E75' }}>₹{l.price} <span style={{ fontSize: '11px', color: '#aaa', textDecoration: 'line-through', fontWeight: 'normal' }}>₹{l.origPrice}</span></div>
-                    <div style={{ fontSize: '10px', color: '#aaa', marginTop: '6px' }}>📍 {l.location} · {l.seller?.name}</div>
-                  </div>
-                </div>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '5px' }}>Subtitle (optional)</label>
+            <input value={form.subtitle} onChange={e => update('subtitle', e.target.value)} placeholder="e.g. 2023 edition, lightly used" style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '13px', boxSizing: 'border-box' }} />
+          </div>
+          <div style={{ marginBottom: '12px' }}>
+            <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '8px' }}>Category *</label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+              {categories.map(cat => (
+                <button key={cat} onClick={() => update('category', cat)} style={{ padding: '8px', borderRadius: '8px', border: form.category === cat ? '2px solid #1D9E75' : '1px solid #ddd', background: form.category === cat ? '#E1F5EE' : '#fff', cursor: 'pointer', fontSize: '12px', color: form.category === cat ? '#0F6E56' : '#555', fontWeight: form.category === cat ? 'bold' : 'normal', textTransform: 'capitalize' }}>
+                  {emojis[cat]} {cat}
+                </button>
               ))}
             </div>
-          </>
-        )}
+          </div>
+          <div>
+            <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '8px' }}>Condition *</label>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {conditions.map(c => (
+                <button key={c} onClick={() => update('condition', c)} style={{ flex: 1, padding: '8px', borderRadius: '8px', border: form.condition === c ? '2px solid #1D9E75' : '1px solid #ddd', background: form.condition === c ? '#E1F5EE' : '#fff', cursor: 'pointer', fontSize: '12px', color: form.condition === c ? '#0F6E56' : '#555', fontWeight: form.condition === c ? 'bold' : 'normal' }}>
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eee', padding: '20px', marginBottom: '12px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '14px', color: '#333' }}>💰 Pricing</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div>
+              <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '5px' }}>Your price (₹) *</label>
+              <input type="number" value={form.price} onChange={e => update('price', e.target.value)} placeholder="180" style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '13px', boxSizing: 'border-box' }} />
+            </div>
+            <div>
+              <label style={{ fontSize: '12px', color: '#888', display: 'block', marginBottom: '5px' }}>Original price (₹)</label>
+              <input type="number" value={form.origPrice} onChange={e => update('origPrice', e.target.value)} placeholder="320" style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '13px', boxSizing: 'border-box' }} />
+            </div>
+          </div>
+        </div>
+        <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eee', padding: '20px', marginBottom: '20px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '14px', color: '#333' }}>📍 Location</div>
+          <input value={form.location} onChange={e => update('location', e.target.value)} placeholder="e.g. Sector 40, Chandigarh" style={{ width: '100%', padding: '9px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '13px', boxSizing: 'border-box' }} />
+        </div>
+        <button onClick={submit} disabled={loading} style={{ width: '100%', background: loading ? '#aaa' : '#1D9E75', color: '#fff', border: 'none', borderRadius: '10px', padding: '14px', fontSize: '15px', fontWeight: 'bold', cursor: loading ? 'not-allowed' : 'pointer', marginBottom: '30px' }}>
+          {loading ? 'Posting...' : '🚀 Post listing'}
+        </button>
       </div>
-
     </div>
   )
 }
