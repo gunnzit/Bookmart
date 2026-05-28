@@ -11,7 +11,7 @@ export default function ListingPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch(`/api/listings/${id}`)
+    fetch('/api/listings/' + id)
       .then(res => res.json())
       .then(data => {
         setListing(data)
@@ -33,11 +33,12 @@ export default function ListingPage() {
   )
 
   const discount = listing.origPrice ? Math.round((1 - listing.price / listing.origPrice) * 100) : 0
+  const waText = 'Hi, I am interested in your listing on BookMart: ' + listing.title + ' for Rs.' + listing.price
+  const waLink = 'https://wa.me/?text=' + encodeURIComponent(waText)
 
   return (
     <div style={{ fontFamily: 'sans-serif', background: '#f5f5f5', minHeight: '100vh' }}>
 
-      {/* Top bar */}
       <div style={{ background: '#fff', borderBottom: '1px solid #eee', padding: '12px 20px', display: 'flex', alignItems: 'center', gap: '12px' }}>
         <button onClick={() => router.push('/')} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>←</button>
         <span style={{ fontSize: '16px', fontWeight: 'bold', color: '#1D9E75' }}>📚 BookMart</span>
@@ -45,7 +46,6 @@ export default function ListingPage() {
 
       <div style={{ maxWidth: '600px', margin: '16px auto', padding: '0 16px' }}>
 
-        {/* Photo */}
         <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eee', overflow: 'hidden', marginBottom: '12px' }}>
           <div style={{ height: '220px', background: '#f9f9f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '80px', position: 'relative' }}>
             {listing.emoji}
@@ -60,7 +60,6 @@ export default function ListingPage() {
           </div>
         </div>
 
-        {/* Price & title */}
         <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eee', padding: '16px', marginBottom: '12px' }}>
           <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#333', marginBottom: '4px' }}>{listing.title}</div>
           <div style={{ fontSize: '13px', color: '#888', marginBottom: '12px' }}>{listing.subtitle}</div>
@@ -75,7 +74,6 @@ export default function ListingPage() {
           </div>
         </div>
 
-        {/* Seller */}
         <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eee', padding: '16px', marginBottom: '12px' }}>
           <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#333', marginBottom: '12px' }}>Seller</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
@@ -89,12 +87,7 @@ export default function ListingPage() {
           </div>
 
           {isSignedIn ? (
-            
-              href={`https://wa.me/?text=Hi, I'm interested in your listing "${listing.title}" for ₹${listing.price} on BookMart`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ display: 'block', background: '#25D366', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'center', textDecoration: 'none', marginBottom: '8px' }}
-            >
+            <a href={waLink} target="_blank" rel="noopener noreferrer" style={{ display: 'block', background: '#25D366', color: '#fff', borderRadius: '10px', padding: '12px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'center', textDecoration: 'none', marginBottom: '8px' }}>
               💬 Contact on WhatsApp
             </a>
           ) : (
@@ -105,15 +98,11 @@ export default function ListingPage() {
             </SignInButton>
           )}
 
-          <button
-            onClick={() => router.push('/')}
-            style={{ width: '100%', background: 'transparent', color: '#1D9E75', border: '1px solid #1D9E75', borderRadius: '10px', padding: '12px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}
-          >
-            ← Back to listings
+          <button onClick={() => router.push('/')} style={{ width: '100%', background: 'transparent', color: '#1D9E75', border: '1px solid #1D9E75', borderRadius: '10px', padding: '12px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>
+            Back to listings
           </button>
         </div>
 
-        {/* Safety */}
         <div style={{ background: '#E1F5EE', borderRadius: '12px', padding: '12px 16px', marginBottom: '20px', display: 'flex', gap: '10px' }}>
           <span style={{ fontSize: '20px' }}>🛡️</span>
           <div>
