@@ -34,6 +34,7 @@ export async function POST(request: Request) {
         emoji: body.emoji || '📗',
         location: body.location,
         sellerId: body.sellerId,
+        images: body.images || [],
       },
     })
     return NextResponse.json(listing)
