@@ -57,6 +57,15 @@ export default function ProfilePage() {
     setListings(listings.filter(l => l.id !== id))
   }
 
+  async function toggleSold(id: string, currentSold: boolean) {
+    await fetch('/api/listings/' + id, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sold: !currentSold }),
+    })
+    setListings(listings.map(l => l.id === id ? { ...l, sold: !currentSold } : l))
+  }
+
   if (!isSignedIn) {
     return (
       <div style={{ fontFamily: 'sans-serif', padding: '60px 20px', textAlign: 'center' }}>
@@ -158,17 +167,28 @@ export default function ProfilePage() {
                   </div>
                 ) : (
                   <div style={{ display: 'flex', gap: '12px', padding: '12px 14px', alignItems: 'center' }}>
-                    <div style={{ width: '52px', height: '52px', background: '#f9f9f9', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0 }}>
+                    <div style={{ width: '52px', height: '52px', background: '#f9f9f9', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, position: 'relative' }}>
                       {l.emoji}
+                      {l.sold && (
+                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: '8px', fontWeight: 'bold', color: '#fff', letterSpacing: '1px' }}>SOLD</span>
+                        </div>
+                      )}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.title}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                        <div style={{ fontSize: '13px', fontWeight: 'bold', color: l.sold ? '#aaa' : '#333', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.title}</div>
+                        {l.sold && <span style={{ fontSize: '9px', fontWeight: 'bold', background: '#E24B4A', color: '#fff', padding: '2px 6px', borderRadius: '99px', flexShrink: 0 }}>SOLD</span>}
+                      </div>
                       <div style={{ fontSize: '11px', color: '#888' }}>{l.condition} · {l.location}</div>
-                      <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#1D9E75', marginTop: '2px' }}>₹{l.price}</div>
+                      <div style={{ fontSize: '14px', fontWeight: 'bold', color: l.sold ? '#aaa' : '#1D9E75', marginTop: '2px' }}>₹{l.price}</div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0 }}>
-                      <button onClick={() => startEdit(l)} style={{ background: '#E6F1FB', color: '#185FA5', border: 'none', borderRadius: '6px', padding: '5px 12px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>✏️ Edit</button>
-                      <button onClick={() => handleDelete(l.id)} style={{ background: '#FDECEA', color: '#E24B4A', border: 'none', borderRadius: '6px', padding: '5px 12px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>🗑️ Delete</button>
+                      <button onClick={() => toggleSold(l.id, l.sold)} style={{ background: l.sold ? '#FFF3CD' : '#E1F5EE', color: l.sold ? '#856404' : '#0F6E56', border: 'none', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                        {l.sold ? '🔄 Relist' : '✅ Mark sold'}
+                      </button>
+                      <button onClick={() => startEdit(l)} style={{ background: '#E6F1FB', color: '#185FA5', border: 'none', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>✏️ Edit</button>
+                      <button onClick={() => handleDelete(l.id)} style={{ background: '#FDECEA', color: '#E24B4A', border: 'none', borderRadius: '6px', padding: '5px 10px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>🗑️ Delete</button>
                     </div>
                   </div>
                 )}
@@ -177,7 +197,6 @@ export default function ProfilePage() {
             ))}
           </div>
         )}
-
       </div>
     </div>
   )

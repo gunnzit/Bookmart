@@ -36,13 +36,14 @@ export async function PATCH(request: Request, context: any) {
     const listing = await prisma.listing.update({
       where: { id },
       data: {
-        title: body.title,
-        subtitle: body.subtitle,
-        price: Number(body.price),
-        origPrice: body.origPrice ? Number(body.origPrice) : null,
-        condition: body.condition,
-        location: body.location,
-      },
+  title: body.title,
+  subtitle: body.subtitle,
+  price: Number(body.price),
+  origPrice: body.origPrice ? Number(body.origPrice) : null,
+  condition: body.condition,
+  location: body.location,
+  sold: body.sold !== undefined ? body.sold : undefined,
+},
     })
     return NextResponse.json(listing)
   } catch (error) {
