@@ -100,8 +100,16 @@ export default function SellPage() {
           images: imageUrls,
         }),
       })
-      if (res.ok) setDone(true)
-      else alert('Something went wrong. Try again.')
+      if (res.ok) {
+  setDone(true)
+} else {
+  const data = await res.json()
+  if (data.error === 'listing_rejected') {
+    alert('❌ Listing not approved\n\n' + data.reason)
+  } else {
+    alert('Something went wrong. Try again.')
+  }
+}
     } catch (err: any) { alert(err.message || 'Could not connect.') }
     setLoading(false)
   }
