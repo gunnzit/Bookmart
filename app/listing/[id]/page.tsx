@@ -16,6 +16,7 @@ export default function ListingPage() {
   const [deleting, setDeleting] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<any>({})
+  const [activeImg, setActiveImg] = useState(0)
 
   useEffect(() => {
     fetch('/api/listings/' + id)
@@ -87,9 +88,9 @@ export default function ListingPage() {
 
         <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eee', overflow: 'hidden', marginBottom: '12px' }}>
          <div style={{ height: '220px', background: '#f9f9f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '80px', position: 'relative', overflow: 'hidden' }}>
-               {listing.images?.[0]
-                   ? <img src={listing.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                     : listing.emoji}
+              {listing.images?.[0]
+                 ? <img src={listing.images[activeImg]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                 : listing.emoji}
             <span style={{ position: 'absolute', top: '12px', left: '12px', fontSize: '11px', fontWeight: 'bold', background: listing.condition === 'New' ? '#E1F5EE' : '#E6F1FB', color: listing.condition === 'New' ? '#0F6E56' : '#185FA5', padding: '3px 10px', borderRadius: '99px' }}>
               {listing.condition}
             </span>
@@ -109,9 +110,9 @@ export default function ListingPage() {
       
        {listing.images?.length > 1 && (
   <div style={{ display: 'flex', gap: '8px', padding: '10px', background: '#fff' }}>
-    {listing.images.map((img: string, i: number) => (
-      <img key={i} src={img} style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '6px', border: '1px solid #eee' }} />
-    ))}
+   {listing.images.map((img: string, i: number) => (
+  <img key={i} src={img} onClick={() => setActiveImg(i)} style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '6px', border: activeImg === i ? '2px solid #1D9E75' : '1px solid #eee', cursor: 'pointer' }} />
+))}
   </div>
 )}
 
