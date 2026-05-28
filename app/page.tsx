@@ -1,10 +1,12 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { useUser, SignInButton, UserButton } from '@clerk/nextjs'
+import { useRouter } from 'next/navigation'
 
 const cats = ['All', 'textbook', 'novel', 'notebook', 'art', 'stationery', 'competitive']
 
 export default function Home() {
+  const router = useRouter()
   const { isSignedIn, user } = useUser()
   const [listings, setListings] = useState<any[]>([])
   const [search, setSearch] = useState('')
@@ -121,7 +123,7 @@ export default function Home() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {isSignedIn ? (
             <>
-              <span style={{ fontSize: '13px', color: '#555' }}>Hi, {user?.firstName}</span>
+              <span onClick={() => router.push('/profile')} style={{ fontSize: '13px', color: '#1D9E75', cursor: 'pointer', fontWeight: 'bold', textDecoration: 'underline' }}>Hi, {user?.firstName}</span>
               <button onClick={() => window.location.href = '/sell'} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: 'bold', cursor: 'pointer' }}>+ Sell</button>
               <UserButton />
             </>
