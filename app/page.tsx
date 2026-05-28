@@ -51,7 +51,7 @@ export default function Home() {
             <>
               <span style={{ fontSize: '13px', color: '#555' }}>Hi, {user?.firstName}</span>
               <button onClick={() => window.location.href = '/sell'} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: 'bold', cursor: 'pointer' }}>+ Sell</button>
-              <UserButton afterSignOutUrl="/" />
+              <UserButton />
             </>
           ) : (
             <SignInButton mode="modal">
