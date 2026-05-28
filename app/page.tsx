@@ -1,11 +1,9 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useSession, signIn, signOut } from 'next-auth/react'
 
 const cats = ['All', 'textbook', 'novel', 'notebook', 'art', 'stationery', 'competitive']
 
 export default function Home() {
-  const { data: session } = useSession()
   const [listings, setListings] = useState([])
   const [search, setSearch] = useState('')
   const [activeCat, setActiveCat] = useState('All')
@@ -37,15 +35,9 @@ export default function Home() {
           placeholder="Search books, notebooks, stationery…"
           style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #ddd', fontSize: '13px' }}
         />
-        {session ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '13px', color: '#555' }}>Hi, {session.user?.name?.split(' ')[0]}</span>
-            <button onClick={() => window.location.href = '/sell'} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: 'bold', cursor: 'pointer' }}>+ Sell</button>
-            <button onClick={() => signOut()} style={{ background: 'transparent', color: '#888', border: '1px solid #ddd', borderRadius: '8px', padding: '8px 12px', fontSize: '12px', cursor: 'pointer' }}>Sign out</button>
-          </div>
-        ) : (
-          <button onClick={() => signIn('google')} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: 'bold', cursor: 'pointer' }}>Sign in</button>
-        )}
+        <button onClick={() => window.location.href = '/sell'} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: 'bold', cursor: 'pointer' }}>
+          + Sell
+        </button>
       </div>
 
       <div style={{ background: '#fff', borderBottom: '1px solid #eee', padding: '0 20px', display: 'flex', gap: '4px', overflowX: 'auto' }}>

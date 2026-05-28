@@ -1,14 +1,9 @@
-import NextAuth from 'next-auth'
-import Google from 'next-auth/providers/google'
+import { NextResponse } from 'next/server'
 
-const { handlers } = NextAuth({
-  providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    }),
-  ],
-  secret: process.env.NEXTAUTH_SECRET,
-})
+export async function GET() {
+  return NextResponse.json({ message: 'auth coming soon' })
+}
 
-export const { GET, POST } = handlers
+export async function POST() {
+  return NextResponse.json({ message: 'auth coming soon' })
+}
