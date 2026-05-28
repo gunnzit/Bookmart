@@ -102,7 +102,13 @@ export default function LandingPage() {
           </p>
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '56px' }}>
             <button className="btn-green" onClick={() => router.push('/marketplace')}>Browse listings →</button>
-            <button className="btn-outline" onClick={() => router.push('/sell')}>Sell your books</button>
+            {isSignedIn ? (
+  <button className="btn-outline" onClick={() => router.push('/sell')}>Sell your books</button>
+) : (
+  <SignInButton mode="modal" afterSignInUrl="/sell">
+    <button className="btn-outline">Sell your books</button>
+  </SignInButton>
+)}
           </div>
 
           {/* Stats */}
@@ -190,7 +196,13 @@ export default function LandingPage() {
               <h2 className="kalam" style={{ fontSize: '32px', color: '#fff', marginBottom: '10px' }}>Ready to declutter?</h2>
               <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.55)', marginBottom: '28px', lineHeight: 1.6 }}>Your old books are worth more than gathering dust. List them today and earn extra cash.</p>
               <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                <button className="btn-green" onClick={() => router.push('/sell')}>Start selling for free →</button>
+                {isSignedIn ? (
+                 <button className="btn-green" onClick={() => router.push('/sell')}>Start selling for free →</button>
+                 ) : (
+                  <SignInButton mode="modal" afterSignInUrl="/sell">
+                  <button className="btn-green">Start selling for free →</button>
+                 </SignInButton>
+                  )}
                 <button onClick={() => router.push('/marketplace')}
                   style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1.5px solid rgba(255,255,255,0.15)', borderRadius: '14px', padding: '13px 24px', fontSize: '15px', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontWeight: '500', transition: 'all 0.15s' }}
                   onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.14)')}
