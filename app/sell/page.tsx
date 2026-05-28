@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 const categories = ['textbook', 'novel', 'notebook', 'art', 'stationery', 'competitive']
 const conditions = ['New', 'Good', 'Fair']
 const emojis: Record<string, string> = {
-  textbook: '📗', novel: '📘', notebook: '📓',
+  textbook: '📗',  novel: '📘', notebook: '📓',
   art: '🎨', stationery: '✏️', competitive: '📙'
 }
 
