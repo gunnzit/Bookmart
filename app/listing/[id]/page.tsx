@@ -96,6 +96,12 @@ export default function ListingPage() {
                 {discount}% off
               </span>
             )}
+            {/* SOLD overlay */}
+            {listing.sold && (
+              <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ color: '#fff', fontSize: '22px', fontWeight: 'bold', letterSpacing: '3px' }}>SOLD</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -151,12 +157,17 @@ export default function ListingPage() {
           </div>
         ) : (
           <div style={{ background: '#fff', borderRadius: '12px', border: '1px solid #eee', padding: '16px', marginBottom: '12px' }}>
-            <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#333', marginBottom: '4px' }}>{listing.title}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '4px' }}>
+              <div style={{ fontSize: '18px', fontWeight: 'bold', color: listing.sold ? '#9ca3af' : '#333' }}>{listing.title}</div>
+              {listing.sold && (
+                <span style={{ background: '#ef4444', color: '#fff', fontSize: '11px', fontWeight: 'bold', padding: '3px 10px', borderRadius: '4px', letterSpacing: '0.05em', flexShrink: 0 }}>SOLD</span>
+              )}
+            </div>
             <div style={{ fontSize: '13px', color: '#888', marginBottom: '12px' }}>{listing.subtitle}</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '8px' }}>
-              <span style={{ fontSize: '28px', fontWeight: 'bold', color: '#1D9E75' }}>₹{listing.price}</span>
+              <span style={{ fontSize: '28px', fontWeight: 'bold', color: listing.sold ? '#9ca3af' : '#1D9E75' }}>₹{listing.price}</span>
               {listing.origPrice && <span style={{ fontSize: '15px', color: '#aaa', textDecoration: 'line-through' }}>₹{listing.origPrice}</span>}
-              {discount > 0 && <span style={{ fontSize: '12px', color: '#0F6E56', background: '#E1F5EE', padding: '2px 8px', borderRadius: '99px', fontWeight: 'bold' }}>Save ₹{listing.origPrice - listing.price}</span>}
+              {discount > 0 && !listing.sold && <span style={{ fontSize: '12px', color: '#0F6E56', background: '#E1F5EE', padding: '2px 8px', borderRadius: '99px', fontWeight: 'bold' }}>Save ₹{listing.origPrice - listing.price}</span>}
             </div>
             <div style={{ fontSize: '12px', color: '#888', display: 'flex', gap: '12px' }}>
               <span>📍 {listing.location}</span>
@@ -181,6 +192,10 @@ export default function ListingPage() {
             {isOwner ? (
               <div style={{ background: '#E1F5EE', borderRadius: '8px', padding: '10px 14px', fontSize: '12px', color: '#0F6E56', textAlign: 'center', fontWeight: 'bold' }}>
                 ✅ This is your listing
+              </div>
+            ) : listing.sold ? (
+              <div style={{ background: '#f5f5f5', borderRadius: '8px', padding: '12px 14px', fontSize: '13px', color: '#888', textAlign: 'center' }}>
+                🔒 This item has already been sold
               </div>
             ) : isSignedIn ? (
               <a href={waLink} target="_blank" rel="noopener noreferrer" style={{ display: 'block', background: '#25D366', color: '#fff', borderRadius: '10px', padding: '12px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'center', textDecoration: 'none', marginBottom: '8px' }}>
