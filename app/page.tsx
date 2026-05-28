@@ -197,8 +197,10 @@ export default function Home() {
                   onMouseEnter={e => (e.currentTarget.style.borderColor = '#1D9E75')}
                   onMouseLeave={e => (e.currentTarget.style.borderColor = '#eee')}
                 >
-                  <div style={{ height: '100px', background: '#f9f9f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px', position: 'relative' }}>
-                    {l.emoji}
+                  <div style={{ height: '100px', background: '#f9f9f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px', position: 'relative', overflow: 'hidden' }}>
+                   {l.images?.[0]
+                     ? <img src={l.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                     : l.emoji}
                     <span style={{ position: 'absolute', top: '8px', left: '8px', fontSize: '10px', background: l.condition === 'New' ? '#E1F5EE' : '#E6F1FB', color: l.condition === 'New' ? '#0F6E56' : '#185FA5', padding: '2px 7px', borderRadius: '99px', fontWeight: 'bold' }}>{l.condition}</span>
                     {l.sold && <span style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '16px', fontWeight: 'bold', letterSpacing: '2px' }}>SOLD</span>}
                   </div>
