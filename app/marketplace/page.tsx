@@ -69,7 +69,6 @@ export default function Marketplace() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
         :root {
           --bg: #FAFAF8; --bg-card: #FFFEF9; --bg-img: #F5F2ED; --bg-input: #FAFAF8;
           --nav-bg: #fff; --border: #EDE9E1; --text-primary: #1B2A4A;
@@ -92,7 +91,6 @@ export default function Marketplace() {
             --navy: #E8E6F0; --scrollbar: #2A2D3E;
           }
         }
-
         body { background: var(--bg); font-family: 'DM Sans', sans-serif; color: var(--text-primary); }
         .logo-text { font-family: 'Kalam', cursive; font-weight: 700; }
         .card { transition: transform 0.2s ease, box-shadow 0.2s ease; }
@@ -112,8 +110,6 @@ export default function Marketplace() {
         @keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
         .skeleton { background: linear-gradient(90deg, var(--skeleton-1) 25%, var(--skeleton-2) 50%, var(--skeleton-1) 75%); background-size: 800px 100%; animation: shimmer 1.4s infinite; }
         .suggestion-item:hover { background: var(--bg-img) !important; }
-
-        /* Mobile: 2 columns, touch-friendly */
         @media (max-width: 480px) {
           .listings-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
           .nav-search { max-width: 100% !important; }
@@ -129,23 +125,15 @@ export default function Marketplace() {
           .cat-pill { padding: 10px 10px !important; font-size: 12px !important; }
           .main-padding { padding: 12px !important; }
         }
-
-        /* Tablet: 3 columns */
         @media (min-width: 481px) and (max-width: 768px) {
           .listings-grid { grid-template-columns: repeat(3, 1fr) !important; }
           .nav-logo-text { font-size: 18px !important; }
         }
-
-        /* Bottom nav bar on mobile */
         .bottom-nav {
-          display: none;
-          position: fixed;
-          bottom: 0; left: 0; right: 0;
-          background: var(--nav-bg);
-          border-top: 1.5px solid var(--border);
+          display: none; position: fixed; bottom: 0; left: 0; right: 0;
+          background: var(--nav-bg); border-top: 1.5px solid var(--border);
           padding: 8px 0 env(safe-area-inset-bottom, 8px);
-          z-index: 100;
-          box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+          z-index: 100; box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
         }
         @media (max-width: 480px) {
           .bottom-nav { display: flex; }
@@ -198,7 +186,6 @@ export default function Marketplace() {
             )}
           </div>
 
-          {/* Desktop nav actions — hidden on mobile (replaced by bottom nav) */}
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
             {isSignedIn ? (
               <>
@@ -231,8 +218,7 @@ export default function Marketplace() {
               color: activeCat === cat ? '#1D9E75' : 'var(--text-secondary)',
               fontWeight: activeCat === cat ? '600' : '400',
               whiteSpace: 'nowrap', textTransform: 'capitalize',
-              fontFamily: 'DM Sans, sans-serif', display: 'flex', alignItems: 'center', gap: '4px',
-              flexShrink: 0,
+              fontFamily: 'DM Sans, sans-serif', display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0,
             }}>
               <span style={{ fontSize: '13px' }}>{catEmoji[cat]}</span> {cat}
             </button>
@@ -297,21 +283,23 @@ export default function Marketplace() {
           )}
         </div>
 
-        {/* Bottom nav spacer on mobile */}
         <div className="bottom-nav-spacer" />
 
-        {/* Mobile bottom navigation */}
+        {/* Mobile bottom nav — 4 buttons now including Saved */}
         <nav className="bottom-nav">
           <button className="bottom-nav-btn active" onClick={() => router.push('/marketplace')}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
             Browse
           </button>
-          <button className="bottom-nav-btn" onClick={() => window.location.href = '/sell'}
-            style={{ color: '#1D9E75' }}>
+          <button className="bottom-nav-btn" onClick={() => window.location.href = '/sell'} style={{ color: '#1D9E75' }}>
             <div style={{ width: '40px', height: '40px', background: '#1D9E75', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '-4px', boxShadow: '0 4px 12px rgba(29,158,117,0.4)' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             </div>
             Sell
+          </button>
+          <button className="bottom-nav-btn" onClick={() => router.push('/wishlist')}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            Saved
           </button>
           <button className="bottom-nav-btn" onClick={() => isSignedIn ? router.push('/profile') : null}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>

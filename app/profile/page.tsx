@@ -72,59 +72,31 @@ export default function ProfilePage() {
   const styles = `
     @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg: #FAFAF8;
-      --bg-card: #FFFEF9;
-      --bg-input: #FAFAF8;
-      --bg-input-prefix: #f5f5f5;
-      --nav-bg: #fff;
-      --border: #EDE9E1;
-      --text-primary: #1B2A4A;
-      --text-secondary: #888;
-      --text-muted: #bbb;
-      --text-label: #888;
-      --shadow-nav: 0 2px 12px rgba(27,42,74,0.05);
-      --shadow-card: 0 2px 8px rgba(27,42,74,0.04);
-      --divider: #f5f5f5;
-      --listing-img-bg: #f9f9f9;
-      --condition-bg: #fff;
-      --condition-active: #E1F5EE;
-      --cancel-bg: transparent;
-      --relist-bg: #FFF3CD;
-      --relist-color: #856404;
+      --bg: #FAFAF8; --bg-card: #FFFEF9; --bg-input: #FAFAF8; --bg-input-prefix: #f5f5f5;
+      --nav-bg: #fff; --border: #EDE9E1; --text-primary: #1B2A4A; --text-secondary: #888;
+      --text-muted: #bbb; --text-label: #888; --shadow-nav: 0 2px 12px rgba(27,42,74,0.05);
+      --shadow-card: 0 2px 8px rgba(27,42,74,0.04); --divider: #f5f5f5;
+      --listing-img-bg: #f9f9f9; --condition-bg: #fff; --condition-active: #E1F5EE;
+      --cancel-bg: transparent; --relist-bg: #FFF3CD; --relist-color: #856404;
     }
-
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #0F1117;
-        --bg-card: #1A1D27;
-        --bg-input: #1A1D27;
-        --bg-input-prefix: #242736;
-        --nav-bg: #13151F;
-        --border: #2A2D3E;
-        --text-primary: #E8E6F0;
-        --text-secondary: #8B8FA8;
-        --text-muted: #555878;
-        --text-label: #6B6F88;
-        --shadow-nav: 0 2px 12px rgba(0,0,0,0.3);
-        --shadow-card: 0 2px 8px rgba(0,0,0,0.2);
-        --divider: #2A2D3E;
-        --listing-img-bg: #242736;
-        --condition-bg: #242736;
-        --condition-active: #0F2D1F;
-        --cancel-bg: #1A1D27;
-        --relist-bg: #2A2510;
-        --relist-color: #D4A017;
+        --bg: #0F1117; --bg-card: #1A1D27; --bg-input: #1A1D27; --bg-input-prefix: #242736;
+        --nav-bg: #13151F; --border: #2A2D3E; --text-primary: #E8E6F0; --text-secondary: #8B8FA8;
+        --text-muted: #555878; --text-label: #6B6F88; --shadow-nav: 0 2px 12px rgba(0,0,0,0.3);
+        --shadow-card: 0 2px 8px rgba(0,0,0,0.2); --divider: #2A2D3E;
+        --listing-img-bg: #242736; --condition-bg: #242736; --condition-active: #0F2D1F;
+        --cancel-bg: #1A1D27; --relist-bg: #2A2510; --relist-color: #D4A017;
       }
     }
-
     body { background: var(--bg); font-family: 'DM Sans', sans-serif; color: var(--text-primary); }
     .kalam { font-family: 'Kalam', cursive; }
     input { color: var(--text-primary) !important; font-weight: 500; background: var(--bg-input); }
     input::placeholder { color: var(--text-muted) !important; font-weight: 400; }
     input:focus { outline: none !important; border-color: #1D9E75 !important; box-shadow: 0 0 0 3px rgba(29,158,117,0.1) !important; }
     .back-btn:hover { background: var(--bg) !important; }
+    .wishlist-btn:hover { background: #FEF2F2 !important; border-color: #FCA5A5 !important; }
   `
 
   if (!isSignedIn) return (
@@ -145,12 +117,17 @@ export default function ProfilePage() {
       <style>{styles}</style>
       <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
 
-        <nav style={{ background: 'var(--nav-bg)', borderBottom: '1.5px solid var(--border)', padding: '0 24px', height: '64px', display: 'flex', alignItems: 'center', gap: '12px', position: 'sticky', top: 0, zIndex: 50, boxShadow: 'var(--shadow-nav)' }}>
-          <button className="back-btn" onClick={() => router.push('/marketplace')} style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', width: '38px', height: '38px', borderRadius: '12px', cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)', transition: 'all 0.15s' }}>←</button>
+        <nav style={{ background: 'var(--nav-bg)', borderBottom: '1.5px solid var(--border)', padding: '0 24px', height: '64px', display: 'flex', alignItems: 'center', gap: '10px', position: 'sticky', top: 0, zIndex: 50, boxShadow: 'var(--shadow-nav)' }}>
+          <button className="back-btn" onClick={() => router.push('/marketplace')} style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', width: '38px', height: '38px', borderRadius: '12px', cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)', transition: 'all 0.15s', flexShrink: 0 }}>←</button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <img src="/logo.png" alt="BookMart" style={{ height: '32px', width: 'auto' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
             <span className="kalam" style={{ fontSize: '16px', fontWeight: '700', color: '#1D9E75' }}>My Profile</span>
           </div>
+          {/* Wishlist button */}
+          <button className="wishlist-btn" onClick={() => router.push('/wishlist')}
+            style={{ marginLeft: 'auto', background: 'var(--bg-card)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '7px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.15s' }}>
+            ❤️ <span>Wishlist</span>
+          </button>
         </nav>
 
         <div style={{ maxWidth: '600px', margin: '20px auto', padding: '0 16px 40px' }}>
@@ -208,11 +185,9 @@ export default function ProfilePage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {listings.map(l => (
                 <div key={l.id} style={{ background: 'var(--bg-card)', borderRadius: '16px', border: editingId === l.id ? '2px solid #1D9E75' : '1.5px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
-
                   {editingId === l.id ? (
                     <div style={{ padding: '16px' }}>
                       <div className="kalam" style={{ fontSize: '14px', fontWeight: '700', color: '#1D9E75', marginBottom: '14px' }}>✏️ Edit listing</div>
-
                       {['title', 'subtitle'].map(field => (
                         <div key={field} style={{ marginBottom: '10px' }}>
                           <label style={{ fontSize: '11px', color: 'var(--text-label)', display: 'block', marginBottom: '4px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{field.charAt(0).toUpperCase() + field.slice(1)}</label>
@@ -220,7 +195,6 @@ export default function ProfilePage() {
                             style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1.5px solid var(--border)', fontSize: '13px', fontFamily: 'DM Sans, sans-serif' }} />
                         </div>
                       ))}
-
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
                         {['price', 'origPrice'].map(field => (
                           <div key={field}>
@@ -230,7 +204,6 @@ export default function ProfilePage() {
                           </div>
                         ))}
                       </div>
-
                       <div style={{ marginBottom: '10px' }}>
                         <label style={{ fontSize: '11px', color: 'var(--text-label)', display: 'block', marginBottom: '6px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Condition</label>
                         <div style={{ display: 'flex', gap: '8px' }}>
@@ -242,13 +215,11 @@ export default function ProfilePage() {
                           ))}
                         </div>
                       </div>
-
                       <div style={{ marginBottom: '14px' }}>
                         <label style={{ fontSize: '11px', color: 'var(--text-label)', display: 'block', marginBottom: '4px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Location</label>
                         <input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })}
                           style={{ width: '100%', padding: '8px 10px', borderRadius: '8px', border: '1.5px solid var(--border)', fontSize: '13px', fontFamily: 'DM Sans, sans-serif' }} />
                       </div>
-
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button onClick={() => handleSave(l.id)} disabled={saving}
                           style={{ flex: 1, background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive' }}>
@@ -263,9 +234,7 @@ export default function ProfilePage() {
                   ) : (
                     <div style={{ display: 'flex', gap: '12px', padding: '12px 14px', alignItems: 'center' }}>
                       <div style={{ width: '52px', height: '52px', background: 'var(--listing-img-bg)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0, position: 'relative', overflow: 'hidden' }}>
-                        {l.images?.[0]
-                          ? <img src={l.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          : l.emoji}
+                        {l.images?.[0] ? <img src={l.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : l.emoji}
                         {l.sold && (
                           <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <span style={{ fontSize: '8px', fontWeight: '700', color: '#fff', letterSpacing: '1px' }}>SOLD</span>
@@ -278,20 +247,18 @@ export default function ProfilePage() {
                           {l.sold && <span style={{ fontSize: '9px', fontWeight: '700', background: '#E24B4A', color: '#fff', padding: '2px 6px', borderRadius: '99px', flexShrink: 0 }}>SOLD</span>}
                         </div>
                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{l.condition} · {l.location}</div>
-<div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-  👁️ {l.views || 0} view{(l.views || 0) !== 1 ? 's' : ''}
-</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          👁️ {l.views || 0} view{(l.views || 0) !== 1 ? 's' : ''}
+                        </div>
                         <div className="kalam" style={{ fontSize: '15px', fontWeight: '700', color: l.sold ? 'var(--text-muted)' : '#1D9E75', marginTop: '2px' }}>₹{l.price}</div>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0 }}>
                         <button onClick={() => toggleSold(l.id, l.sold)}
-                          style={{ background: l.sold ? 'var(--relist-bg)' : '#E1F5EE', color: l.sold ? 'var(--relist-color)' : '#0F6E56', border: 'none', borderRadius: '8px', padding: '5px 10px', fontSize: '11px', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'DM Sans, sans-serif' }}>
+                          style={{ background: l.sold ? 'var(--relist-bg)' : '#E1F5EE', color: l.sold ? 'var(--relist-color)' : '#0F6E56', border: 'none', borderRadius: '8px', padding: '5px 10px', fontSize: '11px', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                           {l.sold ? '🔄 Relist' : '✅ Mark sold'}
                         </button>
-                        <button onClick={() => startEdit(l)}
-                          style={{ background: '#EFF6FF', color: '#1D4ED8', border: 'none', borderRadius: '8px', padding: '5px 10px', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}>✏️ Edit</button>
-                        <button onClick={() => handleDelete(l.id)}
-                          style={{ background: '#FEF2F2', color: '#E24B4A', border: 'none', borderRadius: '8px', padding: '5px 10px', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}>🗑️ Delete</button>
+                        <button onClick={() => startEdit(l)} style={{ background: '#EFF6FF', color: '#1D4ED8', border: 'none', borderRadius: '8px', padding: '5px 10px', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}>✏️ Edit</button>
+                        <button onClick={() => handleDelete(l.id)} style={{ background: '#FEF2F2', color: '#E24B4A', border: 'none', borderRadius: '8px', padding: '5px 10px', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}>🗑️ Delete</button>
                       </div>
                     </div>
                   )}
