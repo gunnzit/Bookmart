@@ -21,12 +21,43 @@ const catDesc: Record<string, string> = {
   stationery: 'Pens, files & more', competitive: 'JEE, NEET & exams'
 }
 
-declare global {
-  interface Window {
-    google: any
-    initGooglePlaces: () => void
-  }
-}
+const LOCATIONS = [
+  'Sector 1, Chandigarh', 'Sector 2, Chandigarh', 'Sector 3, Chandigarh',
+  'Sector 4, Chandigarh', 'Sector 5, Chandigarh', 'Sector 6, Chandigarh',
+  'Sector 7, Chandigarh', 'Sector 8, Chandigarh', 'Sector 9, Chandigarh',
+  'Sector 10, Chandigarh', 'Sector 11, Chandigarh', 'Sector 12, Chandigarh',
+  'Sector 14, Chandigarh', 'Sector 15, Chandigarh', 'Sector 16, Chandigarh',
+  'Sector 17, Chandigarh', 'Sector 18, Chandigarh', 'Sector 19, Chandigarh',
+  'Sector 20, Chandigarh', 'Sector 21, Chandigarh', 'Sector 22, Chandigarh',
+  'Sector 23, Chandigarh', 'Sector 24, Chandigarh', 'Sector 25, Chandigarh',
+  'Sector 26, Chandigarh', 'Sector 27, Chandigarh', 'Sector 28, Chandigarh',
+  'Sector 29, Chandigarh', 'Sector 30, Chandigarh', 'Sector 31, Chandigarh',
+  'Sector 32, Chandigarh', 'Sector 33, Chandigarh', 'Sector 34, Chandigarh',
+  'Sector 35, Chandigarh', 'Sector 36, Chandigarh', 'Sector 37, Chandigarh',
+  'Sector 38, Chandigarh', 'Sector 39, Chandigarh', 'Sector 40, Chandigarh',
+  'Sector 40-C, Chandigarh', 'Sector 41, Chandigarh', 'Sector 42, Chandigarh',
+  'Sector 43, Chandigarh', 'Sector 44, Chandigarh', 'Sector 45, Chandigarh',
+  'Sector 46, Chandigarh', 'Sector 47, Chandigarh', 'Sector 48, Chandigarh',
+  'Sector 49, Chandigarh', 'Sector 50, Chandigarh', 'Sector 51, Chandigarh',
+  'Sector 52, Chandigarh', 'Sector 53, Chandigarh', 'Sector 54, Chandigarh',
+  'Sector 55, Chandigarh', 'Sector 56, Chandigarh',
+  'Manimajra, Chandigarh', 'Burail, Chandigarh', 'Dhanas, Chandigarh',
+  'Sector 1, Panchkula', 'Sector 2, Panchkula', 'Sector 4, Panchkula',
+  'Sector 5, Panchkula', 'Sector 6, Panchkula', 'Sector 7, Panchkula',
+  'Sector 8, Panchkula', 'Sector 9, Panchkula', 'Sector 10, Panchkula',
+  'Sector 11, Panchkula', 'Sector 12, Panchkula', 'Sector 14, Panchkula',
+  'Sector 15, Panchkula', 'Sector 20, Panchkula', 'Sector 21, Panchkula',
+  'Sector 25, Panchkula', 'Kalka, Panchkula',
+  'Phase 1, Mohali', 'Phase 2, Mohali', 'Phase 3B1, Mohali', 'Phase 3B2, Mohali',
+  'Phase 4, Mohali', 'Phase 5, Mohali', 'Phase 6, Mohali', 'Phase 7, Mohali',
+  'Phase 8, Mohali', 'Phase 9, Mohali', 'Phase 10, Mohali', 'Phase 11, Mohali',
+  'Sector 58, Mohali', 'Sector 59, Mohali', 'Sector 60, Mohali',
+  'Sector 61, Mohali', 'Sector 62, Mohali', 'Sector 63, Mohali',
+  'Sector 64, Mohali', 'Sector 65, Mohali', 'Sector 66, Mohali',
+  'Sector 67, Mohali', 'Sector 68, Mohali', 'Sector 70, Mohali',
+  'Sector 71, Mohali', 'Sector 72, Mohali', 'Aerocity, Mohali',
+  'Kharar, Mohali', 'Zirakpur', 'Derabassi', 'Dera Bassi',
+]
 
 export default function SellPage() {
   const router = useRouter()
@@ -36,51 +67,40 @@ export default function SellPage() {
   const [images, setImages] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
   const [uploadProgress, setUploadProgress] = useState('')
+  const [locationSearch, setLocationSearch] = useState('')
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false)
+  const locationRef = useRef<HTMLDivElement>(null)
   const [form, setForm] = useState({
     title: '', subtitle: '', price: '',
     origPrice: '', condition: 'Good',
     category: 'textbook', location: '',
   })
-  const locationRef = useRef<HTMLInputElement>(null)
-  const autocompleteRef = useRef<any>(null)
 
   useEffect(() => {
     if (isSignedIn === false) router.push('/')
   }, [isSignedIn])
 
-  // Load Google Places
   useEffect(() => {
-    if (!process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY) return
-
-    window.initGooglePlaces = () => {
-      if (!locationRef.current) return
-      autocompleteRef.current = new window.google.maps.places.Autocomplete(locationRef.current, {
-        componentRestrictions: { country: 'in' },
-        fields: ['formatted_address', 'name', 'geometry'],
-        types: ['geocode', 'establishment'],
-      })
-      autocompleteRef.current.addListener('place_changed', () => {
-        const place = autocompleteRef.current.getPlace()
-        const address = place.name || place.formatted_address || ''
-        // Show just the area, not full address
-        const short = address.split(',').slice(0, 2).join(',').trim()
-        setForm(prev => ({ ...prev, location: short }))
-      })
+    function handleClick(e: MouseEvent) {
+      if (locationRef.current && !locationRef.current.contains(e.target as Node)) {
+        setShowLocationDropdown(false)
+      }
     }
-
-    if (!document.getElementById('google-maps-script')) {
-      const script = document.createElement('script')
-      script.id = 'google-maps-script'
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&libraries=places&callback=initGooglePlaces`
-      script.async = true
-      script.defer = true
-      document.head.appendChild(script)
-    } else if (window.google) {
-      window.initGooglePlaces()
-    }
-  }, [isSignedIn])
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
 
   if (!isSignedIn) return null
+
+  const filteredLocations = locationSearch.length > 0
+    ? LOCATIONS.filter(l => l.toLowerCase().includes(locationSearch.toLowerCase())).slice(0, 8)
+    : LOCATIONS.slice(0, 8)
+
+  function selectLocation(loc: string) {
+    setForm(prev => ({ ...prev, location: loc }))
+    setLocationSearch(loc)
+    setShowLocationDropdown(false)
+  }
 
   function update(field: string, value: string) {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -162,7 +182,7 @@ export default function SellPage() {
           <h2 style={{ fontFamily: 'Kalam, cursive', color: '#1B2A4A', fontSize: '24px', marginBottom: '8px', fontWeight: '700' }}>Listing posted!</h2>
           <p style={{ color: '#999', fontSize: '14px', marginBottom: '28px', lineHeight: '1.5' }}>Your item is now live on BookMart.</p>
           <button onClick={() => router.push('/marketplace')} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '12px', padding: '13px 24px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', width: '100%', marginBottom: '10px', fontFamily: 'Kalam, cursive', boxShadow: '0 4px 16px rgba(29,158,117,0.25)' }}>View marketplace</button>
-          <button onClick={() => { setDone(false); setForm({ title: '', subtitle: '', price: '', origPrice: '', condition: 'Good', category: 'textbook', location: '' }); setImages([]); setPreviews([]) }}
+          <button onClick={() => { setDone(false); setForm({ title: '', subtitle: '', price: '', origPrice: '', condition: 'Good', category: 'textbook', location: '' }); setImages([]); setPreviews([]); setLocationSearch('') }}
             style={{ background: 'transparent', color: '#1D9E75', border: '1.5px solid #1D9E75', borderRadius: '12px', padding: '12px 24px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', width: '100%' }}>
             Post another
           </button>
@@ -177,14 +197,10 @@ export default function SellPage() {
         @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap');
         * { box-sizing: border-box; }
         body { font-family: 'DM Sans', sans-serif; background: #FAFAF8; }
-        input:focus, textarea:focus { outline: none !important; border-color: #1D9E75 !important; box-shadow: 0 0 0 3px rgba(29,158,117,0.1) !important; }
+        input:focus { outline: none !important; border-color: #1D9E75 !important; box-shadow: 0 0 0 3px rgba(29,158,117,0.1) !important; }
         .section-card { background: #FFFEF9; border-radius: 20px; border: 1.5px solid #EDE9E1; padding: 24px; margin-bottom: 14px; }
         .section-title { font-family: 'Kalam', cursive; font-size: 15px; font-weight: 700; color: #1B2A4A; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
-        .pac-container { border-radius: 12px !important; border: 1.5px solid #EDE9E1 !important; box-shadow: 0 8px 32px rgba(27,42,74,0.12) !important; font-family: 'DM Sans', sans-serif !important; margin-top: 4px !important; }
-        .pac-item { padding: 10px 14px !important; font-size: 13px !important; cursor: pointer !important; }
-        .pac-item:hover { background: #F5F2ED !important; }
-        .pac-item-query { font-weight: 600 !important; color: #1B2A4A !important; }
-        .pac-matched { color: #1D9E75 !important; }
+        .loc-item:hover { background: #F0FDF8 !important; }
       `}</style>
       <div style={{ background: '#FAFAF8', minHeight: '100vh' }}>
         <nav style={{ background: '#fff', borderBottom: '1.5px solid #EDE9E1', padding: '0 24px', height: '64px', display: 'flex', alignItems: 'center', gap: '12px', position: 'sticky', top: 0, zIndex: 50, boxShadow: '0 2px 12px rgba(27,42,74,0.05)' }}>
@@ -283,17 +299,48 @@ export default function SellPage() {
           {/* Location */}
           <div className="section-card">
             <div className="section-title">📍 Location</div>
-            <div style={{ position: 'relative' }}>
-              <input
-                ref={locationRef}
-                value={form.location}
-                onChange={e => update('location', e.target.value)}
-                placeholder="Start typing your area, e.g. Sector 40"
-                style={{ width: '100%', padding: '10px 14px 10px 40px', borderRadius: '10px', border: '1.5px solid #EDE9E1', fontSize: '14px', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif', background: '#FAFAF8' }}
-              />
-              <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', pointerEvents: 'none' }}>📍</span>
+            <div ref={locationRef} style={{ position: 'relative' }}>
+              <div style={{ position: 'relative' }}>
+                <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', pointerEvents: 'none' }}>📍</span>
+                <input
+                  value={locationSearch}
+                  onChange={e => {
+                    setLocationSearch(e.target.value)
+                    setForm(prev => ({ ...prev, location: e.target.value }))
+                    setShowLocationDropdown(true)
+                  }}
+                  onFocus={() => setShowLocationDropdown(true)}
+                  placeholder="Type to search — e.g. Sector 40"
+                  style={{ width: '100%', padding: '10px 14px 10px 40px', borderRadius: '10px', border: `1.5px solid ${form.location ? '#1D9E75' : '#EDE9E1'}`, fontSize: '14px', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif', background: '#FAFAF8' }}
+                />
+                {form.location && (
+                  <button onClick={() => { setForm(prev => ({ ...prev, location: '' })); setLocationSearch(''); setShowLocationDropdown(true) }}
+                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#bbb', padding: 0 }}>×</button>
+                )}
+              </div>
+
+              {showLocationDropdown && filteredLocations.length > 0 && (
+                <div style={{ position: 'absolute', top: '46px', left: 0, right: 0, background: '#fff', border: '1.5px solid #EDE9E1', borderRadius: '14px', boxShadow: '0 8px 32px rgba(27,42,74,0.12)', zIndex: 100, overflow: 'hidden', maxHeight: '240px', overflowY: 'auto' }}>
+                  {filteredLocations.map(loc => (
+                    <div key={loc} className="loc-item" onClick={() => selectLocation(loc)}
+                      style={{ padding: '11px 16px', cursor: 'pointer', fontSize: '13px', color: '#1B2A4A', borderBottom: '1px solid #F5F2ED', display: 'flex', alignItems: 'center', gap: '8px', transition: 'background 0.1s' }}>
+                      <span style={{ fontSize: '14px' }}>📍</span>
+                      <div>
+                        <span style={{ fontWeight: '500' }}>{loc.split(',')[0]}</span>
+                        <span style={{ color: '#aaa' }}>{loc.includes(',') ? ', ' + loc.split(',').slice(1).join(',').trim() : ''}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {showLocationDropdown && locationSearch.length > 0 && filteredLocations.length === 0 && (
+                <div style={{ position: 'absolute', top: '46px', left: 0, right: 0, background: '#fff', border: '1.5px solid #EDE9E1', borderRadius: '14px', padding: '16px', textAlign: 'center', fontSize: '13px', color: '#aaa', zIndex: 100 }}>
+                  No locations found. Try "Sector 22" or "Mohali".
+                </div>
+              )}
             </div>
-            <p style={{ fontSize: '11px', color: '#bbb', marginTop: '8px' }}>Select from the dropdown for accurate location.</p>
+            <p style={{ fontSize: '11px', color: '#bbb', marginTop: '8px' }}>Start typing your sector or area to search.</p>
           </div>
 
           {uploadProgress && (
