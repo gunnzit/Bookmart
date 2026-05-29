@@ -347,7 +347,7 @@ export default function Marketplace() {
                 const discount = l.origPrice ? Math.round((1 - l.price / l.origPrice) * 100) : 0
                 const isFeatured = l.featured && !l.sold
                 return (
-                  <div key={l.id} className={`card fade-up${isFeatured ? ' featured-card' : ''}`}
+                  <div key={l.id} className={`card fade-up`}
                     onClick={() => window.location.href = '/listing/' + l.id}
                     style={{
                       background: 'var(--bg-card)',
