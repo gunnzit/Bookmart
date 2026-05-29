@@ -278,6 +278,9 @@ export default function ProfilePage() {
                           {l.sold && <span style={{ fontSize: '9px', fontWeight: '700', background: '#E24B4A', color: '#fff', padding: '2px 6px', borderRadius: '99px', flexShrink: 0 }}>SOLD</span>}
                         </div>
                         <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{l.condition} · {l.location}</div>
+<div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+  👁️ {l.views || 0} view{(l.views || 0) !== 1 ? 's' : ''}
+</div>
                         <div className="kalam" style={{ fontSize: '15px', fontWeight: '700', color: l.sold ? 'var(--text-muted)' : '#1D9E75', marginTop: '2px' }}>₹{l.price}</div>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0 }}>

@@ -10,12 +10,24 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 export async function GET(request: Request, context: any) {
   try {
     const { id } = await context.params
+    const { searchParams } = new URL(request.url)
+    const track = searchParams.get('track') === 'true'
+
     const listing = await prisma.listing.findUnique({
       where: { id },
       include: { seller: true },
     })
     if (!listing) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-    return NextResponse.json(listing)
+
+    // Increment view count only when track=true (from listing detail page)
+    if (track) {
+      await prisma.listing.update({
+        where: { id },
+        data: { views: { increment: 1 } },
+      })
+    }
+
+    return NextResponse.json({ ...listing, views: track ? listing.views + 1 : listing.views })
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 })
   }
@@ -36,7 +48,6 @@ export async function PATCH(request: Request, context: any) {
     const { id } = await context.params
     const body = await request.json()
 
-    // Build update object with only fields that were sent
     const data: any = {}
     if (body.title !== undefined) data.title = body.title
     if (body.subtitle !== undefined) data.subtitle = body.subtitle

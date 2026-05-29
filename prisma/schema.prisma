@@ -30,7 +30,8 @@ model Listing {
   emoji     String?
   location  String
  sold      Boolean  @default(false)
-  images    String[] @default([])   // ← ADD THIS
+  images    String[] @default([])
+  views     Int      @default(0)
   createdAt DateTime @default(now())
   sellerId  String
   seller    User     @relation(fields: [sellerId], references: [id])

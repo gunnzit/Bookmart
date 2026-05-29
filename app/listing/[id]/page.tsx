@@ -20,7 +20,7 @@ export default function ListingPage() {
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    fetch('/api/listings/' + id)
+    fetch('/api/listings/' + id + '?track=true')
       .then(res => res.json())
       .then(data => {
         setListing(data)
