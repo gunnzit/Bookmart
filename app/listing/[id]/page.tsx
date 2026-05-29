@@ -18,6 +18,8 @@ export default function ListingPage() {
   const [form, setForm] = useState<any>({})
   const [activeImg, setActiveImg] = useState(0)
   const [copied, setCopied] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [savingWishlist, setSavingWishlist] = useState(false)
 
   useEffect(() => {
     fetch('/api/listings/' + id + '?track=true')
@@ -30,7 +32,32 @@ export default function ListingPage() {
       .catch(() => setLoading(false))
   }, [id])
 
+  // Check if already wishlisted
+  useEffect(() => {
+    if (!isSignedIn || !user) return
+    fetch(`/api/wishlist?userId=${user.id}`)
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          setSaved(data.some((w: any) => w.listingId === id))
+        }
+      })
+  }, [isSignedIn, user, id])
+
   const isOwner = isSignedIn && user && listing && user.id === listing.sellerId
+
+  async function toggleWishlist() {
+    if (!isSignedIn || !user) return
+    setSavingWishlist(true)
+    const res = await fetch('/api/wishlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id, listingId: id }),
+    })
+    const data = await res.json()
+    setSaved(data.saved)
+    setSavingWishlist(false)
+  }
 
   async function handleDelete() {
     if (!confirm('Delete this listing? This cannot be undone.')) return
@@ -57,57 +84,24 @@ export default function ListingPage() {
   const sharedStyles = `
     @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg: #FAFAF8;
-      --bg-card: #FFFEF9;
-      --bg-img: #F5F2ED;
-      --bg-input: #FAFAF8;
-      --bg-tag: #F5F2ED;
-      --nav-bg: #fff;
-      --border: #EDE9E1;
-      --border-thumb: #EDE9E1;
-      --text-primary: #1B2A4A;
-      --text-secondary: #888;
-      --text-muted: #bbb;
-      --text-label: #999;
-      --shadow-nav: 0 2px 12px rgba(27,42,74,0.05);
-      --shadow-card: 0 2px 12px rgba(27,42,74,0.05);
-      --shadow-img: 0 4px 24px rgba(27,42,74,0.07);
-      --back-btn-bg: #FAFAF8;
-      --share-btn-bg: #FAFAF8;
-      --cancel-btn-bg: #FAFAF8;
-      --sold-bg: #F5F2ED;
-      --condition-bg: #fff;
-      --condition-active-bg: #E1F5EE;
+      --bg: #FAFAF8; --bg-card: #FFFEF9; --bg-img: #F5F2ED; --bg-input: #FAFAF8;
+      --bg-tag: #F5F2ED; --nav-bg: #fff; --border: #EDE9E1; --border-thumb: #EDE9E1;
+      --text-primary: #1B2A4A; --text-secondary: #888; --text-muted: #bbb; --text-label: #999;
+      --shadow-nav: 0 2px 12px rgba(27,42,74,0.05); --shadow-card: 0 2px 12px rgba(27,42,74,0.05);
+      --shadow-img: 0 4px 24px rgba(27,42,74,0.07); --back-btn-bg: #FAFAF8; --share-btn-bg: #FAFAF8;
+      --cancel-btn-bg: #FAFAF8; --sold-bg: #F5F2ED; --condition-bg: #fff; --condition-active-bg: #E1F5EE;
     }
-
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #0F1117;
-        --bg-card: #1A1D27;
-        --bg-img: #242736;
-        --bg-input: #1A1D27;
-        --bg-tag: #242736;
-        --nav-bg: #13151F;
-        --border: #2A2D3E;
-        --border-thumb: #2A2D3E;
-        --text-primary: #E8E6F0;
-        --text-secondary: #8B8FA8;
-        --text-muted: #555878;
-        --text-label: #6B6F88;
-        --shadow-nav: 0 2px 12px rgba(0,0,0,0.3);
-        --shadow-card: 0 2px 12px rgba(0,0,0,0.2);
-        --shadow-img: 0 4px 24px rgba(0,0,0,0.3);
-        --back-btn-bg: #1A1D27;
-        --share-btn-bg: #1A1D27;
-        --cancel-btn-bg: #1A1D27;
-        --sold-bg: #242736;
-        --condition-bg: #242736;
-        --condition-active-bg: #0F2D1F;
+        --bg: #0F1117; --bg-card: #1A1D27; --bg-img: #242736; --bg-input: #1A1D27;
+        --bg-tag: #242736; --nav-bg: #13151F; --border: #2A2D3E; --border-thumb: #2A2D3E;
+        --text-primary: #E8E6F0; --text-secondary: #8B8FA8; --text-muted: #555878; --text-label: #6B6F88;
+        --shadow-nav: 0 2px 12px rgba(0,0,0,0.3); --shadow-card: 0 2px 12px rgba(0,0,0,0.2);
+        --shadow-img: 0 4px 24px rgba(0,0,0,0.3); --back-btn-bg: #1A1D27; --share-btn-bg: #1A1D27;
+        --cancel-btn-bg: #1A1D27; --sold-bg: #242736; --condition-bg: #242736; --condition-active-bg: #0F2D1F;
       }
     }
-
     body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text-primary); }
     .logo-text { font-family: 'Kalam', cursive; }
     input { color: var(--text-primary) !important; font-weight: 500; }
@@ -119,11 +113,14 @@ export default function ListingPage() {
     .wa-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(37,211,102,0.35) !important; }
     .back-btn:hover { background: var(--bg-img) !important; }
     .back-to-listings:hover { background: #E1F5EE !important; }
-    @media (prefers-color-scheme: dark) {
-      .back-to-listings:hover { background: #0F2D1F !important; }
-    }
+    .heart-btn { transition: all 0.2s ease; }
+    .heart-btn:hover { transform: scale(1.1); }
+    .heart-btn:active { transform: scale(0.95); }
+    @media (prefers-color-scheme: dark) { .back-to-listings:hover { background: #0F2D1F !important; } }
     @keyframes fadeIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
     .img-fade { animation: fadeIn 0.2s ease; }
+    @keyframes heartPop { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(1); } }
+    .heart-pop { animation: heartPop 0.3s ease; }
   `
 
   if (loading) return (
@@ -162,7 +159,21 @@ export default function ListingPage() {
             <img src="/logo.png" alt="BookMart" style={{ height: '32px', width: 'auto' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
             <span className="logo-text" style={{ fontSize: '20px', color: 'var(--text-primary)', fontWeight: '700' }}>BookMart</span>
           </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {/* Wishlist heart button */}
+            {!isOwner && (
+              isSignedIn ? (
+                <button className="heart-btn" onClick={toggleWishlist} disabled={savingWishlist}
+                  style={{ background: saved ? '#FEF2F2' : 'var(--share-btn-bg)', border: `1.5px solid ${saved ? '#FCA5A5' : 'var(--border)'}`, borderRadius: '10px', padding: '7px 12px', fontSize: '16px', cursor: 'pointer', transition: 'all 0.15s', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span className={saved ? 'heart-pop' : ''}>{saved ? '❤️' : '🤍'}</span>
+                  <span style={{ fontSize: '11px', color: saved ? '#E24B4A' : 'var(--text-secondary)', fontWeight: '600' }}>{saved ? 'Saved' : 'Save'}</span>
+                </button>
+              ) : (
+                <SignInButton mode="modal">
+                  <button style={{ background: 'var(--share-btn-bg)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '7px 12px', fontSize: '16px', cursor: 'pointer' }}>🤍</button>
+                </SignInButton>
+              )
+            )}
             <button onClick={copyLink} style={{ background: copied ? '#E1F5EE' : 'var(--share-btn-bg)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '7px 14px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', color: copied ? '#0F6E56' : 'var(--text-secondary)', transition: 'all 0.15s' }}>
               {copied ? '✅ Copied!' : '🔗 Share'}
             </button>
@@ -180,9 +191,7 @@ export default function ListingPage() {
           {/* Image gallery */}
           <div style={{ background: 'var(--bg-card)', borderRadius: '24px', border: '1.5px solid var(--border)', overflow: 'hidden', marginBottom: '16px', boxShadow: 'var(--shadow-img)' }}>
             <div style={{ height: '300px', background: 'var(--bg-img)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '80px', position: 'relative', overflow: 'hidden' }}>
-              {hasImages
-                ? <img key={activeImg} className="img-fade" src={listing.images[activeImg]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : listing.emoji}
+              {hasImages ? <img key={activeImg} className="img-fade" src={listing.images[activeImg]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : listing.emoji}
               <span style={{ position: 'absolute', top: '14px', left: '14px', fontSize: '11px', fontWeight: '600', background: listing.condition === 'New' ? 'rgba(220,252,231,0.95)' : 'rgba(239,246,255,0.95)', color: listing.condition === 'New' ? '#166534' : '#1D4ED8', padding: '4px 10px', borderRadius: '99px', backdropFilter: 'blur(4px)' }}>{listing.condition}</span>
               {discount > 0 && <span style={{ position: 'absolute', top: '14px', right: '14px', fontSize: '11px', fontWeight: '600', background: 'rgba(254,249,195,0.95)', color: '#854D0E', padding: '4px 10px', borderRadius: '99px', backdropFilter: 'blur(4px)' }}>{discount}% off</span>}
               {listing.sold && (
@@ -258,7 +267,6 @@ export default function ListingPage() {
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>📍 {listing.location}</div>
                 </div>
               </div>
-
               {isOwner ? (
                 <div style={{ background: '#E1F5EE', borderRadius: '12px', padding: '12px 16px', fontSize: '13px', color: '#0F6E56', textAlign: 'center', fontWeight: '600' }}>✅ This is your listing</div>
               ) : listing.sold ? (
@@ -274,7 +282,6 @@ export default function ListingPage() {
                   <button style={{ width: '100%', background: 'var(--text-primary)', color: 'var(--bg)', border: 'none', borderRadius: '14px', padding: '14px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive' }}>Sign in to contact seller</button>
                 </SignInButton>
               )}
-
               <button className="back-to-listings" onClick={() => window.location.href = '/marketplace'}
                 style={{ width: '100%', background: 'transparent', color: '#1D9E75', border: '1.5px solid #1D9E75', borderRadius: '14px', padding: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', marginTop: '10px', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif' }}>
                 ← Back to listings
