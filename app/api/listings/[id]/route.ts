@@ -56,6 +56,7 @@ export async function PATCH(request: Request, context: any) {
     if (body.condition !== undefined) data.condition = body.condition
     if (body.location !== undefined) data.location = body.location
     if (body.sold !== undefined) data.sold = body.sold
+    if (body.featured !== undefined) data.featured = body.featured  // ADD THIS
 
     const listing = await prisma.listing.update({
       where: { id },
