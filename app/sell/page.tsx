@@ -197,7 +197,9 @@ export default function SellPage() {
         @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap');
         * { box-sizing: border-box; }
         body { font-family: 'DM Sans', sans-serif; background: #FAFAF8; }
-        input:focus { outline: none !important; border-color: #1D9E75 !important; box-shadow: 0 0 0 3px rgba(29,158,117,0.1) !important; }
+        input { color: #1B2A4A !important; font-weight: 500; }
+input::placeholder { color: #bbb !important; font-weight: 400; }
+input:focus { outline: none !important; border-color: #1D9E75 !important; box-shadow: 0 0 0 3px rgba(29,158,117,0.1) !important; }
         .section-card { background: #FFFEF9; border-radius: 20px; border: 1.5px solid #EDE9E1; padding: 24px; margin-bottom: 14px; }
         .section-title { font-family: 'Kalam', cursive; font-size: 15px; font-weight: 700; color: #1B2A4A; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
         .loc-item:hover { background: #F0FDF8 !important; }
@@ -311,7 +313,7 @@ export default function SellPage() {
                   }}
                   onFocus={() => setShowLocationDropdown(true)}
                   placeholder="Type to search — e.g. Sector 40"
-                  style={{ width: '100%', padding: '10px 14px 10px 40px', borderRadius: '10px', border: `1.5px solid ${form.location ? '#1D9E75' : '#EDE9E1'}`, fontSize: '14px', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif', background: '#FAFAF8' }}
+                  style={{ width: '100%', padding: '10px 14px 10px 40px', borderRadius: '10px', border: `1.5px solid ${form.location ? '#1D9E75' : '#EDE9E1'}`, fontSize: '14px', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif', background: '#FAFAF8', color: '#1B2A4A', fontWeight: '500' }}
                 />
                 {form.location && (
                   <button onClick={() => { setForm(prev => ({ ...prev, location: '' })); setLocationSearch(''); setShowLocationDropdown(true) }}
