@@ -20,10 +20,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!isLoaded) return
-    if (!isSignedIn || user?.id !== ADMIN_ID) {
-      router.push('/')
-      return
-    }
+    if (!isSignedIn || user?.id !== ADMIN_ID) { router.push('/'); return }
     fetchData()
   }, [isLoaded, isSignedIn, user])
 
@@ -33,15 +30,10 @@ export default function AdminPage() {
     const data = await res.json()
     if (Array.isArray(data)) {
       setListings(data)
-      // Extract unique users
       const userMap = new Map()
       data.forEach((l: any) => {
-        if (l.seller && !userMap.has(l.sellerId)) {
-          userMap.set(l.sellerId, { ...l.seller, id: l.sellerId, listingCount: 0 })
-        }
-        if (userMap.has(l.sellerId)) {
-          userMap.get(l.sellerId).listingCount++
-        }
+        if (l.seller && !userMap.has(l.sellerId)) userMap.set(l.sellerId, { ...l.seller, id: l.sellerId, listingCount: 0 })
+        if (userMap.has(l.sellerId)) userMap.get(l.sellerId).listingCount++
       })
       setUsers(Array.from(userMap.values()))
     }
@@ -74,6 +66,18 @@ export default function AdminPage() {
       body: JSON.stringify({ sold: !sold }),
     })
     setListings(prev => prev.map(l => l.id === id ? { ...l, sold: !sold } : l))
+  }
+
+  async function toggleFeatured(id: string, featured: boolean) {
+    const res = await fetch('/api/listings/' + id, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ featured: !featured }),
+    })
+    const updated = await res.json()
+    if (updated && !updated.error) {
+      setListings(prev => prev.map(l => l.id === id ? { ...l, featured: !featured } : l))
+    }
   }
 
   function toggleBan(userId: string) {
@@ -124,13 +128,15 @@ export default function AdminPage() {
         .row:hover { background: #1E2130 !important; }
         .tab-btn { transition: all 0.15s; }
         .tab-btn:hover { background: #1E2130 !important; }
+        .action-btn { border: none; border-radius: 6px; padding: 4px 10px; font-size: 11px; font-weight: 600; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+        .action-btn:hover { opacity: 0.8; transform: translateY(-1px); }
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-thumb { background: #2A2D3E; border-radius: 99px; }
       `}</style>
 
       <div style={{ minHeight: '100vh', background: '#0F1117' }}>
 
-        {/* Top nav */}
+        {/* Nav */}
         <nav style={{ background: '#13151F', borderBottom: '1.5px solid #2A2D3E', padding: '0 24px', height: '56px', display: 'flex', alignItems: 'center', gap: '12px', position: 'sticky', top: 0, zIndex: 50 }}>
           <button onClick={() => router.push('/marketplace')} style={{ background: '#1A1D27', border: '1.5px solid #2A2D3E', width: '34px', height: '34px', borderRadius: '10px', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#E8E6F0' }}>←</button>
           <span className="kalam" style={{ fontSize: '18px', color: '#1D9E75', fontWeight: '700' }}>⚙️ Admin Panel</span>
@@ -190,14 +196,17 @@ export default function AdminPage() {
                   <tbody>
                     {filteredListings.map(l => (
                       <>
-                        <tr key={l.id} className="row" style={{ borderBottom: '1px solid #1E2130', background: 'transparent', transition: 'background 0.1s' }}>
+                        <tr key={l.id} className="row" style={{ borderBottom: '1px solid #1E2130', background: l.featured ? 'rgba(234,179,8,0.04)' : 'transparent', transition: 'background 0.1s' }}>
                           <td style={{ padding: '12px 16px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                               <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#242736', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
                                 {l.images?.[0] ? <img src={l.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : l.emoji}
                               </div>
                               <div>
-                                <div style={{ fontSize: '13px', fontWeight: '600', color: '#E8E6F0', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.title}</div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <div style={{ fontSize: '13px', fontWeight: '600', color: '#E8E6F0', maxWidth: '180px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.title}</div>
+                                  {l.featured && <span style={{ fontSize: '9px', background: 'rgba(234,179,8,0.2)', color: '#EAB308', padding: '2px 6px', borderRadius: '99px', fontWeight: '700' }}>⭐ FEATURED</span>}
+                                </div>
                                 <div style={{ fontSize: '10px', color: '#555878', textTransform: 'capitalize' }}>{l.category}</div>
                               </div>
                             </div>
@@ -214,19 +223,27 @@ export default function AdminPage() {
                             </span>
                           </td>
                           <td style={{ padding: '12px 16px' }}>
-                            <div style={{ display: 'flex', gap: '6px' }}>
-                              <button onClick={() => fetch('/api/listings/' + l.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ featured: !l.featured }) }).then(() => fetchData())}
-  style={{ background: l.featured ? 'rgba(234,179,8,0.2)' : 'rgba(100,100,100,0.1)', color: l.featured ? '#EAB308' : '#888', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>
-  {l.featured ? '⭐ Featured' : '☆ Feature'}
-</button>
-                              <button onClick={() => { setEditingId(editingId === l.id ? null : l.id); setEditForm({ title: l.title, subtitle: l.subtitle || '', price: l.price, origPrice: l.origPrice || '', condition: l.condition, location: l.location }) }}
-                                style={{ background: '#EFF6FF', color: '#1D4ED8', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>✏️</button>
-                              <button onClick={() => toggleSold(l.id, l.sold)}
-                                style={{ background: l.sold ? 'rgba(245,158,11,0.15)' : 'rgba(29,158,117,0.15)', color: l.sold ? '#F59E0B' : '#1D9E75', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                              {/* Feature toggle */}
+                              <button className="action-btn"
+                                onClick={() => toggleFeatured(l.id, l.featured)}
+                                style={{ background: l.featured ? 'rgba(234,179,8,0.25)' : 'rgba(100,100,100,0.15)', color: l.featured ? '#EAB308' : '#888' }}>
+                                {l.featured ? '⭐ Unfeature' : '☆ Feature'}
+                              </button>
+                              {/* Edit toggle */}
+                              <button className="action-btn"
+                                onClick={() => { setEditingId(editingId === l.id ? null : l.id); setEditForm({ title: l.title, subtitle: l.subtitle || '', price: l.price, origPrice: l.origPrice || '', condition: l.condition, location: l.location }) }}
+                                style={{ background: '#EFF6FF', color: '#1D4ED8' }}>✏️</button>
+                              {/* Sold toggle */}
+                              <button className="action-btn"
+                                onClick={() => toggleSold(l.id, l.sold)}
+                                style={{ background: l.sold ? 'rgba(245,158,11,0.15)' : 'rgba(29,158,117,0.15)', color: l.sold ? '#F59E0B' : '#1D9E75' }}>
                                 {l.sold ? 'Relist' : 'Sold'}
                               </button>
-                              <button onClick={() => deleteListing(l.id)}
-                                style={{ background: 'rgba(239,68,68,0.12)', color: '#EF4444', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>🗑️</button>
+                              {/* Delete */}
+                              <button className="action-btn"
+                                onClick={() => deleteListing(l.id)}
+                                style={{ background: 'rgba(239,68,68,0.12)', color: '#EF4444' }}>🗑️</button>
                             </div>
                           </td>
                         </tr>
