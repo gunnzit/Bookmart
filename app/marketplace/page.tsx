@@ -68,6 +68,9 @@ export default function Marketplace() {
   }).sort((a, b) => {
     if (sortBy === 'Cheapest') return a.price - b.price
     if (sortBy === 'Most expensive') return b.price - a.price
+    // Featured first, then by date
+    if (a.featured && !b.featured) return -1
+    if (!a.featured && b.featured) return 1
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   })
 

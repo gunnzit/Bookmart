@@ -55,10 +55,7 @@ export async function GET() {
   try {
     const listings = await prisma.listing.findMany({
       include: { seller: true },
-      orderBy: [
-  { featured: 'desc' },
-  { createdAt: 'desc' },
-],
+   orderBy: { createdAt: 'desc' }
     })
     return NextResponse.json(listings)
   } catch (error) {
