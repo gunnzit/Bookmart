@@ -143,6 +143,31 @@ export default function SellPage() {
       alert('Please fill in title, price and location')
       return
     }
+
+    const price = parseInt(form.price)
+    const origPrice = form.origPrice ? parseInt(form.origPrice) : null
+
+    if (price <= 0) {
+      alert('Price must be greater than ₹0')
+      return
+    }
+
+    if (price > 10000) {
+      alert('Price seems too high. Maximum allowed is ₹10,000.')
+      return
+    }
+
+    if (origPrice !== null) {
+      if (origPrice <= price) {
+        alert('Original price must be higher than your selling price.')
+        return
+      }
+      const discount = Math.round((1 - price / origPrice) * 100)
+      if (discount > 90) {
+        alert('Discount cannot exceed 90%. Please enter a realistic original price.')
+        return
+      }
+    }
     setLoading(true)
     try {
       const imageUrls = images.length > 0 ? await uploadImages() : []
