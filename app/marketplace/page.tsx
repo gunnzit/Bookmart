@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
-import { useUser, SignInButton, UserButton } from '@clerk/nextjs'
+import { useUser, SignInButton, UserButton, useClerk } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 
 const cats = ['All', 'textbook', 'novel', 'notebook', 'art', 'stationery', 'competitive']
@@ -13,6 +13,7 @@ const sortOptions = ['Newest', 'Cheapest', 'Most expensive', 'Active only']
 export default function Marketplace() {
   const router = useRouter()
   const { isSignedIn, user } = useUser()
+  const { openSignIn } = useClerk()
   const [listings, setListings] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [activeCat, setActiveCat] = useState('All')
@@ -77,6 +78,11 @@ export default function Marketplace() {
   const activeListings = listings.filter(l => !l.sold).length
   const hasFilters = activeCat !== 'All' || sortBy !== 'Newest' || search
 
+  function requireAuth(action: () => void) {
+    if (isSignedIn) action()
+    else openSignIn()
+  }
+
   return (
     <>
       <style>{`
@@ -129,11 +135,6 @@ export default function Marketplace() {
         .suggestion-item:hover { background: var(--bg-img) !important; }
         @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
         .float { animation: float 3s ease-in-out infinite; }
-
-        /* Discount badge */
-        .discount-badge { background: linear-gradient(135deg, #FF6B35, #E24B4A); color: #fff; font-size: '9px'; font-weight: '700'; padding: '2px 7px'; border-radius: '99px'; }
-
-        /* Mobile */
         @media (max-width: 480px) {
           .listings-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
           .nav-search { max-width: 100% !important; }
@@ -236,7 +237,6 @@ export default function Marketplace() {
 
         {/* Hero banner */}
         <div className="hero-section" style={{ background: 'var(--hero-bg)', padding: '28px 24px 32px', position: 'relative', overflow: 'hidden' }}>
-          {/* Decorative circles */}
           <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '140px', height: '140px', background: 'rgba(255,255,255,0.04)', borderRadius: '50%' }} />
           <div style={{ position: 'absolute', bottom: '-40px', left: '40%', width: '100px', height: '100px', background: 'rgba(255,255,255,0.03)', borderRadius: '50%' }} />
           <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
@@ -245,16 +245,11 @@ export default function Marketplace() {
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ADE80', display: 'inline-block' }} />
                 <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.85)', fontWeight: '600' }}>{activeListings} active listings</span>
               </div>
-              <h1 className="logo-text hero-title" style={{ fontSize: '28px', color: '#fff', marginBottom: '6px', lineHeight: 1.2 }}>
-                Find your next book 📚
-              </h1>
-              <p className="hero-subtitle" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>
-                Second-hand books & stationery from students in Chandigarh
-              </p>
+              <h1 className="logo-text hero-title" style={{ fontSize: '28px', color: '#fff', marginBottom: '6px', lineHeight: 1.2 }}>Find your next book 📚</h1>
+              <p className="hero-subtitle" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>Second-hand books & stationery from students in Chandigarh</p>
             </div>
             {isSignedIn ? (
-              <button onClick={() => router.push('/sell')}
-                style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '12px', padding: '10px 20px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', boxShadow: '0 4px 16px rgba(29,158,117,0.4)', flexShrink: 0, whiteSpace: 'nowrap' }}>
+              <button onClick={() => router.push('/sell')} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '12px', padding: '10px 20px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', boxShadow: '0 4px 16px rgba(29,158,117,0.4)', flexShrink: 0, whiteSpace: 'nowrap' }}>
                 + Sell now
               </button>
             ) : (
@@ -267,9 +262,8 @@ export default function Marketplace() {
           </div>
         </div>
 
-        {/* Filters bar — categories + sort */}
+        {/* Filters bar */}
         <div className="filters-bar" style={{ background: 'var(--nav-bg)', borderBottom: '1.5px solid var(--border)', padding: '10px 16px', display: 'flex', gap: '8px', alignItems: 'center', overflowX: 'auto', WebkitOverflowScrolling: 'touch' as any, position: 'sticky', top: '56px', zIndex: 40 }}>
-          {/* Category chips */}
           <div style={{ display: 'flex', gap: '6px', flex: 1, overflowX: 'auto' }}>
             {cats.map(cat => (
               <button key={cat} className="cat-chip" onClick={() => setActiveCat(cat)} style={{
@@ -279,18 +273,13 @@ export default function Marketplace() {
                 fontWeight: activeCat === cat ? '600' : '400', whiteSpace: 'nowrap',
                 textTransform: 'capitalize', fontFamily: 'DM Sans, sans-serif',
                 fontSize: '12px', cursor: 'pointer', flexShrink: 0,
-                display: 'flex', alignItems: 'center', gap: '4px',
-                transition: 'all 0.15s',
+                display: 'flex', alignItems: 'center', gap: '4px', transition: 'all 0.15s',
               }}>
                 <span>{catEmoji[cat]}</span> {cat}
               </button>
             ))}
           </div>
-
-          {/* Divider */}
           <div style={{ width: '1px', height: '24px', background: 'var(--border)', flexShrink: 0 }} />
-
-          {/* Sort dropdown */}
           <div ref={sortRef} style={{ position: 'relative', flexShrink: 0 }}>
             <button onClick={() => setShowSortMenu(!showSortMenu)}
               style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', border: '1.5px solid var(--border)', borderRadius: '99px', background: sortBy !== 'Newest' ? '#E1F5EE' : 'var(--bg-input)', color: sortBy !== 'Newest' ? '#0F6E56' : 'var(--text-secondary)', fontSize: '12px', fontWeight: '500', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
@@ -310,8 +299,6 @@ export default function Marketplace() {
               </div>
             )}
           </div>
-
-          {/* Clear filters */}
           {hasFilters && (
             <button onClick={() => { setActiveCat('All'); setSortBy('Newest'); setSearch('') }}
               style={{ padding: '6px 12px', border: '1.5px solid #FCA5A5', borderRadius: '99px', background: '#FEF2F2', color: '#E24B4A', fontSize: '11px', fontWeight: '600', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}>
@@ -322,12 +309,9 @@ export default function Marketplace() {
 
         {/* Listings */}
         <div className="main-padding" style={{ padding: '20px 16px', maxWidth: '1200px', margin: '0 auto' }}>
-          {/* Results bar */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '500', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-              {loading ? 'Loading…' : search
-                ? `${filtered.length} result${filtered.length !== 1 ? 's' : ''} for "${search}"`
-                : `${filtered.length} listings`}
+              {loading ? 'Loading…' : search ? `${filtered.length} result${filtered.length !== 1 ? 's' : ''} for "${search}"` : `${filtered.length} listings`}
             </p>
             {search && filtered.length === 0 && (
               <button onClick={() => setSearch('')} style={{ color: '#1D9E75', background: 'none', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: '600', textDecoration: 'underline' }}>Clear search</button>
@@ -363,13 +347,10 @@ export default function Marketplace() {
                       {l.images?.[0]
                         ? <img className="listing-img" src={l.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         : <span className="listing-img float" style={{ display: 'block', animationDelay: `${idx * 0.2}s` }}>{l.emoji}</span>}
-                      {/* Condition badge */}
                       <span style={{ position: 'absolute', top: '8px', left: '8px', fontSize: '9px', background: l.condition === 'New' ? 'rgba(220,252,231,0.95)' : l.condition === 'Fair' ? 'rgba(254,243,199,0.95)' : 'rgba(239,246,255,0.95)', color: l.condition === 'New' ? '#166534' : l.condition === 'Fair' ? '#92400E' : '#1D4ED8', padding: '2px 8px', borderRadius: '99px', fontWeight: '700', backdropFilter: 'blur(4px)' }}>{l.condition}</span>
-                      {/* Discount badge */}
                       {discount >= 20 && !l.sold && (
                         <span style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '9px', background: 'linear-gradient(135deg, #FF6B35, #E24B4A)', color: '#fff', padding: '2px 7px', borderRadius: '99px', fontWeight: '700' }}>-{discount}%</span>
                       )}
-                      {/* Sold overlay */}
                       {l.sold && <div style={{ position: 'absolute', inset: 0, background: 'rgba(27,42,74,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span className="logo-text" style={{ color: '#fff', fontSize: '17px', letterSpacing: '3px' }}>SOLD</span></div>}
                     </div>
                     <div className="listing-card-body" style={{ padding: '11px 13px' }}>
@@ -393,27 +374,27 @@ export default function Marketplace() {
 
         <div className="bottom-nav-spacer" />
 
-        {/* Mobile bottom nav */}
-<nav className="bottom-nav">
-  <button className="bottom-nav-btn active" onClick={() => router.push('/marketplace')}>
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-    Browse
-  </button>
-  <button className="bottom-nav-btn" onClick={() => isSignedIn ? window.location.href = '/sell' : router.push('/sign-in')} style={{ color: '#1D9E75' }}>
-    <div style={{ width: '40px', height: '40px', background: '#1D9E75', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '-4px', boxShadow: '0 4px 12px rgba(29,158,117,0.4)' }}>
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    </div>
-    Sell
-  </button>
-  <button className="bottom-nav-btn" onClick={() => isSignedIn ? router.push('/wishlist') : router.push('/sign-in')}>
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-    Saved
-  </button>
-  <button className="bottom-nav-btn" onClick={() => isSignedIn ? router.push('/profile') : router.push('/sign-in')}>
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-    Profile
-  </button>
-</nav>
+        {/* Mobile bottom nav — openSignIn() for unauthenticated */}
+        <nav className="bottom-nav">
+          <button className="bottom-nav-btn active" onClick={() => router.push('/marketplace')}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            Browse
+          </button>
+          <button className="bottom-nav-btn" onClick={() => requireAuth(() => { window.location.href = '/sell' })} style={{ color: '#1D9E75' }}>
+            <div style={{ width: '40px', height: '40px', background: '#1D9E75', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '-4px', boxShadow: '0 4px 12px rgba(29,158,117,0.4)' }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </div>
+            Sell
+          </button>
+          <button className="bottom-nav-btn" onClick={() => requireAuth(() => router.push('/wishlist'))}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            Saved
+          </button>
+          <button className="bottom-nav-btn" onClick={() => requireAuth(() => router.push('/profile'))}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Profile
+          </button>
+        </nav>
 
       </div>
     </>
