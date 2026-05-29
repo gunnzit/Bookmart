@@ -82,9 +82,7 @@ export default function SellPage() {
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
-      if (locationRef.current && !locationRef.current.contains(e.target as Node)) {
-        setShowLocationDropdown(false)
-      }
+      if (locationRef.current && !locationRef.current.contains(e.target as Node)) setShowLocationDropdown(false)
     }
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
@@ -143,30 +141,13 @@ export default function SellPage() {
       alert('Please fill in title, price and location')
       return
     }
-
     const price = parseInt(form.price)
     const origPrice = form.origPrice ? parseInt(form.origPrice) : null
-
-    if (price <= 0) {
-      alert('Price must be greater than ₹0')
-      return
-    }
-
-    if (price > 10000) {
-      alert('Price seems too high. Maximum allowed is ₹10,000.')
-      return
-    }
-
+    if (price <= 0) { alert('Price must be greater than ₹0'); return }
+    if (price > 10000) { alert('Price seems too high. Maximum allowed is ₹10,000.'); return }
     if (origPrice !== null) {
-      if (origPrice <= price) {
-        alert('Original price must be higher than your selling price.')
-        return
-      }
-      const discount = Math.round((1 - price / origPrice) * 100)
-      if (discount > 90) {
-        alert('Discount cannot exceed 90%. Please enter a realistic original price.')
-        return
-      }
+      if (origPrice <= price) { alert('Original price must be higher than your selling price.'); return }
+      if (Math.round((1 - price / origPrice) * 100) > 90) { alert('Discount cannot exceed 90%. Please enter a realistic original price.'); return }
     }
     setLoading(true)
     try {
@@ -180,32 +161,85 @@ export default function SellPage() {
           origPrice: form.origPrice ? parseInt(form.origPrice) : null,
           condition: form.condition, category: form.category,
           emoji: emojis[form.category], location: form.location,
-          sellerId: user?.id!,
-          images: imageUrls,
+          sellerId: user?.id!, images: imageUrls,
         }),
       })
       if (res.ok) {
         setDone(true)
       } else {
         const data = await res.json()
-        if (data.error === 'listing_rejected') {
-          alert('❌ Listing not approved\n\n' + data.reason)
-        } else {
-          alert('Something went wrong. Try again.')
-        }
+        if (data.error === 'listing_rejected') alert('❌ Listing not approved\n\n' + data.reason)
+        else alert('Something went wrong. Try again.')
       }
     } catch (err: any) { alert(err.message || 'Could not connect.') }
     setLoading(false)
   }
 
+  const styles = `
+    @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap');
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #FAFAF8;
+      --bg-card: #FFFEF9;
+      --bg-input: #FAFAF8;
+      --bg-cat-active: #E1F5EE;
+      --bg-cat: #fff;
+      --bg-condition: #fff;
+      --bg-condition-active: #E1F5EE;
+      --nav-bg: #fff;
+      --border: #EDE9E1;
+      --text-primary: #1B2A4A;
+      --text-secondary: #555;
+      --text-muted: #bbb;
+      --text-label: #999;
+      --shadow-nav: 0 2px 12px rgba(27,42,74,0.05);
+      --dropdown-bg: #fff;
+      --dropdown-border: #F5F2ED;
+      --loc-item-color: #1B2A4A;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0F1117;
+        --bg-card: #1A1D27;
+        --bg-input: #1A1D27;
+        --bg-cat-active: #0F2D1F;
+        --bg-cat: #242736;
+        --bg-condition: #242736;
+        --bg-condition-active: #0F2D1F;
+        --nav-bg: #13151F;
+        --border: #2A2D3E;
+        --text-primary: #E8E6F0;
+        --text-secondary: #8B8FA8;
+        --text-muted: #555878;
+        --text-label: #6B6F88;
+        --shadow-nav: 0 2px 12px rgba(0,0,0,0.3);
+        --dropdown-bg: #1A1D27;
+        --dropdown-border: #2A2D3E;
+        --loc-item-color: #E8E6F0;
+      }
+    }
+
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text-primary); }
+    input { color: var(--text-primary) !important; font-weight: 500; background: var(--bg-input) !important; }
+    input::placeholder { color: var(--text-muted) !important; font-weight: 400; }
+    input:focus { outline: none !important; border-color: #1D9E75 !important; box-shadow: 0 0 0 3px rgba(29,158,117,0.1) !important; }
+    .section-card { background: var(--bg-card); border-radius: 20px; border: 1.5px solid var(--border); padding: 24px; margin-bottom: 14px; }
+    .section-title { font-family: 'Kalam', cursive; font-size: 15px; font-weight: 700; color: var(--text-primary); margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+    .loc-item:hover { background: #0F2D1F !important; }
+    @media (prefers-color-scheme: light) { .loc-item:hover { background: #F0FDF8 !important; } }
+    .add-photo-label:hover { border-color: #1D9E75 !important; }
+  `
+
   if (done) return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@700&family=DM+Sans:wght@400;500;600&display=swap');`}</style>
-      <div style={{ fontFamily: 'DM Sans, sans-serif', minHeight: '100vh', background: '#FAFAF8', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-        <div style={{ background: '#fff', borderRadius: '24px', padding: '48px 40px', textAlign: 'center', maxWidth: '380px', width: '100%', boxShadow: '0 4px 32px rgba(27,42,74,0.08)', border: '1.5px solid #EDE9E1' }}>
+      <style>{styles}</style>
+      <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+        <div style={{ background: 'var(--bg-card)', borderRadius: '24px', padding: '48px 40px', textAlign: 'center', maxWidth: '380px', width: '100%', boxShadow: '0 4px 32px rgba(27,42,74,0.08)', border: '1.5px solid var(--border)' }}>
           <div style={{ width: '72px', height: '72px', background: '#E1F5EE', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', margin: '0 auto 20px' }}>🎉</div>
-          <h2 style={{ fontFamily: 'Kalam, cursive', color: '#1B2A4A', fontSize: '24px', marginBottom: '8px', fontWeight: '700' }}>Listing posted!</h2>
-          <p style={{ color: '#999', fontSize: '14px', marginBottom: '28px', lineHeight: '1.5' }}>Your item is now live on BookMart.</p>
+          <h2 style={{ fontFamily: 'Kalam, cursive', color: 'var(--text-primary)', fontSize: '24px', marginBottom: '8px', fontWeight: '700' }}>Listing posted!</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '28px', lineHeight: '1.5' }}>Your item is now live on BookMart.</p>
           <button onClick={() => router.push('/marketplace')} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '12px', padding: '13px 24px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', width: '100%', marginBottom: '10px', fontFamily: 'Kalam, cursive', boxShadow: '0 4px 16px rgba(29,158,117,0.25)' }}>View marketplace</button>
           <button onClick={() => { setDone(false); setForm({ title: '', subtitle: '', price: '', origPrice: '', condition: 'Good', category: 'textbook', location: '' }); setImages([]); setPreviews([]); setLocationSearch('') }}
             style={{ background: 'transparent', color: '#1D9E75', border: '1.5px solid #1D9E75', borderRadius: '12px', padding: '12px 24px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', width: '100%' }}>
@@ -218,20 +252,10 @@ export default function SellPage() {
 
   return (
     <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap');
-        * { box-sizing: border-box; }
-        body { font-family: 'DM Sans', sans-serif; background: #FAFAF8; }
-        input { color: #1B2A4A !important; font-weight: 500; }
-input::placeholder { color: #bbb !important; font-weight: 400; }
-input:focus { outline: none !important; border-color: #1D9E75 !important; box-shadow: 0 0 0 3px rgba(29,158,117,0.1) !important; }
-        .section-card { background: #FFFEF9; border-radius: 20px; border: 1.5px solid #EDE9E1; padding: 24px; margin-bottom: 14px; }
-        .section-title { font-family: 'Kalam', cursive; font-size: 15px; font-weight: 700; color: #1B2A4A; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
-        .loc-item:hover { background: #F0FDF8 !important; }
-      `}</style>
-      <div style={{ background: '#FAFAF8', minHeight: '100vh' }}>
-        <nav style={{ background: '#fff', borderBottom: '1.5px solid #EDE9E1', padding: '0 24px', height: '64px', display: 'flex', alignItems: 'center', gap: '12px', position: 'sticky', top: 0, zIndex: 50, boxShadow: '0 2px 12px rgba(27,42,74,0.05)' }}>
-          <button onClick={() => router.push('/marketplace')} style={{ background: '#FAFAF8', border: '1.5px solid #EDE9E1', width: '38px', height: '38px', borderRadius: '12px', cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#1B2A4A' }}>←</button>
+      <style>{styles}</style>
+      <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
+        <nav style={{ background: 'var(--nav-bg)', borderBottom: '1.5px solid var(--border)', padding: '0 24px', height: '64px', display: 'flex', alignItems: 'center', gap: '12px', position: 'sticky', top: 0, zIndex: 50, boxShadow: 'var(--shadow-nav)' }}>
+          <button onClick={() => router.push('/marketplace')} style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', width: '38px', height: '38px', borderRadius: '12px', cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)' }}>←</button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <img src="/logo.png" alt="BookMart" style={{ height: '32px', width: 'auto' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
             <span style={{ fontFamily: 'Kalam, cursive', fontSize: '16px', fontWeight: '700', color: '#1D9E75' }}>Post a listing</span>
@@ -242,58 +266,56 @@ input:focus { outline: none !important; border-color: #1D9E75 !important; box-sh
 
           {/* Photos */}
           <div className="section-card">
-            <div className="section-title">📷 Photos <span style={{ fontSize: '11px', color: '#bbb', fontWeight: '400', fontFamily: 'DM Sans, sans-serif' }}>up to 3</span></div>
+            <div className="section-title">📷 Photos <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '400', fontFamily: 'DM Sans, sans-serif' }}>up to 3</span></div>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               {previews.map((src, i) => (
                 <div key={i} style={{ position: 'relative', width: '96px', height: '96px' }}>
-                  <img src={src} style={{ width: '96px', height: '96px', objectFit: 'cover', borderRadius: '12px', border: '1.5px solid #EDE9E1' }} />
+                  <img src={src} style={{ width: '96px', height: '96px', objectFit: 'cover', borderRadius: '12px', border: '1.5px solid var(--border)' }} />
                   {i === 0 && <span style={{ position: 'absolute', bottom: '6px', left: '6px', fontSize: '9px', background: 'rgba(0,0,0,0.6)', color: '#fff', padding: '2px 6px', borderRadius: '99px', fontWeight: '600' }}>COVER</span>}
-                  <button onClick={() => removeImage(i)} style={{ position: 'absolute', top: '-6px', right: '-6px', width: '22px', height: '22px', borderRadius: '50%', background: '#E24B4A', color: '#fff', border: '2px solid #fff', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>×</button>
+                  <button onClick={() => removeImage(i)} style={{ position: 'absolute', top: '-6px', right: '-6px', width: '22px', height: '22px', borderRadius: '50%', background: '#E24B4A', color: '#fff', border: '2px solid var(--bg-card)', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>×</button>
                 </div>
               ))}
               {images.length < 3 && (
-                <label style={{ width: '96px', height: '96px', border: '2px dashed #EDE9E1', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#ccc', gap: '4px', transition: 'border-color 0.15s' }}
-                  onMouseEnter={e => (e.currentTarget.style.borderColor = '#1D9E75')}
-                  onMouseLeave={e => (e.currentTarget.style.borderColor = '#EDE9E1')}>
-                  <span style={{ fontSize: '28px', color: '#ddd' }}>+</span>
+                <label className="add-photo-label" style={{ width: '96px', height: '96px', border: '2px dashed var(--border)', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)', gap: '4px', transition: 'border-color 0.15s' }}>
+                  <span style={{ fontSize: '28px' }}>+</span>
                   <span style={{ fontSize: '10px', fontWeight: '500' }}>Add photo</span>
                   <input type="file" accept="image/*" multiple onChange={handleImageSelect} style={{ display: 'none' }} />
                 </label>
               )}
             </div>
-            <p style={{ fontSize: '11px', color: '#bbb', marginTop: '10px' }}>Good photos get 3× more inquiries. First photo is the cover.</p>
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '10px' }}>Good photos get 3× more inquiries. First photo is the cover.</p>
           </div>
 
           {/* Details */}
           <div className="section-card">
             <div className="section-title">📝 Item details</div>
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ fontSize: '11px', color: '#999', display: 'block', marginBottom: '6px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Title *</label>
+              <label style={{ fontSize: '11px', color: 'var(--text-label)', display: 'block', marginBottom: '6px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Title *</label>
               <input value={form.title} onChange={e => update('title', e.target.value)} placeholder="e.g. NCERT Physics Part 1 — Class 12"
-                style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #EDE9E1', fontSize: '14px', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif', background: '#FAFAF8' }} />
+                style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '14px', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif' }} />
             </div>
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ fontSize: '11px', color: '#999', display: 'block', marginBottom: '6px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Subtitle</label>
+              <label style={{ fontSize: '11px', color: 'var(--text-label)', display: 'block', marginBottom: '6px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Subtitle</label>
               <input value={form.subtitle} onChange={e => update('subtitle', e.target.value)} placeholder="e.g. 2023 edition, lightly used"
-                style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #EDE9E1', fontSize: '14px', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif', background: '#FAFAF8' }} />
+                style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '14px', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif' }} />
             </div>
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ fontSize: '11px', color: '#999', display: 'block', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Category *</label>
+              <label style={{ fontSize: '11px', color: 'var(--text-label)', display: 'block', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Category *</label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                 {categories.map(cat => (
-                  <button key={cat} onClick={() => update('category', cat)} style={{ padding: '10px 8px', borderRadius: '12px', border: form.category === cat ? '2px solid #1D9E75' : '1.5px solid #EDE9E1', background: form.category === cat ? '#E1F5EE' : '#fff', cursor: 'pointer', transition: 'all 0.15s', textAlign: 'left' }}>
+                  <button key={cat} onClick={() => update('category', cat)} style={{ padding: '10px 8px', borderRadius: '12px', border: form.category === cat ? '2px solid #1D9E75' : '1.5px solid var(--border)', background: form.category === cat ? 'var(--bg-cat-active)' : 'var(--bg-cat)', cursor: 'pointer', transition: 'all 0.15s', textAlign: 'left' }}>
                     <div style={{ fontSize: '18px', marginBottom: '2px' }}>{emojis[cat]}</div>
-                    <div style={{ fontSize: '11px', fontWeight: '600', color: form.category === cat ? '#0F6E56' : '#1B2A4A', textTransform: 'capitalize', fontFamily: 'Kalam, cursive' }}>{cat}</div>
-                    <div style={{ fontSize: '10px', color: '#bbb' }}>{catDesc[cat]}</div>
+                    <div style={{ fontSize: '11px', fontWeight: '600', color: form.category === cat ? '#0F6E56' : 'var(--text-primary)', textTransform: 'capitalize', fontFamily: 'Kalam, cursive' }}>{cat}</div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{catDesc[cat]}</div>
                   </button>
                 ))}
               </div>
             </div>
             <div>
-              <label style={{ fontSize: '11px', color: '#999', display: 'block', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Condition *</label>
+              <label style={{ fontSize: '11px', color: 'var(--text-label)', display: 'block', marginBottom: '10px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Condition *</label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 {conditions.map(c => (
-                  <button key={c} onClick={() => update('condition', c)} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: form.condition === c ? '2px solid #1D9E75' : '1.5px solid #EDE9E1', background: form.condition === c ? '#E1F5EE' : '#fff', cursor: 'pointer', fontSize: '13px', color: form.condition === c ? '#0F6E56' : '#555', fontWeight: form.condition === c ? '600' : '400', transition: 'all 0.15s', fontFamily: 'Kalam, cursive' }}>
+                  <button key={c} onClick={() => update('condition', c)} style={{ flex: 1, padding: '10px', borderRadius: '10px', border: form.condition === c ? '2px solid #1D9E75' : '1.5px solid var(--border)', background: form.condition === c ? 'var(--bg-condition-active)' : 'var(--bg-condition)', cursor: 'pointer', fontSize: '13px', color: form.condition === c ? '#0F6E56' : 'var(--text-secondary)', fontWeight: form.condition === c ? '600' : '400', transition: 'all 0.15s', fontFamily: 'Kalam, cursive' }}>
                     {c}
                   </button>
                 ))}
@@ -306,14 +328,14 @@ input:focus { outline: none !important; border-color: #1D9E75 !important; box-sh
             <div className="section-title">💰 Pricing</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div>
-                <label style={{ fontSize: '11px', color: '#999', display: 'block', marginBottom: '6px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Your price (₹) *</label>
+                <label style={{ fontSize: '11px', color: 'var(--text-label)', display: 'block', marginBottom: '6px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Your price (₹) *</label>
                 <input type="number" value={form.price} onChange={e => update('price', e.target.value)} placeholder="180"
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #EDE9E1', fontSize: '14px', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif', background: '#FAFAF8' }} />
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '14px', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif' }} />
               </div>
               <div>
-                <label style={{ fontSize: '11px', color: '#999', display: 'block', marginBottom: '6px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Original price (₹)</label>
+                <label style={{ fontSize: '11px', color: 'var(--text-label)', display: 'block', marginBottom: '6px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Original price (₹)</label>
                 <input type="number" value={form.origPrice} onChange={e => update('origPrice', e.target.value)} placeholder="320"
-                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #EDE9E1', fontSize: '14px', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif', background: '#FAFAF8' }} />
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '14px', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif' }} />
               </div>
             </div>
             {form.price && form.origPrice && parseInt(form.price) < parseInt(form.origPrice) && (
@@ -329,32 +351,26 @@ input:focus { outline: none !important; border-color: #1D9E75 !important; box-sh
             <div ref={locationRef} style={{ position: 'relative' }}>
               <div style={{ position: 'relative' }}>
                 <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', pointerEvents: 'none' }}>📍</span>
-                <input
-                  value={locationSearch}
-                  onChange={e => {
-                    setLocationSearch(e.target.value)
-                    setForm(prev => ({ ...prev, location: e.target.value }))
-                    setShowLocationDropdown(true)
-                  }}
+                <input value={locationSearch}
+                  onChange={e => { setLocationSearch(e.target.value); setForm(prev => ({ ...prev, location: e.target.value })); setShowLocationDropdown(true) }}
                   onFocus={() => setShowLocationDropdown(true)}
                   placeholder="Type to search — e.g. Sector 40"
-                  style={{ width: '100%', padding: '10px 14px 10px 40px', borderRadius: '10px', border: `1.5px solid ${form.location ? '#1D9E75' : '#EDE9E1'}`, fontSize: '14px', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif', background: '#FAFAF8', color: '#1B2A4A', fontWeight: '500' }}
-                />
+                  style={{ width: '100%', padding: '10px 40px 10px 40px', borderRadius: '10px', border: `1.5px solid ${form.location ? '#1D9E75' : 'var(--border)'}`, fontSize: '14px', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif' }} />
                 {form.location && (
                   <button onClick={() => { setForm(prev => ({ ...prev, location: '' })); setLocationSearch(''); setShowLocationDropdown(true) }}
-                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#bbb', padding: 0 }}>×</button>
+                    style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: 'var(--text-muted)', padding: 0 }}>×</button>
                 )}
               </div>
 
               {showLocationDropdown && filteredLocations.length > 0 && (
-                <div style={{ position: 'absolute', top: '46px', left: 0, right: 0, background: '#fff', border: '1.5px solid #EDE9E1', borderRadius: '14px', boxShadow: '0 8px 32px rgba(27,42,74,0.12)', zIndex: 100, overflow: 'hidden', maxHeight: '240px', overflowY: 'auto' }}>
+                <div style={{ position: 'absolute', top: '46px', left: 0, right: 0, background: 'var(--dropdown-bg)', border: '1.5px solid var(--border)', borderRadius: '14px', boxShadow: '0 8px 32px rgba(27,42,74,0.12)', zIndex: 100, overflow: 'hidden', maxHeight: '240px', overflowY: 'auto' }}>
                   {filteredLocations.map(loc => (
                     <div key={loc} className="loc-item" onClick={() => selectLocation(loc)}
-                      style={{ padding: '11px 16px', cursor: 'pointer', fontSize: '13px', color: '#1B2A4A', borderBottom: '1px solid #F5F2ED', display: 'flex', alignItems: 'center', gap: '8px', transition: 'background 0.1s' }}>
+                      style={{ padding: '11px 16px', cursor: 'pointer', fontSize: '13px', color: 'var(--loc-item-color)', borderBottom: '1px solid var(--dropdown-border)', display: 'flex', alignItems: 'center', gap: '8px', transition: 'background 0.1s' }}>
                       <span style={{ fontSize: '14px' }}>📍</span>
                       <div>
                         <span style={{ fontWeight: '500' }}>{loc.split(',')[0]}</span>
-                        <span style={{ color: '#aaa' }}>{loc.includes(',') ? ', ' + loc.split(',').slice(1).join(',').trim() : ''}</span>
+                        <span style={{ color: 'var(--text-muted)' }}>{loc.includes(',') ? ', ' + loc.split(',').slice(1).join(',').trim() : ''}</span>
                       </div>
                     </div>
                   ))}
@@ -362,12 +378,12 @@ input:focus { outline: none !important; border-color: #1D9E75 !important; box-sh
               )}
 
               {showLocationDropdown && locationSearch.length > 0 && filteredLocations.length === 0 && (
-                <div style={{ position: 'absolute', top: '46px', left: 0, right: 0, background: '#fff', border: '1.5px solid #EDE9E1', borderRadius: '14px', padding: '16px', textAlign: 'center', fontSize: '13px', color: '#aaa', zIndex: 100 }}>
+                <div style={{ position: 'absolute', top: '46px', left: 0, right: 0, background: 'var(--dropdown-bg)', border: '1.5px solid var(--border)', borderRadius: '14px', padding: '16px', textAlign: 'center', fontSize: '13px', color: 'var(--text-muted)', zIndex: 100 }}>
                   No locations found. Try "Sector 22" or "Mohali".
                 </div>
               )}
             </div>
-            <p style={{ fontSize: '11px', color: '#bbb', marginTop: '8px' }}>Start typing your sector or area to search.</p>
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px' }}>Start typing your sector or area to search.</p>
           </div>
 
           {uploadProgress && (

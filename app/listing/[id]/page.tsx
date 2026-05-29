@@ -36,7 +36,7 @@ export default function ListingPage() {
     if (!confirm('Delete this listing? This cannot be undone.')) return
     setDeleting(true)
     await fetch('/api/listings/' + id, { method: 'DELETE' })
-    router.push('/')
+    router.push('/marketplace')
   }
 
   async function handleSave() {
@@ -57,23 +57,80 @@ export default function ListingPage() {
   const sharedStyles = `
     @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'DM Sans', sans-serif; background: #FAFAF8; color: #1B2A4A; }
+
+    :root {
+      --bg: #FAFAF8;
+      --bg-card: #FFFEF9;
+      --bg-img: #F5F2ED;
+      --bg-input: #FAFAF8;
+      --bg-tag: #F5F2ED;
+      --nav-bg: #fff;
+      --border: #EDE9E1;
+      --border-thumb: #EDE9E1;
+      --text-primary: #1B2A4A;
+      --text-secondary: #888;
+      --text-muted: #bbb;
+      --text-label: #999;
+      --shadow-nav: 0 2px 12px rgba(27,42,74,0.05);
+      --shadow-card: 0 2px 12px rgba(27,42,74,0.05);
+      --shadow-img: 0 4px 24px rgba(27,42,74,0.07);
+      --back-btn-bg: #FAFAF8;
+      --share-btn-bg: #FAFAF8;
+      --cancel-btn-bg: #FAFAF8;
+      --sold-bg: #F5F2ED;
+      --condition-bg: #fff;
+      --condition-active-bg: #E1F5EE;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0F1117;
+        --bg-card: #1A1D27;
+        --bg-img: #242736;
+        --bg-input: #1A1D27;
+        --bg-tag: #242736;
+        --nav-bg: #13151F;
+        --border: #2A2D3E;
+        --border-thumb: #2A2D3E;
+        --text-primary: #E8E6F0;
+        --text-secondary: #8B8FA8;
+        --text-muted: #555878;
+        --text-label: #6B6F88;
+        --shadow-nav: 0 2px 12px rgba(0,0,0,0.3);
+        --shadow-card: 0 2px 12px rgba(0,0,0,0.2);
+        --shadow-img: 0 4px 24px rgba(0,0,0,0.3);
+        --back-btn-bg: #1A1D27;
+        --share-btn-bg: #1A1D27;
+        --cancel-btn-bg: #1A1D27;
+        --sold-bg: #242736;
+        --condition-bg: #242736;
+        --condition-active-bg: #0F2D1F;
+      }
+    }
+
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text-primary); }
     .logo-text { font-family: 'Kalam', cursive; }
+    input { color: var(--text-primary) !important; font-weight: 500; }
+    input::placeholder { color: var(--text-muted) !important; font-weight: 400; }
     input:focus { outline: none !important; border-color: #1D9E75 !important; box-shadow: 0 0 0 3px rgba(29,158,117,0.1) !important; }
     .thumb { transition: all 0.15s; cursor: pointer; }
     .thumb:hover { transform: scale(1.06); }
     .wa-btn { transition: all 0.2s ease; }
     .wa-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(37,211,102,0.35) !important; }
+    .back-btn:hover { background: var(--bg-img) !important; }
+    .back-to-listings:hover { background: #E1F5EE !important; }
+    @media (prefers-color-scheme: dark) {
+      .back-to-listings:hover { background: #0F2D1F !important; }
+    }
     @keyframes fadeIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
     .img-fade { animation: fadeIn 0.2s ease; }
-    .back-btn:hover { background: #F5F2ED !important; }
   `
 
   if (loading) return (
     <>
       <style>{sharedStyles}</style>
-      <div style={{ minHeight: '100vh', background: '#FAFAF8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center', color: '#bbb' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
           <div className="logo-text" style={{ fontSize: '40px', marginBottom: '12px' }}>📚</div>
           <div style={{ fontSize: '14px' }}>Loading…</div>
         </div>
@@ -84,7 +141,7 @@ export default function ListingPage() {
   if (!listing || listing.error) return (
     <>
       <style>{sharedStyles}</style>
-      <div style={{ fontFamily: 'DM Sans, sans-serif', padding: '60px 20px', textAlign: 'center', color: '#999' }}>Listing not found</div>
+      <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--text-muted)' }}>Listing not found</div>
     </>
   )
 
@@ -97,16 +154,16 @@ export default function ListingPage() {
   return (
     <>
       <style>{sharedStyles}</style>
-      <div style={{ minHeight: '100vh', background: '#FAFAF8' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
 
-        <nav style={{ background: '#fff', borderBottom: '1.5px solid #EDE9E1', padding: '0 24px', height: '64px', display: 'flex', alignItems: 'center', gap: '12px', position: 'sticky', top: 0, zIndex: 50, boxShadow: '0 2px 12px rgba(27,42,74,0.05)' }}>
-          <button className="back-btn" onClick={() => window.location.href = '/'} style={{ background: '#FAFAF8', border: '1.5px solid #EDE9E1', width: '38px', height: '38px', borderRadius: '12px', cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s', color: '#1B2A4A' }}>←</button>
+        <nav style={{ background: 'var(--nav-bg)', borderBottom: '1.5px solid var(--border)', padding: '0 24px', height: '64px', display: 'flex', alignItems: 'center', gap: '12px', position: 'sticky', top: 0, zIndex: 50, boxShadow: 'var(--shadow-nav)' }}>
+          <button className="back-btn" onClick={() => window.location.href = '/marketplace'} style={{ background: 'var(--back-btn-bg)', border: '1.5px solid var(--border)', width: '38px', height: '38px', borderRadius: '12px', cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s', color: 'var(--text-primary)' }}>←</button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <img src="/logo.png" alt="BookMart" style={{ height: '32px', width: 'auto' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-            <span className="logo-text" style={{ fontSize: '20px', color: '#1B2A4A', fontWeight: '700' }}>BookMart</span>
+            <span className="logo-text" style={{ fontSize: '20px', color: 'var(--text-primary)', fontWeight: '700' }}>BookMart</span>
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
-            <button onClick={copyLink} style={{ background: copied ? '#E1F5EE' : '#FAFAF8', border: '1.5px solid #EDE9E1', borderRadius: '10px', padding: '7px 14px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', color: copied ? '#0F6E56' : '#666', transition: 'all 0.15s' }}>
+            <button onClick={copyLink} style={{ background: copied ? '#E1F5EE' : 'var(--share-btn-bg)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '7px 14px', fontSize: '12px', fontWeight: '500', cursor: 'pointer', color: copied ? '#0F6E56' : 'var(--text-secondary)', transition: 'all 0.15s' }}>
               {copied ? '✅ Copied!' : '🔗 Share'}
             </button>
             {isOwner && !editing && (
@@ -120,9 +177,9 @@ export default function ListingPage() {
 
         <div style={{ maxWidth: '640px', margin: '24px auto', padding: '0 16px 48px' }}>
 
-          {/* Image */}
-          <div style={{ background: '#FFFEF9', borderRadius: '24px', border: '1.5px solid #EDE9E1', overflow: 'hidden', marginBottom: '16px', boxShadow: '0 4px 24px rgba(27,42,74,0.07)' }}>
-            <div style={{ height: '300px', background: '#F5F2ED', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '80px', position: 'relative', overflow: 'hidden' }}>
+          {/* Image gallery */}
+          <div style={{ background: 'var(--bg-card)', borderRadius: '24px', border: '1.5px solid var(--border)', overflow: 'hidden', marginBottom: '16px', boxShadow: 'var(--shadow-img)' }}>
+            <div style={{ height: '300px', background: 'var(--bg-img)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '80px', position: 'relative', overflow: 'hidden' }}>
               {hasImages
                 ? <img key={activeImg} className="img-fade" src={listing.images[activeImg]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 : listing.emoji}
@@ -135,77 +192,77 @@ export default function ListingPage() {
               )}
             </div>
             {hasImages && listing.images.length > 1 && (
-              <div style={{ display: 'flex', gap: '8px', padding: '12px 16px', borderTop: '1px solid #F0EDE6' }}>
+              <div style={{ display: 'flex', gap: '8px', padding: '12px 16px', borderTop: '1px solid var(--border)' }}>
                 {listing.images.map((img: string, i: number) => (
                   <img key={i} className="thumb" src={img} onClick={() => setActiveImg(i)}
-                    style={{ width: '58px', height: '58px', objectFit: 'cover', borderRadius: '10px', border: activeImg === i ? '2.5px solid #1D9E75' : '2px solid #EDE9E1', opacity: activeImg === i ? 1 : 0.65 }} />
+                    style={{ width: '58px', height: '58px', objectFit: 'cover', borderRadius: '10px', border: activeImg === i ? '2.5px solid #1D9E75' : `2px solid var(--border-thumb)`, opacity: activeImg === i ? 1 : 0.65 }} />
                 ))}
               </div>
             )}
           </div>
 
-          {/* Info / Edit */}
+          {/* Edit form */}
           {editing ? (
-            <div style={{ background: '#FFFEF9', borderRadius: '20px', border: '2px solid #1D9E75', padding: '24px', marginBottom: '14px' }}>
+            <div style={{ background: 'var(--bg-card)', borderRadius: '20px', border: '2px solid #1D9E75', padding: '24px', marginBottom: '14px' }}>
               <div className="logo-text" style={{ fontSize: '16px', color: '#1D9E75', marginBottom: '18px', fontWeight: '700' }}>✏️ Edit listing</div>
               {(['title', 'subtitle', 'price', 'origPrice', 'location'] as const).map(field => (
                 <div key={field} style={{ marginBottom: '12px' }}>
-                  <label style={{ fontSize: '11px', color: '#999', display: 'block', marginBottom: '5px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{field === 'origPrice' ? 'Original Price (₹)' : field === 'price' ? 'Price (₹)' : field.charAt(0).toUpperCase() + field.slice(1)}</label>
+                  <label style={{ fontSize: '11px', color: 'var(--text-label)', display: 'block', marginBottom: '5px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{field === 'origPrice' ? 'Original Price (₹)' : field === 'price' ? 'Price (₹)' : field.charAt(0).toUpperCase() + field.slice(1)}</label>
                   <input type={['price', 'origPrice'].includes(field) ? 'number' : 'text'} value={form[field]}
                     onChange={e => setForm({ ...form, [field]: e.target.value })}
-                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #EDE9E1', fontSize: '14px', fontFamily: 'DM Sans, sans-serif', background: '#FAFAF8', transition: 'all 0.15s' }} />
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid var(--border)', fontSize: '14px', fontFamily: 'DM Sans, sans-serif', background: 'var(--bg-input)', transition: 'all 0.15s' }} />
                 </div>
               ))}
               <div style={{ marginBottom: '18px' }}>
-                <label style={{ fontSize: '11px', color: '#999', display: 'block', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Condition</label>
+                <label style={{ fontSize: '11px', color: 'var(--text-label)', display: 'block', marginBottom: '8px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Condition</label>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   {conditions.map(c => (
-                    <button key={c} onClick={() => setForm({ ...form, condition: c })} style={{ flex: 1, padding: '9px', borderRadius: '10px', border: form.condition === c ? '2px solid #1D9E75' : '1.5px solid #EDE9E1', background: form.condition === c ? '#E1F5EE' : '#fff', cursor: 'pointer', fontSize: '13px', color: form.condition === c ? '#0F6E56' : '#666', fontWeight: form.condition === c ? '600' : '400', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif' }}>{c}</button>
+                    <button key={c} onClick={() => setForm({ ...form, condition: c })} style={{ flex: 1, padding: '9px', borderRadius: '10px', border: form.condition === c ? '2px solid #1D9E75' : `1.5px solid var(--border)`, background: form.condition === c ? 'var(--condition-active-bg)' : 'var(--condition-bg)', cursor: 'pointer', fontSize: '13px', color: form.condition === c ? '#0F6E56' : 'var(--text-secondary)', fontWeight: form.condition === c ? '600' : '400', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif' }}>{c}</button>
                   ))}
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button onClick={handleSave} disabled={saving} style={{ flex: 1, background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '12px', padding: '12px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', boxShadow: '0 4px 16px rgba(29,158,117,0.25)' }}>{saving ? 'Saving…' : '✅ Save changes'}</button>
-                <button onClick={() => setEditing(false)} style={{ flex: 1, background: '#FAFAF8', color: '#888', border: '1.5px solid #EDE9E1', borderRadius: '12px', padding: '12px', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
+                <button onClick={() => setEditing(false)} style={{ flex: 1, background: 'var(--cancel-btn-bg)', color: 'var(--text-secondary)', border: `1.5px solid var(--border)`, borderRadius: '12px', padding: '12px', fontSize: '14px', cursor: 'pointer' }}>Cancel</button>
               </div>
             </div>
           ) : (
-            <div style={{ background: '#FFFEF9', borderRadius: '20px', border: '1.5px solid #EDE9E1', padding: '22px', marginBottom: '14px', boxShadow: '0 2px 12px rgba(27,42,74,0.05)' }}>
+            <div style={{ background: 'var(--bg-card)', borderRadius: '20px', border: '1.5px solid var(--border)', padding: '22px', marginBottom: '14px', boxShadow: 'var(--shadow-card)' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', marginBottom: '6px' }}>
-                <h1 style={{ fontSize: '22px', fontWeight: '600', color: listing.sold ? '#bbb' : '#1B2A4A', lineHeight: '1.3', flex: 1 }}>{listing.title}</h1>
+                <h1 style={{ fontSize: '22px', fontWeight: '600', color: listing.sold ? 'var(--text-muted)' : 'var(--text-primary)', lineHeight: '1.3', flex: 1 }}>{listing.title}</h1>
                 {listing.sold && <span style={{ background: '#E24B4A', color: '#fff', fontSize: '11px', fontWeight: '700', padding: '4px 10px', borderRadius: '6px', letterSpacing: '0.5px', flexShrink: 0 }}>SOLD</span>}
               </div>
-              {listing.subtitle && <p style={{ fontSize: '14px', color: '#888', marginBottom: '18px', lineHeight: '1.6' }}>{listing.subtitle}</p>}
+              {listing.subtitle && <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '18px', lineHeight: '1.6' }}>{listing.subtitle}</p>}
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '10px', marginBottom: '16px' }}>
-                <span className="logo-text" style={{ fontSize: '36px', color: listing.sold ? '#bbb' : '#1D9E75', fontWeight: '700' }}>₹{listing.price}</span>
-                {listing.origPrice && <span style={{ fontSize: '16px', color: '#ddd', textDecoration: 'line-through' }}>₹{listing.origPrice}</span>}
+                <span className="logo-text" style={{ fontSize: '36px', color: listing.sold ? 'var(--text-muted)' : '#1D9E75', fontWeight: '700' }}>₹{listing.price}</span>
+                {listing.origPrice && <span style={{ fontSize: '16px', color: 'var(--text-muted)', textDecoration: 'line-through' }}>₹{listing.origPrice}</span>}
                 {discount > 0 && !listing.sold && <span style={{ fontSize: '12px', color: '#0F6E56', background: '#E1F5EE', padding: '3px 10px', borderRadius: '99px', fontWeight: '600' }}>Save ₹{listing.origPrice - listing.price}</span>}
               </div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '12px', color: '#777', background: '#F5F2ED', padding: '5px 12px', borderRadius: '99px' }}>📍 {listing.location}</span>
-                <span style={{ fontSize: '12px', color: '#777', background: '#F5F2ED', padding: '5px 12px', borderRadius: '99px', textTransform: 'capitalize' }}>🏷️ {listing.category}</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', background: 'var(--bg-tag)', padding: '5px 12px', borderRadius: '99px' }}>📍 {listing.location}</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', background: 'var(--bg-tag)', padding: '5px 12px', borderRadius: '99px', textTransform: 'capitalize' }}>🏷️ {listing.category}</span>
               </div>
             </div>
           )}
 
-          {/* Seller */}
+          {/* Seller + CTA */}
           {!editing && (
-            <div style={{ background: '#FFFEF9', borderRadius: '20px', border: '1.5px solid #EDE9E1', padding: '22px', marginBottom: '14px', boxShadow: '0 2px 12px rgba(27,42,74,0.05)' }}>
-              <div style={{ fontSize: '12px', fontWeight: '600', color: '#999', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '14px' }}>Seller</div>
+            <div style={{ background: 'var(--bg-card)', borderRadius: '20px', border: '1.5px solid var(--border)', padding: '22px', marginBottom: '14px', boxShadow: 'var(--shadow-card)' }}>
+              <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-label)', textTransform: 'uppercase', letterSpacing: '0.8px', marginBottom: '14px' }}>Seller</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
                 <div className="logo-text" style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #E1F5EE, #B2E8D6)', color: '#0F6E56', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: '700', flexShrink: 0, border: '1.5px solid #B2E8D6' }}>
                   {listing.seller?.name?.charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <div style={{ fontSize: '15px', fontWeight: '600', color: '#1B2A4A' }}>{listing.seller?.name}</div>
-                  <div style={{ fontSize: '12px', color: '#bbb', marginTop: '2px' }}>📍 {listing.location}</div>
+                  <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>{listing.seller?.name}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>📍 {listing.location}</div>
                 </div>
               </div>
 
               {isOwner ? (
                 <div style={{ background: '#E1F5EE', borderRadius: '12px', padding: '12px 16px', fontSize: '13px', color: '#0F6E56', textAlign: 'center', fontWeight: '600' }}>✅ This is your listing</div>
               ) : listing.sold ? (
-                <div style={{ background: '#F5F2ED', borderRadius: '12px', padding: '14px 16px', fontSize: '13px', color: '#aaa', textAlign: 'center' }}>🔒 This item has already been sold</div>
+                <div style={{ background: 'var(--sold-bg)', borderRadius: '12px', padding: '14px 16px', fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center' }}>🔒 This item has already been sold</div>
               ) : isSignedIn ? (
                 <a href={waLink} target="_blank" rel="noopener noreferrer" className="wa-btn"
                   style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', background: '#25D366', color: '#fff', borderRadius: '14px', padding: '15px', fontSize: '15px', fontWeight: '700', textDecoration: 'none', boxShadow: '0 4px 20px rgba(37,211,102,0.28)', fontFamily: 'Kalam, cursive' }}>
@@ -214,19 +271,18 @@ export default function ListingPage() {
                 </a>
               ) : (
                 <SignInButton mode="modal">
-                  <button style={{ width: '100%', background: '#1B2A4A', color: '#fff', border: 'none', borderRadius: '14px', padding: '14px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive' }}>Sign in to contact seller</button>
+                  <button style={{ width: '100%', background: 'var(--text-primary)', color: 'var(--bg)', border: 'none', borderRadius: '14px', padding: '14px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive' }}>Sign in to contact seller</button>
                 </SignInButton>
               )}
 
-              <button onClick={() => window.location.href = '/'} style={{ width: '100%', background: 'transparent', color: '#1D9E75', border: '1.5px solid #1D9E75', borderRadius: '14px', padding: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', marginTop: '10px', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif' }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#E1F5EE')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+              <button className="back-to-listings" onClick={() => window.location.href = '/marketplace'}
+                style={{ width: '100%', background: 'transparent', color: '#1D9E75', border: '1.5px solid #1D9E75', borderRadius: '14px', padding: '12px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', marginTop: '10px', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif' }}>
                 ← Back to listings
               </button>
             </div>
           )}
 
-          {/* Safety */}
+          {/* Safety tip */}
           {!editing && (
             <div style={{ background: '#FFFBEB', borderRadius: '16px', padding: '14px 18px', display: 'flex', gap: '12px', border: '1.5px solid #FEF3C7' }}>
               <span style={{ fontSize: '20px' }}>🛡️</span>
