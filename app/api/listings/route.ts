@@ -44,7 +44,8 @@ Respond with JSON only, nothing else.`,
     const text = data.content?.[0]?.text?.trim() || ''
     const parsed = JSON.parse(text)
     return { approved: parsed.approved === true, reason: parsed.reason || '' }
-  } catch {
+  } catch (err) {
+    console.error('Moderation error:', err)
     // If moderation fails, allow the listing (fail open)
     return { approved: true, reason: '' }
   }

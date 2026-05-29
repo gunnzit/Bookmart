@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { createClient } from '@supabase/supabase-js'
@@ -21,6 +21,13 @@ const catDesc: Record<string, string> = {
   stationery: 'Pens, files & more', competitive: 'JEE, NEET & exams'
 }
 
+declare global {
+  interface Window {
+    google: any
+    initGooglePlaces: () => void
+  }
+}
+
 export default function SellPage() {
   const router = useRouter()
   const { isSignedIn, user } = useUser()
@@ -34,10 +41,42 @@ export default function SellPage() {
     origPrice: '', condition: 'Good',
     category: 'textbook', location: '',
   })
+  const locationRef = useRef<HTMLInputElement>(null)
+  const autocompleteRef = useRef<any>(null)
 
   useEffect(() => {
-    if (isSignedIn === false) {
-      router.push('/')
+    if (isSignedIn === false) router.push('/')
+  }, [isSignedIn])
+
+  // Load Google Places
+  useEffect(() => {
+    if (!process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY) return
+
+    window.initGooglePlaces = () => {
+      if (!locationRef.current) return
+      autocompleteRef.current = new window.google.maps.places.Autocomplete(locationRef.current, {
+        componentRestrictions: { country: 'in' },
+        fields: ['formatted_address', 'name', 'geometry'],
+        types: ['geocode', 'establishment'],
+      })
+      autocompleteRef.current.addListener('place_changed', () => {
+        const place = autocompleteRef.current.getPlace()
+        const address = place.name || place.formatted_address || ''
+        // Show just the area, not full address
+        const short = address.split(',').slice(0, 2).join(',').trim()
+        setForm(prev => ({ ...prev, location: short }))
+      })
+    }
+
+    if (!document.getElementById('google-maps-script')) {
+      const script = document.createElement('script')
+      script.id = 'google-maps-script'
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}&libraries=places&callback=initGooglePlaces`
+      script.async = true
+      script.defer = true
+      document.head.appendChild(script)
+    } else if (window.google) {
+      window.initGooglePlaces()
     }
   }, [isSignedIn])
 
@@ -101,15 +140,15 @@ export default function SellPage() {
         }),
       })
       if (res.ok) {
-  setDone(true)
-} else {
-  const data = await res.json()
-  if (data.error === 'listing_rejected') {
-    alert('❌ Listing not approved\n\n' + data.reason)
-  } else {
-    alert('Something went wrong. Try again.')
-  }
-}
+        setDone(true)
+      } else {
+        const data = await res.json()
+        if (data.error === 'listing_rejected') {
+          alert('❌ Listing not approved\n\n' + data.reason)
+        } else {
+          alert('Something went wrong. Try again.')
+        }
+      }
     } catch (err: any) { alert(err.message || 'Could not connect.') }
     setLoading(false)
   }
@@ -141,6 +180,11 @@ export default function SellPage() {
         input:focus, textarea:focus { outline: none !important; border-color: #1D9E75 !important; box-shadow: 0 0 0 3px rgba(29,158,117,0.1) !important; }
         .section-card { background: #FFFEF9; border-radius: 20px; border: 1.5px solid #EDE9E1; padding: 24px; margin-bottom: 14px; }
         .section-title { font-family: 'Kalam', cursive; font-size: 15px; font-weight: 700; color: #1B2A4A; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+        .pac-container { border-radius: 12px !important; border: 1.5px solid #EDE9E1 !important; box-shadow: 0 8px 32px rgba(27,42,74,0.12) !important; font-family: 'DM Sans', sans-serif !important; margin-top: 4px !important; }
+        .pac-item { padding: 10px 14px !important; font-size: 13px !important; cursor: pointer !important; }
+        .pac-item:hover { background: #F5F2ED !important; }
+        .pac-item-query { font-weight: 600 !important; color: #1B2A4A !important; }
+        .pac-matched { color: #1D9E75 !important; }
       `}</style>
       <div style={{ background: '#FAFAF8', minHeight: '100vh' }}>
         <nav style={{ background: '#fff', borderBottom: '1.5px solid #EDE9E1', padding: '0 24px', height: '64px', display: 'flex', alignItems: 'center', gap: '12px', position: 'sticky', top: 0, zIndex: 50, boxShadow: '0 2px 12px rgba(27,42,74,0.05)' }}>
@@ -239,8 +283,17 @@ export default function SellPage() {
           {/* Location */}
           <div className="section-card">
             <div className="section-title">📍 Location</div>
-            <input value={form.location} onChange={e => update('location', e.target.value)} placeholder="e.g. Sector 40, Chandigarh"
-              style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1.5px solid #EDE9E1', fontSize: '14px', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif', background: '#FAFAF8' }} />
+            <div style={{ position: 'relative' }}>
+              <input
+                ref={locationRef}
+                value={form.location}
+                onChange={e => update('location', e.target.value)}
+                placeholder="Start typing your area, e.g. Sector 40"
+                style={{ width: '100%', padding: '10px 14px 10px 40px', borderRadius: '10px', border: '1.5px solid #EDE9E1', fontSize: '14px', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif', background: '#FAFAF8' }}
+              />
+              <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', pointerEvents: 'none' }}>📍</span>
+            </div>
+            <p style={{ fontSize: '11px', color: '#bbb', marginTop: '8px' }}>Select from the dropdown for accurate location.</p>
           </div>
 
           {uploadProgress && (
