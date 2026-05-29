@@ -135,6 +135,8 @@ export default function Marketplace() {
         .suggestion-item:hover { background: var(--bg-img) !important; }
         @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
         .float { animation: float 3s ease-in-out infinite; }
+        @keyframes featuredPulse { 0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,0.4)} 50%{box-shadow:0 0 0 4px rgba(245,158,11,0)} }
+        .featured-card { animation: featuredPulse 2.5s ease-in-out infinite; }
         @media (max-width: 480px) {
           .listings-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
           .nav-search { max-width: 100% !important; }
@@ -340,19 +342,51 @@ export default function Marketplace() {
             <div className="listings-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '14px' }}>
               {filtered.map((l: any, idx: number) => {
                 const discount = l.origPrice ? Math.round((1 - l.price / l.origPrice) * 100) : 0
+                const isFeatured = l.featured && !l.sold
                 return (
-                  <div key={l.id} className="card fade-up" onClick={() => window.location.href = '/listing/' + l.id}
-                    style={{ background: 'var(--bg-card)', borderRadius: '18px', border: '1.5px solid var(--border)', overflow: 'hidden', cursor: 'pointer', boxShadow: 'var(--shadow-card)', animationDelay: `${Math.min(idx * 0.04, 0.4)}s`, position: 'relative' }}>
+                  <div key={l.id} className={`card fade-up${isFeatured ? ' featured-card' : ''}`}
+                    onClick={() => window.location.href = '/listing/' + l.id}
+                    style={{
+                      background: 'var(--bg-card)',
+                      borderRadius: '18px',
+                      border: isFeatured ? '2px solid #F59E0B' : '1.5px solid var(--border)',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      boxShadow: isFeatured ? '0 4px 20px rgba(245,158,11,0.2)' : 'var(--shadow-card)',
+                      animationDelay: `${Math.min(idx * 0.04, 0.4)}s`,
+                      position: 'relative',
+                    }}>
+
+                    {/* Image area */}
                     <div className="listing-card-img" style={{ height: '140px', background: 'var(--bg-img)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '44px', position: 'relative', overflow: 'hidden' }}>
                       {l.images?.[0]
                         ? <img className="listing-img" src={l.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         : <span className="listing-img float" style={{ display: 'block', animationDelay: `${idx * 0.2}s` }}>{l.emoji}</span>}
+
+                      {/* Condition badge */}
                       <span style={{ position: 'absolute', top: '8px', left: '8px', fontSize: '9px', background: l.condition === 'New' ? 'rgba(220,252,231,0.95)' : l.condition === 'Fair' ? 'rgba(254,243,199,0.95)' : 'rgba(239,246,255,0.95)', color: l.condition === 'New' ? '#166534' : l.condition === 'Fair' ? '#92400E' : '#1D4ED8', padding: '2px 8px', borderRadius: '99px', fontWeight: '700', backdropFilter: 'blur(4px)' }}>{l.condition}</span>
+
+                      {/* Discount badge */}
                       {discount >= 20 && !l.sold && (
                         <span style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '9px', background: 'linear-gradient(135deg, #FF6B35, #E24B4A)', color: '#fff', padding: '2px 7px', borderRadius: '99px', fontWeight: '700' }}>-{discount}%</span>
                       )}
-                      {l.sold && <div style={{ position: 'absolute', inset: 0, background: 'rgba(27,42,74,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><span className="logo-text" style={{ color: '#fff', fontSize: '17px', letterSpacing: '3px' }}>SOLD</span></div>}
+
+                      {/* Featured badge */}
+                      {isFeatured && (
+                        <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'linear-gradient(135deg, #F59E0B, #D97706)', color: '#fff', fontSize: '9px', fontWeight: '800', padding: '3px 8px', borderRadius: '99px', display: 'flex', alignItems: 'center', gap: '3px', boxShadow: '0 2px 8px rgba(245,158,11,0.5)', zIndex: 2 }}>
+                          ⭐ FEATURED
+                        </div>
+                      )}
+
+                      {/* Sold overlay */}
+                      {l.sold && (
+                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(27,42,74,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span className="logo-text" style={{ color: '#fff', fontSize: '17px', letterSpacing: '3px' }}>SOLD</span>
+                        </div>
+                      )}
                     </div>
+
+                    {/* Card body */}
                     <div className="listing-card-body" style={{ padding: '11px 13px' }}>
                       <div className="listing-card-title" style={{ fontSize: '13px', fontWeight: '600', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: l.sold ? 'var(--text-muted)' : 'var(--text-primary)' }}>{l.title}</div>
                       <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '7px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.subtitle || l.seller?.name}</div>
@@ -374,7 +408,7 @@ export default function Marketplace() {
 
         <div className="bottom-nav-spacer" />
 
-        {/* Mobile bottom nav — openSignIn() for unauthenticated */}
+        {/* Mobile bottom nav */}
         <nav className="bottom-nav">
           <button className="bottom-nav-btn active" onClick={() => router.push('/marketplace')}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>

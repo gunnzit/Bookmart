@@ -215,6 +215,10 @@ export default function AdminPage() {
                           </td>
                           <td style={{ padding: '12px 16px' }}>
                             <div style={{ display: 'flex', gap: '6px' }}>
+                              <button onClick={() => fetch('/api/listings/' + l.id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ featured: !l.featured }) }).then(() => fetchData())}
+  style={{ background: l.featured ? 'rgba(234,179,8,0.2)' : 'rgba(100,100,100,0.1)', color: l.featured ? '#EAB308' : '#888', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>
+  {l.featured ? '⭐ Featured' : '☆ Feature'}
+</button>
                               <button onClick={() => { setEditingId(editingId === l.id ? null : l.id); setEditForm({ title: l.title, subtitle: l.subtitle || '', price: l.price, origPrice: l.origPrice || '', condition: l.condition, location: l.location }) }}
                                 style={{ background: '#EFF6FF', color: '#1D4ED8', border: 'none', borderRadius: '6px', padding: '4px 10px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>✏️</button>
                               <button onClick={() => toggleSold(l.id, l.sold)}
