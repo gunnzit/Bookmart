@@ -250,7 +250,7 @@ export default function ProfilePage() {
                   {activeTab === 'active' ? 'No active listings' : 'No sold listings yet'}
                 </div>
                 <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
-                  {activeTab === 'active' ? 'Post your first item and start selling!' : 'Mark items as sold when they're gone.'}
+                  {activeTab === 'active' ? 'Post your first item and start selling!' : 'Mark items as sold when they are gone.'}
                 </div>
                 {activeTab === 'active' && (
                   <button onClick={() => router.push('/sell')} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px 24px', cursor: 'pointer', fontSize: '13px', fontWeight: '700', fontFamily: 'Kalam, cursive' }}>Post a listing</button>
