@@ -309,7 +309,7 @@ export default function LandingPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '16px' }}>
               {steps.map((s, i) => (
                 <div key={s.num} className={`card reveal${howInView ? ' in' : ''} d${i + 1}`} style={{ padding: '28px 24px' }}>
-                  <div style={{ display: 'flex', align: 'center', gap: '12px', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
                     <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--green-light)', border: '1px solid var(--green-mid)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>{s.icon}</div>
                     <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'var(--bg-subtle)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', alignSelf: 'center', flexShrink: 0 }}>{s.num}</div>
                   </div>
