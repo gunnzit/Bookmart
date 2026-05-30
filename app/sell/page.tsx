@@ -93,18 +93,14 @@ export default function SellPage() {
     if (isSignedIn === false) router.push('/')
   }, [isSignedIn])
 
-  // Check if user already has phone
   useEffect(() => {
     if (!isSignedIn || !user) return
-    fetch('/api/listings')
+    fetch('/api/listings?admin=false')
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data)) {
           const mine = data.find((l: any) => l.sellerId === user.id)
-          if (mine?.seller?.phone) {
-            setHasPhone(true)
-            setPhone(mine.seller.phone)
-          }
+          if (mine?.seller?.phone) { setHasPhone(true); setPhone(mine.seller.phone) }
         }
         setPhoneChecked(true)
       })
@@ -164,7 +160,10 @@ export default function SellPage() {
   }
 
   function nextStep() {
-    if (step === 0) { setStep(1); return }
+    if (step === 0) {
+      if (images.length < 2) { alert('Please add at least 2 photos. One must show the MRP/price tag.'); return }
+      setStep(1); return
+    }
     if (step === 1) {
       if (!form.title) { alert('Please enter a title'); return }
       setStep(2); return
@@ -188,10 +187,7 @@ export default function SellPage() {
   }
 
   async function submit() {
-    if (!form.title || !form.price || !form.location) {
-      alert('Please fill in title, price and location')
-      return
-    }
+    if (!form.title || !form.price || !form.location) { alert('Please fill in title, price and location'); return }
     const price = parseInt(form.price)
     const origPrice = form.origPrice ? parseInt(form.origPrice) : null
     if (price <= 0) { alert('Price must be greater than ₹0'); return }
@@ -275,12 +271,13 @@ export default function SellPage() {
     @keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
     .fade-in { animation: fadeIn 0.4s ease; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    .photo-slot { width: 100px; height: 100px; }
+    @media (max-width: 400px) { .photo-slot { width: 85px; height: 85px; } }
   `
 
   const discount = form.price && form.origPrice && parseInt(form.price) < parseInt(form.origPrice)
     ? Math.round((1 - parseInt(form.price) / parseInt(form.origPrice)) * 100) : 0
 
-  // Loading state while checking phone
   if (!phoneChecked) return (
     <>
       <style>{css}</style>
@@ -290,7 +287,7 @@ export default function SellPage() {
     </>
   )
 
-  // WhatsApp gate — show if no phone saved
+  // WhatsApp gate
   if (!hasPhone) return (
     <>
       <style>{css}</style>
@@ -304,10 +301,8 @@ export default function SellPage() {
             <div style={{ width: '64px', height: '64px', background: '#E1F5EE', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', margin: '0 auto 20px' }}>💬</div>
             <h2 className="kalam" style={{ fontSize: '22px', color: 'var(--text-primary)', textAlign: 'center', marginBottom: '8px' }}>Add your WhatsApp number</h2>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: '1.6', marginBottom: '24px' }}>
-              Buyers contact you directly on WhatsApp. Your number is only shared when someone taps the contact button on your listing.
+              Buyers contact you directly on WhatsApp. Your number is only shown when someone taps the contact button.
             </p>
-
-            {/* Why required */}
             <div style={{ background: 'var(--bg)', borderRadius: '12px', padding: '14px 16px', marginBottom: '20px', border: '1px dashed var(--border)' }}>
               <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.8' }}>
                 <div>✅ Required to receive buyer inquiries</div>
@@ -315,29 +310,16 @@ export default function SellPage() {
                 <div>✅ You can change it anytime in your profile</div>
               </div>
             </div>
-
             <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '0 12px', fontSize: '13px', color: 'var(--text-secondary)', flexShrink: 0, gap: '4px' }}>
-                🇮🇳 +91
-              </div>
-              <input
-                value={phone}
-                onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                placeholder="98765 43210"
-                style={{ flex: 1, padding: '11px 13px', borderRadius: '10px', border: `1.5px solid ${phone.length === 10 ? '#1D9E75' : 'var(--border)'}`, fontSize: '14px', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.15s' }}
-              />
+              <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '0 12px', fontSize: '13px', color: 'var(--text-secondary)', flexShrink: 0, gap: '4px' }}>🇮🇳 +91</div>
+              <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="98765 43210"
+                style={{ flex: 1, padding: '11px 13px', borderRadius: '10px', border: `1.5px solid ${phone.length === 10 ? '#1D9E75' : 'var(--border)'}`, fontSize: '14px', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.15s' }} />
             </div>
-            {phone.length > 0 && phone.length < 10 && (
-              <div style={{ fontSize: '11px', color: '#E24B4A', marginBottom: '12px' }}>⚠️ Enter a 10-digit number</div>
-            )}
-
-            <button
-              onClick={savePhone}
-              disabled={savingPhone || phone.length < 10}
+            {phone.length > 0 && phone.length < 10 && <div style={{ fontSize: '11px', color: '#E24B4A', marginBottom: '12px' }}>⚠️ Enter a 10-digit number</div>}
+            <button onClick={savePhone} disabled={savingPhone || phone.length < 10}
               style={{ width: '100%', background: phone.length === 10 ? '#1D9E75' : '#ccc', color: '#fff', border: 'none', borderRadius: '12px', padding: '14px', fontSize: '15px', fontWeight: '700', cursor: phone.length < 10 ? 'not-allowed' : 'pointer', fontFamily: 'Kalam, cursive', marginTop: '8px', transition: 'all 0.2s', boxShadow: phone.length === 10 ? '0 4px 16px rgba(29,158,117,0.3)' : 'none' }}>
               {savingPhone ? 'Saving…' : 'Save & continue →'}
             </button>
-
             <button onClick={() => router.push('/marketplace')} style={{ width: '100%', background: 'transparent', color: 'var(--text-muted)', border: 'none', padding: '12px', fontSize: '13px', cursor: 'pointer', marginTop: '6px' }}>
               Cancel — go back to marketplace
             </button>
@@ -347,17 +329,27 @@ export default function SellPage() {
     </>
   )
 
-  // Success screen
+  // Success — under review screen
   if (done) return (
     <>
       <style>{css}</style>
       <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-        <div style={{ background: 'var(--bg-card)', borderRadius: '28px', padding: '52px 40px', textAlign: 'center', maxWidth: '400px', width: '100%', border: '1.5px solid var(--border)', boxShadow: '0 8px 40px rgba(27,42,74,0.10)' }}>
-          <div style={{ width: '80px', height: '80px', background: 'linear-gradient(135deg, #E1F5EE, #D1FAE5)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', margin: '0 auto 24px', boxShadow: '0 4px 20px rgba(29,158,117,0.2)' }}>🎉</div>
-          <h2 className="kalam" style={{ color: 'var(--text-primary)', fontSize: '28px', marginBottom: '8px' }}>Listing is live!</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '32px', lineHeight: '1.6' }}>Your item is now visible to buyers in Chandigarh. You will be contacted on WhatsApp.</p>
+        <div style={{ background: 'var(--bg-card)', borderRadius: '28px', padding: '48px 36px', textAlign: 'center', maxWidth: '400px', width: '100%', border: '1.5px solid var(--border)', boxShadow: '0 8px 40px rgba(27,42,74,0.10)' }}>
+          <div style={{ width: '80px', height: '80px', background: 'linear-gradient(135deg, #FEF3C7, #FDE68A)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', margin: '0 auto 24px', boxShadow: '0 4px 20px rgba(245,158,11,0.2)' }}>⏳</div>
+          <h2 className="kalam" style={{ color: 'var(--text-primary)', fontSize: '26px', marginBottom: '8px' }}>Listing submitted!</h2>
+          <div style={{ background: '#FFFBEB', border: '1.5px solid #FEF3C7', borderRadius: '14px', padding: '16px', marginBottom: '20px' }}>
+            <div style={{ fontSize: '13px', color: '#92400E', fontWeight: '600', marginBottom: '6px' }}>🔍 Under review</div>
+            <div style={{ fontSize: '12px', color: '#A16207', lineHeight: '1.7' }}>
+              Your listing is being reviewed and will go live once approved — usually within a few hours. You will be notified on WhatsApp.
+            </div>
+          </div>
+          <div style={{ background: 'var(--bg)', borderRadius: '12px', padding: '14px 16px', marginBottom: '24px', fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.8', textAlign: 'left' }}>
+            <div>✅ AI content check passed</div>
+            <div>⏳ Awaiting manual approval</div>
+            <div>📱 You will receive WhatsApp confirmation</div>
+          </div>
           <button onClick={() => router.push('/marketplace')} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '14px', padding: '14px 24px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', width: '100%', marginBottom: '10px', fontFamily: 'Kalam, cursive', boxShadow: '0 6px 20px rgba(29,158,117,0.3)' }}>
-            View marketplace →
+            Browse marketplace →
           </button>
           <button onClick={() => { setDone(false); setStep(0); setForm({ title: '', subtitle: '', price: '', origPrice: '', condition: 'Good', category: 'textbook', location: '' }); setImages([]); setPreviews([]); setLocationSearch('') }}
             style={{ background: 'transparent', color: '#1D9E75', border: '1.5px solid #1D9E75', borderRadius: '14px', padding: '13px 24px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', width: '100%' }}>
@@ -410,31 +402,64 @@ export default function SellPage() {
             <div className="step-content">
               <div className="card">
                 <div className="kalam" style={{ fontSize: '18px', color: 'var(--text-primary)', marginBottom: '4px' }}>📷 Add photos</div>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>Listings with photos get 3× more buyers. First photo is the cover.</p>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px' }}>Minimum 2 photos required. Must include MRP/price tag.</p>
+
+                {/* Photo requirement info */}
+                <div style={{ background: '#FFFBEB', border: '1px solid #FEF3C7', borderRadius: '12px', padding: '12px 14px', marginBottom: '16px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                  <span style={{ fontSize: '16px', flexShrink: 0 }}>📋</span>
+                  <div style={{ fontSize: '12px', color: '#92400E', lineHeight: '1.7' }}>
+                    <div style={{ fontWeight: '700', marginBottom: '3px' }}>Required photos:</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: images.length >= 1 ? '#1D9E75' : '#D97706' }}>{images.length >= 1 ? '✅' : '⏺'}</span> Photo 1 — front cover of the book
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: images.length >= 2 ? '#1D9E75' : '#D97706' }}>{images.length >= 2 ? '✅' : '⏺'}</span> Photo 2 — MRP / price tag clearly visible
+                    </div>
+                    {images.length >= 3 && <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ color: '#1D9E75' }}>✅</span> Photo 3 — optional extra</div>}
+                  </div>
+                </div>
+
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
                   {previews.map((src, i) => (
-                    <div key={i} style={{ position: 'relative', width: '100px', height: '100px' }}>
-                      <img src={src} style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '14px', border: i === 0 ? '2.5px solid #1D9E75' : '1.5px solid var(--border)' }} />
-                      {i === 0 && <span style={{ position: 'absolute', bottom: '6px', left: '6px', fontSize: '9px', background: '#1D9E75', color: '#fff', padding: '2px 7px', borderRadius: '99px', fontWeight: '700' }}>COVER</span>}
+                    <div key={i} className="photo-slot" style={{ position: 'relative' }}>
+                      <img src={src} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '14px', border: i === 0 ? '2.5px solid #1D9E75' : i === 1 ? '2.5px solid #F59E0B' : '1.5px solid var(--border)' }} />
+                      <span style={{ position: 'absolute', bottom: '6px', left: '6px', fontSize: '8px', background: i === 0 ? '#1D9E75' : i === 1 ? '#F59E0B' : 'rgba(0,0,0,0.5)', color: '#fff', padding: '2px 6px', borderRadius: '99px', fontWeight: '700' }}>
+                        {i === 0 ? 'COVER' : i === 1 ? 'MRP TAG' : 'EXTRA'}
+                      </span>
                       <button onClick={() => removeImage(i)} style={{ position: 'absolute', top: '-7px', right: '-7px', width: '24px', height: '24px', borderRadius: '50%', background: '#E24B4A', color: '#fff', border: '2.5px solid var(--bg-card)', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
                     </div>
                   ))}
                   {images.length < 3 && (
-                    <label className="add-photo" style={{ width: '100px', height: '100px', border: '2px dashed var(--border)', borderRadius: '14px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)', gap: '6px', transition: 'all 0.15s' }}>
-                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                      <span style={{ fontSize: '11px', fontWeight: '500' }}>Add photo</span>
+                    <label className="add-photo photo-slot" style={{ border: `2px dashed ${images.length < 2 ? '#F59E0B' : 'var(--border)'}`, borderRadius: '14px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)', gap: '4px', transition: 'all 0.15s', background: images.length < 2 ? 'rgba(245,158,11,0.04)' : 'transparent' }}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                      <span style={{ fontSize: '10px', fontWeight: '600', color: images.length === 0 ? '#D97706' : images.length === 1 ? '#D97706' : 'var(--text-muted)' }}>
+                        {images.length === 0 ? 'Cover photo' : images.length === 1 ? 'MRP tag photo' : 'Add photo'}
+                      </span>
                       <input type="file" accept="image/*" multiple onChange={handleImageSelect} style={{ display: 'none' }} />
                     </label>
                   )}
                 </div>
-                {images.length === 0 && (
-                  <div style={{ background: 'var(--bg)', borderRadius: '12px', padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', border: '1px dashed var(--border)' }}>
-                    💡 You can skip photos and post without them
-                  </div>
-                )}
+
+                {/* Progress indicator */}
+                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  {[0, 1, 2].map(i => (
+                    <div key={i} style={{ height: '4px', flex: 1, borderRadius: '99px', background: images.length > i ? (i < 2 ? '#1D9E75' : '#8B8FA8') : 'var(--border)', transition: 'background 0.3s' }} />
+                  ))}
+                  <span style={{ fontSize: '11px', color: images.length >= 2 ? '#1D9E75' : '#D97706', fontWeight: '600', flexShrink: 0 }}>{images.length}/3 {images.length < 2 ? `(${2 - images.length} more needed)` : '✓'}</span>
+                </div>
               </div>
-              <button onClick={nextStep} style={{ width: '100%', background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '14px', padding: '15px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', boxShadow: '0 4px 16px rgba(29,158,117,0.3)' }}>
-                Continue → Item details
+
+              {/* Warning if not enough photos */}
+              {images.length < 2 && (
+                <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '12px', padding: '12px 16px', marginBottom: '14px', fontSize: '12px', color: '#E24B4A', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span>⚠️</span>
+                  <span>Add at least 2 photos — cover + MRP tag. Listings without price proof may be rejected.</span>
+                </div>
+              )}
+
+              <button onClick={nextStep} disabled={images.length < 2}
+                style={{ width: '100%', background: images.length >= 2 ? '#1D9E75' : '#ccc', color: '#fff', border: 'none', borderRadius: '14px', padding: '15px', fontSize: '15px', fontWeight: '700', cursor: images.length < 2 ? 'not-allowed' : 'pointer', fontFamily: 'Kalam, cursive', boxShadow: images.length >= 2 ? '0 4px 16px rgba(29,158,117,0.3)' : 'none', transition: 'all 0.2s' }}>
+                {images.length < 2 ? `Add ${2 - images.length} more photo${2 - images.length > 1 ? 's' : ''} to continue` : 'Continue → Item details'}
               </button>
             </div>
           )}
@@ -555,14 +580,14 @@ export default function SellPage() {
               {/* Preview */}
               {form.title && form.price && form.location && (
                 <div style={{ background: 'var(--bg-card)', borderRadius: '20px', border: '1.5px solid #1D9E75', padding: '18px 20px', marginBottom: '16px', boxShadow: 'var(--shadow-card)' }}>
-                  <div style={{ fontSize: '11px', color: '#1D9E75', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '12px' }}>✅ Ready to post</div>
+                  <div style={{ fontSize: '11px', color: '#1D9E75', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '12px' }}>✅ Ready to submit for review</div>
                   <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
                     <div style={{ width: '52px', height: '52px', borderRadius: '12px', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', overflow: 'hidden', flexShrink: 0, border: '1.5px solid var(--border)' }}>
                       {previews[0] ? <img src={previews[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : emojis[form.category]}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{form.title}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>📍 {form.location}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>📍 {form.location} · 📷 {images.length} photos</div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
                       <div className="kalam" style={{ fontSize: '20px', color: '#1D9E75', fontWeight: '700' }}>₹{form.price}</div>
@@ -581,9 +606,9 @@ export default function SellPage() {
 
               <button onClick={submit} disabled={loading || !form.title || !form.price || !form.location} className="submit-btn"
                 style={{ width: '100%', background: loading || !form.title || !form.price || !form.location ? '#ccc' : '#1D9E75', color: '#fff', border: 'none', borderRadius: '14px', padding: '16px', fontSize: '16px', fontWeight: '700', cursor: loading || !form.title || !form.price || !form.location ? 'not-allowed' : 'pointer', fontFamily: 'Kalam, cursive', transition: 'all 0.2s' }}>
-                {loading ? '⏳ Posting…' : '🚀 Post listing'}
+                {loading ? '⏳ Uploading…' : '🚀 Submit for review'}
               </button>
-              <p style={{ textAlign: 'center', fontSize: '11px', color: 'var(--text-muted)', marginTop: '10px' }}>Free to post · No commission · Direct WhatsApp contact</p>
+              <p style={{ textAlign: 'center', fontSize: '11px', color: 'var(--text-muted)', marginTop: '10px' }}>Free to post · Usually approved within a few hours</p>
             </div>
           )}
         </div>
