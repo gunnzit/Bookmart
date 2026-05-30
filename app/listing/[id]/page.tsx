@@ -23,6 +23,7 @@ export default function ListingPage() {
   const [saved, setSaved] = useState(false)
   const [savingWishlist, setSavingWishlist] = useState(false)
   const [lightbox, setLightbox] = useState(false)
+  const [paymentLoading, setPaymentLoading] = useState(false)
 
   useEffect(() => {
     fetch('/api/listings/' + id + '?track=true')
@@ -31,7 +32,6 @@ export default function ListingPage() {
         setListing(data)
         setForm({ title: data.title, subtitle: data.subtitle || '', price: data.price, origPrice: data.origPrice || '', condition: data.condition, location: data.location })
         setLoading(false)
-        // Fetch related listings
         fetch('/api/listings?t=' + Date.now(), { cache: 'no-store' })
           .then(r => r.json())
           .then(all => {
@@ -84,6 +84,52 @@ export default function ListingPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
+  async function handleFeaturePayment() {
+    if (!isSignedIn) { openSignIn(); return }
+    setPaymentLoading(true)
+    try {
+      const res = await fetch('/api/payment/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId: id }),
+      })
+      const order = await res.json()
+      if (order.error) { alert('Payment failed: ' + order.error); setPaymentLoading(false); return }
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: order.amount,
+        currency: 'INR',
+        name: 'BuddyBooks',
+        description: 'Feature your listing',
+        image: '/logo.png',
+        order_id: order.id,
+        handler: async (response: any) => {
+          const verify = await fetch('/api/payment/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...response, listingId: id }),
+          })
+          const result = await verify.json()
+          if (result.success) {
+            setListing({ ...listing, featured: true })
+            alert('🎉 Your listing is now featured!')
+          } else {
+            alert('Payment verification failed. Contact support.')
+          }
+        },
+        prefill: { name: user?.fullName, email: user?.primaryEmailAddress?.emailAddress },
+        theme: { color: '#1D9E75' },
+        modal: { ondismiss: () => setPaymentLoading(false) },
+      }
+      const rzp = new (window as any).Razorpay(options)
+      rzp.open()
+    } catch (err) {
+      alert('Something went wrong. Try again.')
+    }
+    setPaymentLoading(false)
+  }
+
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@300;400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -112,39 +158,23 @@ export default function ListingPage() {
     input { color: var(--text-primary) !important; font-weight: 500; }
     input::placeholder { color: var(--text-muted) !important; font-weight: 400; }
     input:focus { outline: none !important; border-color: #1D9E75 !important; box-shadow: 0 0 0 3px rgba(29,158,117,0.1) !important; }
-
-    /* Image gallery */
     .main-img { transition: transform 0.3s ease; cursor: zoom-in; }
     .main-img:hover { transform: scale(1.01); }
     .thumb { cursor: pointer; border-radius: 10px; transition: all 0.15s; }
     .thumb:hover { transform: scale(1.05); opacity: 1 !important; }
-
-    /* WhatsApp */
     .wa-btn { display: flex; align-items: center; justify-content: center; gap: 10px; background: #25D366; color: #fff; border-radius: 16px; padding: 16px; font-size: 16px; font-weight: 700; text-decoration: none; box-shadow: 0 6px 24px rgba(37,211,102,0.35); font-family: 'Kalam', cursive; transition: all 0.2s; }
     .wa-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(37,211,102,0.48) !important; }
-
-    /* Sticky mobile CTA */
     .sticky-cta { display: none; position: fixed; bottom: 0; left: 0; right: 0; padding: 12px 16px; background: var(--nav-bg); border-top: 1.5px solid var(--border); z-index: 60; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); }
     @media (max-width: 640px) { .sticky-cta { display: block; } .hide-mobile { display: none !important; } }
-
-    /* Icon buttons */
     .icon-btn { background: var(--bg-card); border: 1.5px solid var(--border); border-radius: 10px; padding: 7px 13px; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--text-secondary); transition: all 0.15s; display: flex; align-items: center; gap: 5px; }
     .icon-btn:hover { background: var(--bg-img) !important; border-color: var(--text-muted); }
-
-    /* Tags */
     .tag { font-size: 12px; color: var(--text-secondary); background: var(--bg-tag); padding: 5px 12px; border-radius: 99px; display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--border); }
-
-    /* Related cards */
     .rel-card { background: var(--bg-card); border-radius: 16px; border: 1.5px solid var(--border); overflow: hidden; cursor: pointer; transition: all 0.2s; box-shadow: var(--shadow-card); }
     .rel-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-strong) !important; }
     .rel-img { transition: transform 0.3s ease; }
     .rel-card:hover .rel-img { transform: scale(1.06); }
-
-    /* Two-column layout on desktop */
     .listing-layout { display: grid; grid-template-columns: 1fr; gap: 20px; }
     @media (min-width: 900px) { .listing-layout { grid-template-columns: 1fr 420px; align-items: start; } }
-
-    /* Animations */
     @keyframes fadeIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
     .img-fade { animation: fadeIn 0.2s ease; }
     @keyframes slideUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
@@ -154,10 +184,11 @@ export default function ListingPage() {
     .s4 { animation: slideUp 0.35s 0.18s ease both; }
     @keyframes heartPop { 0% { transform: scale(1); } 40% { transform: scale(1.4); } 100% { transform: scale(1); } }
     .heart-pop { animation: heartPop 0.32s ease; }
-
-    /* Lightbox */
     .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 200; display: flex; align-items: center; justify-content: center; cursor: zoom-out; }
     .lightbox img { max-width: 92vw; max-height: 88vh; object-fit: contain; border-radius: 8px; }
+    .feature-btn { width: 100%; background: linear-gradient(135deg, #F59E0B, #D97706); color: #fff; border: none; border-radius: 14px; padding: 14px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Kalam', cursive; margin-top: 10px; box-shadow: 0 4px 16px rgba(245,158,11,0.3); transition: all 0.2s; }
+    .feature-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(245,158,11,0.45) !important; }
+    .feature-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
   `
 
   if (loading) return (
@@ -186,7 +217,7 @@ export default function ListingPage() {
   )
 
   const discount = listing.origPrice ? Math.round((1 - listing.price / listing.origPrice) * 100) : 0
-  const waText = 'Hi, I am interested in your listing on BookMart: ' + listing.title + ' for Rs.' + listing.price
+  const waText = 'Hi, I am interested in your listing on BuddyBooks: ' + listing.title + ' for Rs.' + listing.price
   const phone = listing.seller?.phone?.replace(/\D/g, '') || ''
   const waLink = phone ? `https://wa.me/91${phone}?text=${encodeURIComponent(waText)}` : `https://wa.me/?text=${encodeURIComponent(waText)}`
   const hasImages = listing.images?.length > 0
@@ -201,8 +232,9 @@ export default function ListingPage() {
   return (
     <>
       <style>{css}</style>
+      {/* Razorpay script */}
+      <script src="https://checkout.razorpay.com/v1/checkout.js" async />
 
-      {/* Lightbox */}
       {lightbox && hasImages && (
         <div className="lightbox" onClick={() => setLightbox(false)}>
           <img src={listing.images[activeImg]} alt={listing.title} />
@@ -216,7 +248,6 @@ export default function ListingPage() {
           <button className="icon-btn" style={{ padding: '7px 10px' }} onClick={() => window.location.href = '/marketplace'}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
-          {/* Breadcrumb */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-muted)' }}>
             <span style={{ cursor: 'pointer', color: '#1D9E75' }} onClick={() => router.push('/marketplace')}>Marketplace</span>
             <span>›</span>
@@ -247,7 +278,6 @@ export default function ListingPage() {
         <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '24px 16px 80px' }}>
 
           {editing ? (
-            /* Edit form */
             <div style={{ maxWidth: '560px', margin: '0 auto' }}>
               <div style={{ background: 'var(--bg-card)', borderRadius: '20px', border: '2px solid #1D9E75', padding: '28px', boxShadow: 'var(--shadow-card)' }}>
                 <div className="kalam" style={{ fontSize: '18px', color: '#1D9E75', marginBottom: '20px', fontWeight: '700' }}>✏️ Edit listing</div>
@@ -278,7 +308,6 @@ export default function ListingPage() {
               <div className="listing-layout">
                 {/* LEFT — Images */}
                 <div className="s1">
-                  {/* Main image */}
                   <div style={{ borderRadius: '20px', overflow: 'hidden', background: 'var(--bg-img)', boxShadow: 'var(--shadow-strong)', position: 'relative', marginBottom: '10px' }}>
                     <div style={{ paddingTop: '72%', position: 'relative', overflow: 'hidden' }}>
                       <div style={{ position: 'absolute', inset: 0 }}>
@@ -287,10 +316,12 @@ export default function ListingPage() {
                           : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '96px' }}>{listing.emoji}</div>}
                       </div>
                     </div>
-                    {/* Condition badge */}
                     <span style={{ position: 'absolute', top: '14px', left: '14px', fontSize: '12px', fontWeight: '700', background: listing.condition === 'New' ? 'rgba(220,252,231,0.96)' : listing.condition === 'Fair' ? 'rgba(254,243,199,0.96)' : 'rgba(239,246,255,0.96)', color: listing.condition === 'New' ? '#166534' : listing.condition === 'Fair' ? '#92400E' : '#1D4ED8', padding: '5px 13px', borderRadius: '99px', backdropFilter: 'blur(6px)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>{listing.condition}</span>
                     {discount >= 15 && !listing.sold && (
                       <span style={{ position: 'absolute', top: '14px', right: '14px', fontSize: '12px', fontWeight: '700', background: 'linear-gradient(135deg, #FF6B35, #E24B4A)', color: '#fff', padding: '5px 13px', borderRadius: '99px', boxShadow: '0 2px 8px rgba(226,75,74,0.3)' }}>-{discount}% OFF</span>
+                    )}
+                    {listing.featured && !listing.sold && (
+                      <span style={{ position: 'absolute', bottom: '14px', left: '14px', fontSize: '11px', fontWeight: '800', background: 'linear-gradient(135deg, #F59E0B, #D97706)', color: '#fff', padding: '5px 13px', borderRadius: '99px', boxShadow: '0 2px 8px rgba(245,158,11,0.4)' }}>⭐ FEATURED</span>
                     )}
                     {listing.sold && (
                       <div style={{ position: 'absolute', inset: 0, background: 'rgba(15,17,23,0.7)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(3px)' }}>
@@ -300,7 +331,6 @@ export default function ListingPage() {
                     )}
                     {hasImages && <div style={{ position: 'absolute', bottom: '12px', right: '12px', background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: '11px', padding: '4px 10px', borderRadius: '99px', backdropFilter: 'blur(4px)' }}>🔍 Tap to zoom</div>}
                   </div>
-                  {/* Thumbnails */}
                   {hasImages && listing.images.length > 1 && (
                     <div style={{ display: 'flex', gap: '8px' }}>
                       {listing.images.map((img: string, i: number) => (
@@ -314,25 +344,22 @@ export default function ListingPage() {
                 {/* RIGHT — Info + CTA */}
                 <div>
                   {/* Title & Price */}
-                  <div className="s2" style={{ background: 'var(--bg-card)', borderRadius: '20px', border: '1.5px solid var(--border)', padding: '24px', marginBottom: '12px', boxShadow: 'var(--shadow-card)' }}>
+                  <div className="s2" style={{ background: 'var(--bg-card)', borderRadius: '20px', border: listing.featured ? '2px solid #F59E0B' : '1.5px solid var(--border)', padding: '24px', marginBottom: '12px', boxShadow: listing.featured ? '0 4px 20px rgba(245,158,11,0.15)' : 'var(--shadow-card)' }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', marginBottom: '6px' }}>
                       <h1 style={{ fontSize: '22px', fontWeight: '700', color: listing.sold ? 'var(--text-muted)' : 'var(--text-primary)', lineHeight: 1.3, flex: 1 }}>{listing.title}</h1>
-                      {listing.sold && <span style={{ background: '#E24B4A', color: '#fff', fontSize: '10px', fontWeight: '800', padding: '4px 10px', borderRadius: '6px', letterSpacing: '1px', flexShrink: 0, marginTop: '4px' }}>SOLD</span>}
+                      <div style={{ display: 'flex', gap: '6px', flexShrink: 0, marginTop: '4px' }}>
+                        {listing.featured && <span style={{ background: 'linear-gradient(135deg, #F59E0B, #D97706)', color: '#fff', fontSize: '10px', fontWeight: '800', padding: '4px 10px', borderRadius: '6px' }}>⭐ FEATURED</span>}
+                        {listing.sold && <span style={{ background: '#E24B4A', color: '#fff', fontSize: '10px', fontWeight: '800', padding: '4px 10px', borderRadius: '6px', letterSpacing: '1px' }}>SOLD</span>}
+                      </div>
                     </div>
                     {listing.subtitle && <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.6 }}>{listing.subtitle}</p>}
-
-                    {/* Price */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px', flexWrap: 'wrap' }}>
                       <span className="kalam" style={{ fontSize: '40px', color: listing.sold ? 'var(--text-muted)' : '#1D9E75', fontWeight: '700', lineHeight: 1 }}>₹{listing.price}</span>
                       {listing.origPrice && <span style={{ fontSize: '18px', color: 'var(--text-muted)', textDecoration: 'line-through' }}>₹{listing.origPrice}</span>}
                       {discount > 0 && !listing.sold && (
-                        <span style={{ fontSize: '13px', color: '#fff', background: 'linear-gradient(135deg, #1D9E75, #0F6E56)', padding: '5px 14px', borderRadius: '99px', fontWeight: '700', boxShadow: '0 3px 10px rgba(29,158,117,0.25)' }}>
-                          Save ₹{listing.origPrice - listing.price}
-                        </span>
+                        <span style={{ fontSize: '13px', color: '#fff', background: 'linear-gradient(135deg, #1D9E75, #0F6E56)', padding: '5px 14px', borderRadius: '99px', fontWeight: '700', boxShadow: '0 3px 10px rgba(29,158,117,0.25)' }}>Save ₹{listing.origPrice - listing.price}</span>
                       )}
                     </div>
-
-                    {/* Tags */}
                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                       <span className="tag">
                         <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M6 1C4.34 1 3 2.34 3 4c0 2.5 3 7 3 7s3-4.5 3-7c0-1.66-1.34-3-3-3z" fill="var(--text-secondary)"/><circle cx="6" cy="4" r="1" fill="var(--bg-card)"/></svg>
@@ -361,8 +388,21 @@ export default function ListingPage() {
                     </div>
 
                     {isOwner ? (
-                      <div style={{ background: 'linear-gradient(135deg, #E1F5EE, #D1FAE5)', borderRadius: '14px', padding: '14px', fontSize: '14px', color: '#0F6E56', textAlign: 'center', fontWeight: '700', fontFamily: 'Kalam, cursive', border: '1px solid rgba(29,158,117,0.2)' }}>
-                        ✅ This is your listing
+                      <div>
+                        <div style={{ background: 'linear-gradient(135deg, #E1F5EE, #D1FAE5)', borderRadius: '14px', padding: '14px', fontSize: '14px', color: '#0F6E56', textAlign: 'center', fontWeight: '700', fontFamily: 'Kalam, cursive', border: '1px solid rgba(29,158,117,0.2)' }}>
+                          ✅ This is your listing
+                        </div>
+                        {/* Feature payment button — only show if not already featured */}
+                        {!listing.featured && !listing.sold && (
+                          <button className="feature-btn" onClick={handleFeaturePayment} disabled={paymentLoading}>
+                            {paymentLoading ? '⏳ Opening payment…' : '⭐ Feature this listing — ₹49'}
+                          </button>
+                        )}
+                        {listing.featured && (
+                          <div style={{ marginTop: '10px', background: 'rgba(245,158,11,0.1)', border: '1.5px solid #F59E0B', borderRadius: '14px', padding: '12px', textAlign: 'center', fontSize: '13px', color: '#D97706', fontWeight: '700', fontFamily: 'Kalam, cursive' }}>
+                            ⭐ Your listing is featured — showing at the top!
+                          </div>
+                        )}
                       </div>
                     ) : listing.sold ? (
                       <div style={{ background: 'var(--bg)', borderRadius: '14px', padding: '14px', fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', border: '1.5px solid var(--border)' }}>
@@ -418,9 +458,7 @@ export default function ListingPage() {
                       return (
                         <div key={l.id} className="rel-card" onClick={() => { window.location.href = '/listing/' + l.id }}>
                           <div style={{ height: '130px', background: 'var(--bg-img)', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px' }}>
-                            {l.images?.[0]
-                              ? <img className="rel-img" src={l.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                              : <span>{l.emoji}</span>}
+                            {l.images?.[0] ? <img className="rel-img" src={l.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span>{l.emoji}</span>}
                             <span style={{ position: 'absolute', top: '8px', left: '8px', fontSize: '9px', background: l.condition === 'New' ? 'rgba(220,252,231,0.95)' : 'rgba(239,246,255,0.95)', color: l.condition === 'New' ? '#166534' : '#1D4ED8', padding: '2px 7px', borderRadius: '99px', fontWeight: '700' }}>{l.condition}</span>
                             {d >= 15 && <span style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '9px', background: 'linear-gradient(135deg,#FF6B35,#E24B4A)', color: '#fff', padding: '2px 7px', borderRadius: '99px', fontWeight: '700' }}>-{d}%</span>}
                           </div>
