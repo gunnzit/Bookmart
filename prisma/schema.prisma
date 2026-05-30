@@ -18,6 +18,8 @@ model User {
   listings  Listing[]
   orders    Order[]
   wishlist  Wishlist[]
+  reviewsGiven    Review[] @relation("ReviewsGiven")
+  reviewsReceived Review[] @relation("ReviewsReceived")
 }
 
 model Listing {
@@ -39,7 +41,7 @@ model Listing {
   seller    User       @relation(fields: [sellerId], references: [id])
   orders    Order[]
   wishlist  Wishlist[] 
-  status String @default("pending")
+  status  String  @default("pending")
 }
 
 model Wishlist {
@@ -62,6 +64,18 @@ model Order {
   listingId String
   buyer     User     @relation(fields: [buyerId], references: [id])
   listing   Listing  @relation(fields: [listingId], references: [id])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+  reviewerId String
+  sellerId   String
+  listingId  String?
+  reviewer   User     @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  seller     User     @relation("ReviewsReceived", fields: [sellerId], references: [id])
 }
 
 model playing_with_neon {
