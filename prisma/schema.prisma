@@ -38,7 +38,8 @@ model Listing {
   sellerId  String
   seller    User       @relation(fields: [sellerId], references: [id])
   orders    Order[]
-  wishlist  Wishlist[]
+  wishlist  Wishlist[] 
+  status String @default("pending")
 }
 
 model Wishlist {
