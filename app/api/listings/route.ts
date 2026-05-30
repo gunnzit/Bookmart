@@ -22,7 +22,7 @@ async function moderateListing(title: string, subtitle: string, category: string
         messages: [
           {
             role: 'user',
-            content: `You are a content moderator for BookMart, a student marketplace in Chandigarh, India for buying and selling books, notebooks, stationery and art supplies.
+            content: `You are a content moderator for BuddyBooks, a student marketplace in Chandigarh, India for buying and selling books, notebooks, stationery and art supplies.
 
 Review this listing and respond with ONLY a JSON object like: {"approved": true} or {"approved": false, "reason": "short explanation"}
 

@@ -188,8 +188,8 @@ export default function Marketplace() {
         {/* Nav */}
         <nav style={{ background: 'var(--nav-bg)', borderBottom: '1.5px solid var(--border)', padding: '0 16px', height: '56px', display: 'flex', alignItems: 'center', gap: '10px', position: 'sticky', top: 0, zIndex: 50, boxShadow: 'var(--shadow-nav)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', flexShrink: 0 }} onClick={() => router.push('/')}>
-            <img src="/logo.png" alt="BookMart" style={{ height: '32px', width: 'auto', objectFit: 'contain' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
-            <span className="logo-text nav-logo-text" style={{ fontSize: '20px', color: 'var(--text-primary)', lineHeight: 1 }}>BookMart</span>
+            <img src="/logo.png" alt="BuddyBooks" style={{ height: '32px', width: 'auto', objectFit: 'contain' }} onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+            <span className="logo-text nav-logo-text" style={{ fontSize: '20px', color: 'var(--text-primary)', lineHeight: 1 }}>BuddyBooks</span>
           </div>
 
           <div ref={searchRef} className="nav-search" style={{ flex: 1, position: 'relative', maxWidth: '500px' }}>

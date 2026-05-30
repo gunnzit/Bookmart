@@ -138,7 +138,7 @@ export default function ProfilePage() {
         <nav style={{ background: 'var(--nav-bg)', borderBottom: '1.5px solid var(--border)', padding: '0 20px', height: '60px', display: 'flex', alignItems: 'center', gap: '10px', position: 'sticky', top: 0, zIndex: 50, boxShadow: 'var(--shadow-nav)' }}>
           <button onClick={() => router.push('/marketplace')} style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', width: '36px', height: '36px', borderRadius: '10px', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)', transition: 'all 0.15s', flexShrink: 0 }}>←</button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-            <img src="/logo.png" alt="BookMart" style={{ height: '28px', width: 'auto' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+            <img src="/logo.png" alt="BuddyBooks" style={{ height: '28px', width: 'auto' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
             <span className="kalam" style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>My Profile</span>
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
