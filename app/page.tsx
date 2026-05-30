@@ -407,13 +407,13 @@ export default function LandingPage() {
               <span className="k" style={{ fontSize: '16px', color: 'var(--text)', fontWeight: '700' }}>BuddyBooks</span>
             </div>
             <span style={{ fontSize: '11px', color: 'var(--text-3)' }}>Student marketplace · Chandigarh · Free</span>
-            <div style={{ display: 'flex', gap: '18px' }}>
-              {[['Browse', '/marketplace'], ['Sell', '/sell'], ['Wishlist', '/wishlist']].map(([l, h]) => (
-                <span key={l} onClick={() => router.push(h)} style={{ fontSize: '12px', color: 'var(--text-3)', cursor: 'pointer', transition: 'color 0.15s' }}
-                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--green)')}
-                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-3)')}>{l}</span>
-              ))}
-            </div>
+            <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap' }}>
+  {[['Browse', '/marketplace'], ['Sell', '/sell'], ['Wishlist', '/wishlist'], ['Privacy', '/privacy'], ['Terms', '/terms'], ['Refund', '/refund'], ['Contact', '/contact']].map(([l, h]) => (
+    <span key={l} onClick={() => router.push(h)} style={{ fontSize: '12px', color: 'var(--text-3)', cursor: 'pointer', transition: 'color 0.15s' }}
+      onMouseEnter={e => (e.currentTarget.style.color = 'var(--green)')}
+      onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-3)')}>{l}</span>
+  ))}
+</div>
           </div>
         </footer>
 
