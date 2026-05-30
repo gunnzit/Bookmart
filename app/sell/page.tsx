@@ -76,6 +76,13 @@ export default function SellPage() {
   const [locationSearch, setLocationSearch] = useState('')
   const [showLocationDropdown, setShowLocationDropdown] = useState(false)
   const locationRef = useRef<HTMLDivElement>(null)
+
+  // WhatsApp gate
+  const [phoneChecked, setPhoneChecked] = useState(false)
+  const [hasPhone, setHasPhone] = useState(false)
+  const [phone, setPhone] = useState('')
+  const [savingPhone, setSavingPhone] = useState(false)
+
   const [form, setForm] = useState({
     title: '', subtitle: '', price: '',
     origPrice: '', condition: 'Good',
@@ -86,6 +93,24 @@ export default function SellPage() {
     if (isSignedIn === false) router.push('/')
   }, [isSignedIn])
 
+  // Check if user already has phone
+  useEffect(() => {
+    if (!isSignedIn || !user) return
+    fetch('/api/listings')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const mine = data.find((l: any) => l.sellerId === user.id)
+          if (mine?.seller?.phone) {
+            setHasPhone(true)
+            setPhone(mine.seller.phone)
+          }
+        }
+        setPhoneChecked(true)
+      })
+      .catch(() => setPhoneChecked(true))
+  }, [isSignedIn, user])
+
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (locationRef.current && !locationRef.current.contains(e.target as Node)) setShowLocationDropdown(false)
@@ -95,6 +120,18 @@ export default function SellPage() {
   }, [])
 
   if (!isSignedIn) return null
+
+  async function savePhone() {
+    if (!phone || phone.length < 10) return
+    setSavingPhone(true)
+    await fetch('/api/user', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clerkId: user?.id, phone: phone.trim() }),
+    })
+    setSavingPhone(false)
+    setHasPhone(true)
+  }
 
   const filteredLocations = locationSearch.length > 0
     ? LOCATIONS.filter(l => l.toLowerCase().includes(locationSearch.toLowerCase())).slice(0, 8)
@@ -235,10 +272,80 @@ export default function SellPage() {
     .step-content { animation: slideIn 0.3s ease; }
     @keyframes pulse { 0%,100% { box-shadow: 0 4px 16px rgba(29,158,117,0.3); } 50% { box-shadow: 0 6px 24px rgba(29,158,117,0.5); } }
     .submit-btn:not(:disabled) { animation: pulse 2.5s ease-in-out infinite; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.4s ease; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   `
 
   const discount = form.price && form.origPrice && parseInt(form.price) < parseInt(form.origPrice)
     ? Math.round((1 - parseInt(form.price) / parseInt(form.origPrice)) * 100) : 0
+
+  // Loading state while checking phone
+  if (!phoneChecked) return (
+    <>
+      <style>{css}</style>
+      <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: '24px', height: '24px', border: '3px solid #1D9E75', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+      </div>
+    </>
+  )
+
+  // WhatsApp gate — show if no phone saved
+  if (!hasPhone) return (
+    <>
+      <style>{css}</style>
+      <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+        <nav style={{ background: 'var(--nav-bg)', borderBottom: '1.5px solid var(--border)', padding: '0 20px', height: '60px', display: 'flex', alignItems: 'center', gap: '12px', position: 'sticky', top: 0, zIndex: 50, boxShadow: 'var(--shadow-nav)' }}>
+          <button onClick={() => router.push('/marketplace')} style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', width: '38px', height: '38px', borderRadius: '12px', cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)', flexShrink: 0 }}>←</button>
+          <span className="kalam" style={{ fontSize: '16px', fontWeight: '700', color: '#1D9E75' }}>One quick thing</span>
+        </nav>
+        <div style={{ maxWidth: '460px', margin: '48px auto', padding: '0 16px' }}>
+          <div className="card fade-in">
+            <div style={{ width: '64px', height: '64px', background: '#E1F5EE', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', margin: '0 auto 20px' }}>💬</div>
+            <h2 className="kalam" style={{ fontSize: '22px', color: 'var(--text-primary)', textAlign: 'center', marginBottom: '8px' }}>Add your WhatsApp number</h2>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: '1.6', marginBottom: '24px' }}>
+              Buyers contact you directly on WhatsApp. Your number is only shared when someone taps the contact button on your listing.
+            </p>
+
+            {/* Why required */}
+            <div style={{ background: 'var(--bg)', borderRadius: '12px', padding: '14px 16px', marginBottom: '20px', border: '1px dashed var(--border)' }}>
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.8' }}>
+                <div>✅ Required to receive buyer inquiries</div>
+                <div>✅ Only shown when someone contacts you</div>
+                <div>✅ You can change it anytime in your profile</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '0 12px', fontSize: '13px', color: 'var(--text-secondary)', flexShrink: 0, gap: '4px' }}>
+                🇮🇳 +91
+              </div>
+              <input
+                value={phone}
+                onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                placeholder="98765 43210"
+                style={{ flex: 1, padding: '11px 13px', borderRadius: '10px', border: `1.5px solid ${phone.length === 10 ? '#1D9E75' : 'var(--border)'}`, fontSize: '14px', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.15s' }}
+              />
+            </div>
+            {phone.length > 0 && phone.length < 10 && (
+              <div style={{ fontSize: '11px', color: '#E24B4A', marginBottom: '12px' }}>⚠️ Enter a 10-digit number</div>
+            )}
+
+            <button
+              onClick={savePhone}
+              disabled={savingPhone || phone.length < 10}
+              style={{ width: '100%', background: phone.length === 10 ? '#1D9E75' : '#ccc', color: '#fff', border: 'none', borderRadius: '12px', padding: '14px', fontSize: '15px', fontWeight: '700', cursor: phone.length < 10 ? 'not-allowed' : 'pointer', fontFamily: 'Kalam, cursive', marginTop: '8px', transition: 'all 0.2s', boxShadow: phone.length === 10 ? '0 4px 16px rgba(29,158,117,0.3)' : 'none' }}>
+              {savingPhone ? 'Saving…' : 'Save & continue →'}
+            </button>
+
+            <button onClick={() => router.push('/marketplace')} style={{ width: '100%', background: 'transparent', color: 'var(--text-muted)', border: 'none', padding: '12px', fontSize: '13px', cursor: 'pointer', marginTop: '6px' }}>
+              Cancel — go back to marketplace
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  )
 
   // Success screen
   if (done) return (
@@ -248,7 +355,7 @@ export default function SellPage() {
         <div style={{ background: 'var(--bg-card)', borderRadius: '28px', padding: '52px 40px', textAlign: 'center', maxWidth: '400px', width: '100%', border: '1.5px solid var(--border)', boxShadow: '0 8px 40px rgba(27,42,74,0.10)' }}>
           <div style={{ width: '80px', height: '80px', background: 'linear-gradient(135deg, #E1F5EE, #D1FAE5)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', margin: '0 auto 24px', boxShadow: '0 4px 20px rgba(29,158,117,0.2)' }}>🎉</div>
           <h2 className="kalam" style={{ color: 'var(--text-primary)', fontSize: '28px', marginBottom: '8px' }}>Listing is live!</h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '32px', lineHeight: '1.6' }}>Your item is now visible to buyers in Chandigarh. You'll be contacted on WhatsApp.</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '32px', lineHeight: '1.6' }}>Your item is now visible to buyers in Chandigarh. You will be contacted on WhatsApp.</p>
           <button onClick={() => router.push('/marketplace')} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '14px', padding: '14px 24px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', width: '100%', marginBottom: '10px', fontFamily: 'Kalam, cursive', boxShadow: '0 6px 20px rgba(29,158,117,0.3)' }}>
             View marketplace →
           </button>
@@ -272,11 +379,10 @@ export default function SellPage() {
             style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', width: '38px', height: '38px', borderRadius: '12px', cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)', flexShrink: 0 }}>←</button>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <img src="/logo.png" alt="BookMart" style={{ height: '26px', width: 'auto' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+              <img src="/logo.png" alt="BuddyBooks" style={{ height: '26px', width: 'auto' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
               <span className="kalam" style={{ fontSize: '15px', fontWeight: '700', color: '#1D9E75' }}>Post a listing</span>
               <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '4px' }}>Step {step + 1} of 3</span>
             </div>
-            {/* Progress bar */}
             <div style={{ height: '3px', background: 'var(--border)', borderRadius: '99px', overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${((step + 1) / 3) * 100}%`, background: 'linear-gradient(90deg, #1D9E75, #0F6E56)', borderRadius: '99px', transition: 'width 0.4s ease' }} />
             </div>
@@ -288,7 +394,7 @@ export default function SellPage() {
           {STEPS.map((s, i) => (
             <div key={s} onClick={() => i < step ? setStep(i) : null}
               style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px', cursor: i < step ? 'pointer' : 'default', opacity: i > step ? 0.4 : 1 }}>
-              <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: i < step ? '#1D9E75' : i === step ? '#1D9E75' : 'var(--border)', color: i <= step ? '#fff' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: '700', flexShrink: 0, transition: 'all 0.2s' }}>
+              <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: i <= step ? '#1D9E75' : 'var(--border)', color: i <= step ? '#fff' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: '700', flexShrink: 0, transition: 'all 0.2s' }}>
                 {i < step ? '✓' : i + 1}
               </div>
               <span style={{ fontSize: '11px', fontWeight: i === step ? '600' : '400', color: i === step ? 'var(--text-primary)' : 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s}</span>
@@ -323,7 +429,7 @@ export default function SellPage() {
                 </div>
                 {images.length === 0 && (
                   <div style={{ background: 'var(--bg)', borderRadius: '12px', padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', border: '1px dashed var(--border)' }}>
-                    💡 You can also skip photos and post without them
+                    💡 You can skip photos and post without them
                   </div>
                 )}
               </div>
@@ -338,8 +444,7 @@ export default function SellPage() {
             <div className="step-content">
               <div className="card">
                 <div className="kalam" style={{ fontSize: '18px', color: 'var(--text-primary)', marginBottom: '4px' }}>📝 Item details</div>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>Tell buyers what you're selling.</p>
-
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>Tell buyers what you are selling.</p>
                 <div style={{ marginBottom: '16px' }}>
                   <label className="label">Title *</label>
                   <input value={form.title} onChange={e => update('title', e.target.value)} placeholder="e.g. NCERT Physics Part 1 — Class 12" className="input" />
@@ -348,7 +453,6 @@ export default function SellPage() {
                   <label className="label">Subtitle <span style={{ color: 'var(--text-muted)', fontWeight: '400', textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
                   <input value={form.subtitle} onChange={e => update('subtitle', e.target.value)} placeholder="e.g. 2023 edition, lightly used" className="input" />
                 </div>
-
                 <div style={{ marginBottom: '20px' }}>
                   <label className="label">Category *</label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
@@ -361,7 +465,6 @@ export default function SellPage() {
                     ))}
                   </div>
                 </div>
-
                 <div>
                   <label className="label">Condition *</label>
                   <div style={{ display: 'flex', gap: '8px' }}>
@@ -375,7 +478,6 @@ export default function SellPage() {
                   </div>
                 </div>
               </div>
-
               <button onClick={nextStep} disabled={!form.title}
                 style={{ width: '100%', background: form.title ? '#1D9E75' : '#ccc', color: '#fff', border: 'none', borderRadius: '14px', padding: '15px', fontSize: '15px', fontWeight: '700', cursor: form.title ? 'pointer' : 'not-allowed', fontFamily: 'Kalam, cursive', boxShadow: form.title ? '0 4px 16px rgba(29,158,117,0.3)' : 'none', transition: 'all 0.2s' }}>
                 Continue → Pricing & Location
@@ -386,7 +488,6 @@ export default function SellPage() {
           {/* STEP 2 — Pricing + Location */}
           {step === 2 && (
             <div className="step-content">
-              {/* Pricing */}
               <div className="card">
                 <div className="kalam" style={{ fontSize: '18px', color: 'var(--text-primary)', marginBottom: '4px' }}>💰 Pricing</div>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>Set a fair price — buyers are students too!</p>
@@ -408,12 +509,11 @@ export default function SellPage() {
                 </div>
                 {discount > 0 && (
                   <div style={{ background: 'linear-gradient(135deg, #E1F5EE, #D1FAE5)', borderRadius: '12px', padding: '12px 16px', fontSize: '13px', color: '#0F6E56', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid rgba(29,158,117,0.2)' }}>
-                    🎉 <span>{discount}% off — buyers love a great deal! You're saving them ₹{parseInt(form.origPrice) - parseInt(form.price)}</span>
+                    🎉 <span>{discount}% off — buyers love a great deal!</span>
                   </div>
                 )}
               </div>
 
-              {/* Location */}
               <div className="card">
                 <div className="kalam" style={{ fontSize: '18px', color: 'var(--text-primary)', marginBottom: '4px' }}>📍 Location</div>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>Where can the buyer meet you?</p>
@@ -452,7 +552,7 @@ export default function SellPage() {
                 </div>
               </div>
 
-              {/* Preview summary */}
+              {/* Preview */}
               {form.title && form.price && form.location && (
                 <div style={{ background: 'var(--bg-card)', borderRadius: '20px', border: '1.5px solid #1D9E75', padding: '18px 20px', marginBottom: '16px', boxShadow: 'var(--shadow-card)' }}>
                   <div style={{ fontSize: '11px', color: '#1D9E75', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '12px' }}>✅ Ready to post</div>

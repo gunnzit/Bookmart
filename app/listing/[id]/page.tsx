@@ -5,6 +5,12 @@ import { useUser, SignInButton, useClerk } from '@clerk/nextjs'
 
 const conditions = ['New', 'Good', 'Fair']
 
+const TIERS = [
+  { tier: 'basic',    price: 19, days: 3,  label: 'Basic',    desc: '3 days at the top' },
+  { tier: 'standard', price: 29, days: 7,  label: 'Standard', desc: '7 days — most popular', popular: true },
+  { tier: 'premium',  price: 49, days: 15, label: 'Premium',  desc: '15 days max visibility' },
+]
+
 export default function ListingPage() {
   const params = useParams()
   const id = params.id as string
@@ -24,6 +30,7 @@ export default function ListingPage() {
   const [savingWishlist, setSavingWishlist] = useState(false)
   const [lightbox, setLightbox] = useState(false)
   const [paymentLoading, setPaymentLoading] = useState(false)
+  const [showTiers, setShowTiers] = useState(false)
 
   useEffect(() => {
     fetch('/api/listings/' + id + '?track=true')
@@ -84,14 +91,14 @@ export default function ListingPage() {
     setTimeout(() => setCopied(false), 2000)
   }
 
-  async function handleFeaturePayment() {
+  async function handleFeaturePayment(tier: string, price: number) {
     if (!isSignedIn) { openSignIn(); return }
     setPaymentLoading(true)
     try {
       const res = await fetch('/api/payment/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ listingId: id }),
+        body: JSON.stringify({ listingId: id, tier }),
       })
       const order = await res.json()
       if (order.error) { alert('Payment failed: ' + JSON.stringify(order.error)); setPaymentLoading(false); return }
@@ -101,7 +108,7 @@ export default function ListingPage() {
         amount: order.amount,
         currency: 'INR',
         name: 'BuddyBooks',
-        description: 'Feature your listing',
+        description: `Feature listing — ${TIERS.find(t => t.tier === tier)?.desc}`,
         image: '/logo.png',
         order_id: order.id,
         handler: async (response: any) => {
@@ -113,6 +120,7 @@ export default function ListingPage() {
           const result = await verify.json()
           if (result.success) {
             setListing({ ...listing, featured: true })
+            setShowTiers(false)
             alert('🎉 Your listing is now featured!')
           } else {
             alert('Payment verification failed. Contact support.')
@@ -186,9 +194,13 @@ export default function ListingPage() {
     .heart-pop { animation: heartPop 0.32s ease; }
     .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 200; display: flex; align-items: center; justify-content: center; cursor: zoom-out; }
     .lightbox img { max-width: 92vw; max-height: 88vh; object-fit: contain; border-radius: 8px; }
-    .feature-btn { width: 100%; background: linear-gradient(135deg, #F59E0B, #D97706); color: #fff; border: none; border-radius: 14px; padding: 14px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Kalam', cursive; margin-top: 10px; box-shadow: 0 4px 16px rgba(245,158,11,0.3); transition: all 0.2s; }
-    .feature-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(245,158,11,0.45) !important; }
-    .feature-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    .tier-btn { width: 100%; border-radius: 12px; padding: 13px 16px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: all 0.15s; border: 1.5px solid var(--border); background: var(--bg-card); }
+    .tier-btn:hover { border-color: #F59E0B; transform: translateY(-1px); }
+    .tier-btn.popular { background: linear-gradient(135deg, #F59E0B, #D97706); border: none; box-shadow: 0 4px 14px rgba(245,158,11,0.3); }
+    .tier-btn.popular:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(245,158,11,0.45); }
+    .tier-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+    .tiers-list { animation: slideDown 0.2s ease; }
   `
 
   if (loading) return (
@@ -232,7 +244,6 @@ export default function ListingPage() {
   return (
     <>
       <style>{css}</style>
-      {/* Razorpay script */}
       <script src="https://checkout.razorpay.com/v1/checkout.js" async />
 
       {lightbox && hasImages && (
@@ -248,14 +259,14 @@ export default function ListingPage() {
           <button className="icon-btn" style={{ padding: '7px 10px' }} onClick={() => window.location.href = '/marketplace'}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-muted)' }}>
-            <span style={{ cursor: 'pointer', color: '#1D9E75' }} onClick={() => router.push('/marketplace')}>Marketplace</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-muted)', flex: 1, minWidth: 0 }}>
+            <span style={{ cursor: 'pointer', color: '#1D9E75', flexShrink: 0 }} onClick={() => router.push('/marketplace')}>Marketplace</span>
             <span>›</span>
-            <span style={{ textTransform: 'capitalize' }}>{listing.category}</span>
+            <span style={{ textTransform: 'capitalize', flexShrink: 0 }}>{listing.category}</span>
             <span>›</span>
-            <span style={{ color: 'var(--text-primary)', fontWeight: '500', maxWidth: '160px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{listing.title}</span>
+            <span style={{ color: 'var(--text-primary)', fontWeight: '500', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{listing.title}</span>
           </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: '6px', alignItems: 'center' }}>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
             {!isOwner && (
               <button onClick={toggleWishlist} disabled={savingWishlist}
                 style={{ background: saved ? '#FEF2F2' : 'var(--bg-card)', border: `1.5px solid ${saved ? '#FCA5A5' : 'var(--border)'}`, borderRadius: '10px', padding: '7px 12px', fontSize: '15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.15s' }}>
@@ -341,7 +352,7 @@ export default function ListingPage() {
                   )}
                 </div>
 
-                {/* RIGHT — Info + CTA */}
+                {/* RIGHT */}
                 <div>
                   {/* Title & Price */}
                   <div className="s2" style={{ background: 'var(--bg-card)', borderRadius: '20px', border: listing.featured ? '2px solid #F59E0B' : '1.5px solid var(--border)', padding: '24px', marginBottom: '12px', boxShadow: listing.featured ? '0 4px 20px rgba(245,158,11,0.15)' : 'var(--shadow-card)' }}>
@@ -389,46 +400,80 @@ export default function ListingPage() {
 
                     {isOwner ? (
                       <div>
-                        <div style={{ background: 'linear-gradient(135deg, #E1F5EE, #D1FAE5)', borderRadius: '14px', padding: '14px', fontSize: '14px', color: '#0F6E56', textAlign: 'center', fontWeight: '700', fontFamily: 'Kalam, cursive', border: '1px solid rgba(29,158,117,0.2)' }}>
+                        <div style={{ background: 'linear-gradient(135deg, #E1F5EE, #D1FAE5)', borderRadius: '14px', padding: '14px', fontSize: '14px', color: '#0F6E56', textAlign: 'center', fontWeight: '700', fontFamily: 'Kalam, cursive', border: '1px solid rgba(29,158,117,0.2)', marginBottom: '10px' }}>
                           ✅ This is your listing
                         </div>
-                        {/* Feature payment button — only show if not already featured */}
-                        {!listing.featured && !listing.sold && (
-                          <button className="feature-btn" onClick={handleFeaturePayment} disabled={paymentLoading}>
-                            {paymentLoading ? '⏳ Opening payment…' : '⭐ Feature this listing — ₹49'}
-                          </button>
-                        )}
-                        {listing.featured && (
-                          <div style={{ marginTop: '10px', background: 'rgba(245,158,11,0.1)', border: '1.5px solid #F59E0B', borderRadius: '14px', padding: '12px', textAlign: 'center', fontSize: '13px', color: '#D97706', fontWeight: '700', fontFamily: 'Kalam, cursive' }}>
-                            ⭐ Your listing is featured — showing at the top!
+
+                        {listing.featured ? (
+                          <div style={{ background: 'rgba(245,158,11,0.08)', border: '1.5px solid #F59E0B', borderRadius: '14px', padding: '13px 16px', textAlign: 'center', fontSize: '13px', color: '#D97706', fontWeight: '700', fontFamily: 'Kalam, cursive' }}>
+                            ⭐ Featured — showing at the top of marketplace!
                           </div>
-                        )}
+                        ) : !listing.sold ? (
+                          <div>
+                            {/* Feature toggle button */}
+                            <button onClick={() => setShowTiers(!showTiers)}
+                              style={{ width: '100%', background: showTiers ? 'var(--bg)' : 'linear-gradient(135deg, #F59E0B, #D97706)', color: showTiers ? 'var(--text-primary)' : '#fff', border: showTiers ? '1.5px solid var(--border)' : 'none', borderRadius: '12px', padding: '13px 16px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'all 0.2s', boxShadow: showTiers ? 'none' : '0 4px 16px rgba(245,158,11,0.3)' }}>
+                              <span>⭐ Feature this listing</span>
+                              <span style={{ fontSize: '18px', transform: showTiers ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', display: 'inline-block' }}>›</span>
+                            </button>
+
+                            {showTiers && (
+                              <div className="tiers-list" style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', paddingLeft: '2px' }}>Choose a plan — your listing appears at the top:</div>
+                                {TIERS.map(t => (
+                                  <button key={t.tier} className={`tier-btn${t.popular ? ' popular' : ''}`}
+                                    onClick={() => handleFeaturePayment(t.tier, t.price)}
+                                    disabled={paymentLoading}>
+                                    <div style={{ textAlign: 'left' }}>
+                                      <div style={{ fontSize: '13px', fontWeight: '700', color: t.popular ? '#fff' : 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        {t.label}
+                                        {t.popular && <span style={{ fontSize: '9px', background: 'rgba(255,255,255,0.25)', color: '#fff', padding: '2px 7px', borderRadius: '99px', fontWeight: '700' }}>POPULAR</span>}
+                                      </div>
+                                      <div style={{ fontSize: '11px', color: t.popular ? 'rgba(255,255,255,0.75)' : 'var(--text-muted)', marginTop: '2px' }}>{t.desc}</div>
+                                    </div>
+                                    <div className="kalam" style={{ fontSize: '20px', fontWeight: '700', color: t.popular ? '#fff' : '#F59E0B', flexShrink: 0 }}>₹{t.price}</div>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ) : null}
+
+                        <button onClick={() => window.location.href = '/marketplace'}
+                          style={{ width: '100%', background: 'transparent', color: '#1D9E75', border: '1.5px solid #1D9E75', borderRadius: '14px', padding: '12px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', marginTop: '10px', transition: 'all 0.15s' }}>
+                          ← Back to listings
+                        </button>
                       </div>
                     ) : listing.sold ? (
-                      <div style={{ background: 'var(--bg)', borderRadius: '14px', padding: '14px', fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', border: '1.5px solid var(--border)' }}>
-                        🔒 Item already sold
+                      <div>
+                        <div style={{ background: 'var(--bg)', borderRadius: '14px', padding: '14px', fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', border: '1.5px solid var(--border)' }}>
+                          🔒 Item already sold
+                        </div>
+                        <button onClick={() => window.location.href = '/marketplace'}
+                          style={{ width: '100%', background: 'transparent', color: 'var(--text-secondary)', border: '1.5px solid var(--border)', borderRadius: '14px', padding: '12px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', marginTop: '10px' }}>
+                          ← Back to listings
+                        </button>
                       </div>
                     ) : isSignedIn ? (
-                      <div className="hide-mobile"><WaButton /></div>
+                      <div>
+                        <div className="hide-mobile"><WaButton /></div>
+                        <button onClick={() => window.location.href = '/marketplace'}
+                          style={{ width: '100%', background: 'transparent', color: 'var(--text-secondary)', border: '1.5px solid var(--border)', borderRadius: '14px', padding: '12px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', marginTop: '10px', transition: 'all 0.15s' }}
+                          onMouseEnter={e => (e.currentTarget.style.borderColor = '#1D9E75')} onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}>
+                          ← Back to listings
+                        </button>
+                      </div>
                     ) : (
-                      <button onClick={() => openSignIn()} style={{ width: '100%', background: 'var(--text-primary)', color: 'var(--bg)', border: 'none', borderRadius: '16px', padding: '16px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive' }}
-                        onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')} onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
-                        Sign in to contact seller
-                      </button>
-                    )}
-
-                    {!isOwner && !listing.sold && isSignedIn && (
-                      <button onClick={() => window.location.href = '/marketplace'}
-                        style={{ width: '100%', background: 'transparent', color: 'var(--text-secondary)', border: '1.5px solid var(--border)', borderRadius: '14px', padding: '12px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', marginTop: '10px', transition: 'all 0.15s' }}
-                        onMouseEnter={e => (e.currentTarget.style.borderColor = '#1D9E75')} onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}>
-                        ← Back to listings
-                      </button>
-                    )}
-                    {(isOwner || listing.sold) && (
-                      <button onClick={() => window.location.href = '/marketplace'}
-                        style={{ width: '100%', background: 'transparent', color: '#1D9E75', border: '1.5px solid #1D9E75', borderRadius: '14px', padding: '12px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', marginTop: '10px', transition: 'all 0.15s' }}>
-                        ← Back to listings
-                      </button>
+                      <div>
+                        <button onClick={() => openSignIn()} style={{ width: '100%', background: 'var(--text-primary)', color: 'var(--bg)', border: 'none', borderRadius: '16px', padding: '16px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive' }}
+                          onMouseEnter={e => (e.currentTarget.style.opacity = '0.85')} onMouseLeave={e => (e.currentTarget.style.opacity = '1')}>
+                          Sign in to contact seller
+                        </button>
+                        <button onClick={() => window.location.href = '/marketplace'}
+                          style={{ width: '100%', background: 'transparent', color: 'var(--text-secondary)', border: '1.5px solid var(--border)', borderRadius: '14px', padding: '12px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', marginTop: '10px' }}>
+                          ← Back to listings
+                        </button>
+                      </div>
                     )}
                   </div>
 
