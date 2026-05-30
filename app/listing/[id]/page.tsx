@@ -94,7 +94,7 @@ export default function ListingPage() {
         body: JSON.stringify({ listingId: id }),
       })
       const order = await res.json()
-      if (order.error) { alert('Payment failed: ' + order.error); setPaymentLoading(false); return }
+      if (order.error) { alert('Payment failed: ' + JSON.stringify(order.error)); setPaymentLoading(false); return }
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,

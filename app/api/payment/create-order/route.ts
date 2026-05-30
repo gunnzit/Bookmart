@@ -16,8 +16,10 @@ export async function POST(request: Request) {
       notes: { listingId },
     })
     return NextResponse.json(order)
-  } catch (error) {
-    console.error('Razorpay order error:', error)
-    return NextResponse.json({ error: String(error) }, { status: 500 })
+  } catch (error: any) {
+    console.error('Razorpay order error:', JSON.stringify(error))
+    return NextResponse.json({ 
+      error: error?.message || error?.error?.description || JSON.stringify(error) 
+    }, { status: 500 })
   }
 }
