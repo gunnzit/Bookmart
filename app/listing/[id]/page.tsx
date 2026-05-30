@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { useUser, SignInButton, useClerk } from '@clerk/nextjs'
+import { useUser, useClerk } from '@clerk/nextjs'
 
 const conditions = ['New', 'Good', 'Fair']
 
@@ -10,6 +10,16 @@ const TIERS = [
   { tier: 'standard', price: 29, days: 7,  label: 'Standard', desc: '7 days — most popular', popular: true },
   { tier: 'premium',  price: 49, days: 15, label: 'Premium',  desc: '15 days max visibility' },
 ]
+
+function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
+  return (
+    <span style={{ display: 'inline-flex', gap: '1px' }}>
+      {[1,2,3,4,5].map(i => (
+        <span key={i} style={{ fontSize: size, color: i <= Math.round(rating) ? '#F59E0B' : '#D1D5DB' }}>★</span>
+      ))}
+    </span>
+  )
+}
 
 export default function ListingPage() {
   const params = useParams()
@@ -32,6 +42,17 @@ export default function ListingPage() {
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [showTiers, setShowTiers] = useState(false)
 
+  // Reviews state
+  const [reviews, setReviews] = useState<any[]>([])
+  const [reviewAvg, setReviewAvg] = useState(0)
+  const [reviewTotal, setReviewTotal] = useState(0)
+  const [showReviewForm, setShowReviewForm] = useState(false)
+  const [reviewRating, setReviewRating] = useState(0)
+  const [hoverRating, setHoverRating] = useState(0)
+  const [reviewComment, setReviewComment] = useState('')
+  const [submittingReview, setSubmittingReview] = useState(false)
+  const [reviewDone, setReviewDone] = useState(false)
+
   useEffect(() => {
     fetch('/api/listings/' + id + '?track=true')
       .then(res => res.json())
@@ -39,6 +60,14 @@ export default function ListingPage() {
         setListing(data)
         setForm({ title: data.title, subtitle: data.subtitle || '', price: data.price, origPrice: data.origPrice || '', condition: data.condition, location: data.location })
         setLoading(false)
+        // Load reviews
+        if (data.sellerId) {
+          fetch(`/api/reviews?sellerId=${data.sellerId}`)
+            .then(r => r.json())
+            .then(rd => {
+              if (rd.reviews) { setReviews(rd.reviews); setReviewAvg(rd.avg); setReviewTotal(rd.total) }
+            })
+        }
         fetch('/api/listings?t=' + Date.now(), { cache: 'no-store' })
           .then(r => r.json())
           .then(all => {
@@ -102,7 +131,6 @@ export default function ListingPage() {
       })
       const order = await res.json()
       if (order.error) { alert('Payment failed: ' + JSON.stringify(order.error)); setPaymentLoading(false); return }
-
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: order.amount,
@@ -118,13 +146,8 @@ export default function ListingPage() {
             body: JSON.stringify({ ...response, listingId: id }),
           })
           const result = await verify.json()
-          if (result.success) {
-            setListing({ ...listing, featured: true })
-            setShowTiers(false)
-            alert('🎉 Your listing is now featured!')
-          } else {
-            alert('Payment verification failed. Contact support.')
-          }
+          if (result.success) { setListing({ ...listing, featured: true }); setShowTiers(false); alert('🎉 Your listing is now featured!') }
+          else alert('Payment verification failed. Contact support.')
         },
         prefill: { name: user?.fullName, email: user?.primaryEmailAddress?.emailAddress },
         theme: { color: '#1D9E75' },
@@ -132,10 +155,29 @@ export default function ListingPage() {
       }
       const rzp = new (window as any).Razorpay(options)
       rzp.open()
-    } catch (err) {
-      alert('Something went wrong. Try again.')
-    }
+    } catch { alert('Something went wrong. Try again.') }
     setPaymentLoading(false)
+  }
+
+  async function submitReview() {
+    if (!isSignedIn || !user) { openSignIn(); return }
+    if (reviewRating === 0) { alert('Please select a star rating'); return }
+    setSubmittingReview(true)
+    const res = await fetch('/api/reviews', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reviewerId: user.id, sellerId: listing.sellerId, listingId: id, rating: reviewRating, comment: reviewComment }),
+    })
+    const data = await res.json()
+    if (data.error === 'already_reviewed') { alert('You have already reviewed this listing'); setSubmittingReview(false); return }
+    if (data.id) {
+      setReviews(prev => [{ ...data, reviewer: { name: user.fullName } }, ...prev])
+      const newTotal = reviewTotal + 1
+      const newAvg = Math.round(((reviewAvg * reviewTotal) + reviewRating) / newTotal * 10) / 10
+      setReviewAvg(newAvg); setReviewTotal(newTotal)
+      setReviewDone(true); setShowReviewForm(false); setReviewRating(0); setReviewComment('')
+    }
+    setSubmittingReview(false)
   }
 
   const css = `
@@ -163,9 +205,9 @@ export default function ListingPage() {
     }
     body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text-primary); }
     .kalam { font-family: 'Kalam', cursive; }
-    input { color: var(--text-primary) !important; font-weight: 500; }
-    input::placeholder { color: var(--text-muted) !important; font-weight: 400; }
-    input:focus { outline: none !important; border-color: #1D9E75 !important; box-shadow: 0 0 0 3px rgba(29,158,117,0.1) !important; }
+    input, textarea { color: var(--text-primary) !important; font-weight: 500; }
+    input::placeholder, textarea::placeholder { color: var(--text-muted) !important; font-weight: 400; }
+    input:focus, textarea:focus { outline: none !important; border-color: #1D9E75 !important; box-shadow: 0 0 0 3px rgba(29,158,117,0.1) !important; }
     .main-img { transition: transform 0.3s ease; cursor: zoom-in; }
     .main-img:hover { transform: scale(1.01); }
     .thumb { cursor: pointer; border-radius: 10px; transition: all 0.15s; }
@@ -190,6 +232,7 @@ export default function ListingPage() {
     .s2 { animation: slideUp 0.35s 0.06s ease both; }
     .s3 { animation: slideUp 0.35s 0.12s ease both; }
     .s4 { animation: slideUp 0.35s 0.18s ease both; }
+    .s5 { animation: slideUp 0.35s 0.24s ease both; }
     @keyframes heartPop { 0% { transform: scale(1); } 40% { transform: scale(1.4); } 100% { transform: scale(1); } }
     .heart-pop { animation: heartPop 0.32s ease; }
     .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 200; display: flex; align-items: center; justify-content: center; cursor: zoom-out; }
@@ -201,6 +244,9 @@ export default function ListingPage() {
     .tier-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
     @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
     .tiers-list { animation: slideDown 0.2s ease; }
+    .star-btn { background: none; border: none; cursor: pointer; font-size: 28px; padding: 2px; transition: transform 0.1s; line-height: 1; }
+    .star-btn:hover { transform: scale(1.2); }
+    .review-card { background: var(--bg); border-radius: 14px; padding: 14px 16px; border: 1px solid var(--border); }
   `
 
   if (loading) return (
@@ -378,6 +424,13 @@ export default function ListingPage() {
                       </span>
                       <span className="tag" style={{ textTransform: 'capitalize' }}>🏷️ {listing.category}</span>
                       <span className="tag">👁️ {listing.views || 0} views</span>
+                      {reviewTotal > 0 && (
+                        <span className="tag">
+                          <Stars rating={reviewAvg} size={11} />
+                          <span style={{ fontWeight: '600' }}>{reviewAvg}</span>
+                          <span style={{ color: 'var(--text-muted)' }}>({reviewTotal})</span>
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -390,9 +443,16 @@ export default function ListingPage() {
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>{listing.seller?.name}</div>
-                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M6 1C4.34 1 3 2.34 3 4c0 2.5 3 7 3 7s3-4.5 3-7c0-1.66-1.34-3-3-3z" fill="var(--text-muted)"/><circle cx="6" cy="4" r="1" fill="var(--bg-card)"/></svg>
-                          {listing.location}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px', flexWrap: 'wrap' }}>
+                          {reviewTotal > 0 ? (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <Stars rating={reviewAvg} size={12} />
+                              <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)' }}>{reviewAvg}</span>
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>({reviewTotal} review{reviewTotal !== 1 ? 's' : ''})</span>
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>No reviews yet</span>
+                          )}
                         </div>
                       </div>
                       <div style={{ fontSize: '11px', color: '#1D9E75', background: '#E1F5EE', padding: '4px 10px', borderRadius: '99px', fontWeight: '600' }}>Active seller</div>
@@ -403,27 +463,22 @@ export default function ListingPage() {
                         <div style={{ background: 'linear-gradient(135deg, #E1F5EE, #D1FAE5)', borderRadius: '14px', padding: '14px', fontSize: '14px', color: '#0F6E56', textAlign: 'center', fontWeight: '700', fontFamily: 'Kalam, cursive', border: '1px solid rgba(29,158,117,0.2)', marginBottom: '10px' }}>
                           ✅ This is your listing
                         </div>
-
                         {listing.featured ? (
                           <div style={{ background: 'rgba(245,158,11,0.08)', border: '1.5px solid #F59E0B', borderRadius: '14px', padding: '13px 16px', textAlign: 'center', fontSize: '13px', color: '#D97706', fontWeight: '700', fontFamily: 'Kalam, cursive' }}>
                             ⭐ Featured — showing at the top of marketplace!
                           </div>
                         ) : !listing.sold ? (
                           <div>
-                            {/* Feature toggle button */}
                             <button onClick={() => setShowTiers(!showTiers)}
                               style={{ width: '100%', background: showTiers ? 'var(--bg)' : 'linear-gradient(135deg, #F59E0B, #D97706)', color: showTiers ? 'var(--text-primary)' : '#fff', border: showTiers ? '1.5px solid var(--border)' : 'none', borderRadius: '12px', padding: '13px 16px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'all 0.2s', boxShadow: showTiers ? 'none' : '0 4px 16px rgba(245,158,11,0.3)' }}>
                               <span>⭐ Feature this listing</span>
                               <span style={{ fontSize: '18px', transform: showTiers ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', display: 'inline-block' }}>›</span>
                             </button>
-
                             {showTiers && (
                               <div className="tiers-list" style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', paddingLeft: '2px' }}>Choose a plan — your listing appears at the top:</div>
                                 {TIERS.map(t => (
-                                  <button key={t.tier} className={`tier-btn${t.popular ? ' popular' : ''}`}
-                                    onClick={() => handleFeaturePayment(t.tier, t.price)}
-                                    disabled={paymentLoading}>
+                                  <button key={t.tier} className={`tier-btn${t.popular ? ' popular' : ''}`} onClick={() => handleFeaturePayment(t.tier, t.price)} disabled={paymentLoading}>
                                     <div style={{ textAlign: 'left' }}>
                                       <div style={{ fontSize: '13px', fontWeight: '700', color: t.popular ? '#fff' : 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         {t.label}
@@ -438,7 +493,6 @@ export default function ListingPage() {
                             )}
                           </div>
                         ) : null}
-
                         <button onClick={() => window.location.href = '/marketplace'}
                           style={{ width: '100%', background: 'transparent', color: '#1D9E75', border: '1.5px solid #1D9E75', borderRadius: '14px', padding: '12px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', marginTop: '10px', transition: 'all 0.15s' }}>
                           ← Back to listings
@@ -446,9 +500,7 @@ export default function ListingPage() {
                       </div>
                     ) : listing.sold ? (
                       <div>
-                        <div style={{ background: 'var(--bg)', borderRadius: '14px', padding: '14px', fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', border: '1.5px solid var(--border)' }}>
-                          🔒 Item already sold
-                        </div>
+                        <div style={{ background: 'var(--bg)', borderRadius: '14px', padding: '14px', fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', border: '1.5px solid var(--border)' }}>🔒 Item already sold</div>
                         <button onClick={() => window.location.href = '/marketplace'}
                           style={{ width: '100%', background: 'transparent', color: 'var(--text-secondary)', border: '1.5px solid var(--border)', borderRadius: '14px', padding: '12px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', marginTop: '10px' }}>
                           ← Back to listings
@@ -488,6 +540,109 @@ export default function ListingPage() {
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* ── REVIEWS SECTION ── */}
+              <div className="s5" style={{ marginTop: '32px', background: 'var(--bg-card)', borderRadius: '20px', border: '1.5px solid var(--border)', padding: '24px', boxShadow: 'var(--shadow-card)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+                  <div>
+                    <h2 className="kalam" style={{ fontSize: '18px', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                      Seller reviews
+                    </h2>
+                    {reviewTotal > 0 ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Stars rating={reviewAvg} size={16} />
+                        <span style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' }}>{reviewAvg}</span>
+                        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>from {reviewTotal} review{reviewTotal !== 1 ? 's' : ''}</span>
+                      </div>
+                    ) : (
+                      <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No reviews yet — be the first!</span>
+                    )}
+                  </div>
+                  {!isOwner && isSignedIn && !reviewDone && (
+                    <button onClick={() => setShowReviewForm(!showReviewForm)}
+                      style={{ background: showReviewForm ? 'var(--bg)' : '#1D9E75', color: showReviewForm ? 'var(--text-primary)' : '#fff', border: showReviewForm ? '1.5px solid var(--border)' : 'none', borderRadius: '10px', padding: '9px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif' }}>
+                      {showReviewForm ? 'Cancel' : '✍️ Leave a review'}
+                    </button>
+                  )}
+                  {!isOwner && !isSignedIn && (
+                    <button onClick={() => openSignIn()} style={{ background: 'var(--bg)', color: 'var(--text-secondary)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '9px 16px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
+                      Sign in to review
+                    </button>
+                  )}
+                </div>
+
+                {/* Review success */}
+                {reviewDone && (
+                  <div style={{ background: '#E1F5EE', borderRadius: '12px', padding: '14px 16px', marginBottom: '16px', fontSize: '13px', color: '#0F6E56', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid rgba(29,158,117,0.2)' }}>
+                    ✅ Thanks for your review! It helps other buyers.
+                  </div>
+                )}
+
+                {/* Review form */}
+                {showReviewForm && !reviewDone && (
+                  <div style={{ background: 'var(--bg)', borderRadius: '16px', padding: '20px', marginBottom: '20px', border: '1.5px solid #1D9E75' }}>
+                    <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '12px' }}>Rate your experience with this seller:</div>
+                    <div style={{ display: 'flex', gap: '4px', marginBottom: '14px' }}>
+                      {[1,2,3,4,5].map(i => (
+                        <button key={i} className="star-btn"
+                          onMouseEnter={() => setHoverRating(i)}
+                          onMouseLeave={() => setHoverRating(0)}
+                          onClick={() => setReviewRating(i)}>
+                          <span style={{ color: i <= (hoverRating || reviewRating) ? '#F59E0B' : '#D1D5DB' }}>★</span>
+                        </button>
+                      ))}
+                      {reviewRating > 0 && (
+                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)', alignSelf: 'center', marginLeft: '6px' }}>
+                          {['', 'Poor', 'Fair', 'Good', 'Very good', 'Excellent'][reviewRating]}
+                        </span>
+                      )}
+                    </div>
+                    <textarea
+                      value={reviewComment}
+                      onChange={e => setReviewComment(e.target.value)}
+                      placeholder="Share your experience (optional)…"
+                      rows={3}
+                      style={{ width: '100%', padding: '11px 14px', borderRadius: '12px', border: '1.5px solid var(--border)', fontSize: '13px', fontFamily: 'DM Sans, sans-serif', background: 'var(--bg-input)', resize: 'none', marginBottom: '12px', transition: 'all 0.15s' }}
+                    />
+                    <button onClick={submitReview} disabled={submittingReview || reviewRating === 0}
+                      style={{ background: reviewRating > 0 ? '#1D9E75' : '#ccc', color: '#fff', border: 'none', borderRadius: '10px', padding: '11px 24px', fontSize: '14px', fontWeight: '700', cursor: reviewRating === 0 ? 'not-allowed' : 'pointer', fontFamily: 'Kalam, cursive', transition: 'all 0.2s', boxShadow: reviewRating > 0 ? '0 4px 14px rgba(29,158,117,0.25)' : 'none' }}>
+                      {submittingReview ? 'Submitting…' : 'Submit review'}
+                    </button>
+                  </div>
+                )}
+
+                {/* Reviews list */}
+                {reviews.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {reviews.map((r: any) => (
+                      <div key={r.id} className="review-card">
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div className="kalam" style={{ width: '30px', height: '30px', borderRadius: '50%', background: 'linear-gradient(135deg, #1D9E75, #0F6E56)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '700', flexShrink: 0 }}>
+                              {r.reviewer?.name?.charAt(0).toUpperCase() || '?'}
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>{r.reviewer?.name || 'Anonymous'}</div>
+                              <Stars rating={r.rating} size={11} />
+                            </div>
+                          </div>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            {new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+                        {r.comment && <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: '6px' }}>{r.comment}</p>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  !showReviewForm && (
+                    <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)', fontSize: '13px' }}>
+                      <div style={{ fontSize: '32px', marginBottom: '8px' }}>⭐</div>
+                      No reviews yet for this seller
+                    </div>
+                  )
+                )}
               </div>
 
               {/* Related listings */}
