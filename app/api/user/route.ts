@@ -10,17 +10,11 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { clerkId, name, email } = body
 
-    let user = await prisma.user.findFirst({
-      where: { email }
-    })
+    let user = await prisma.user.findFirst({ where: { email } })
 
     if (!user) {
       user = await prisma.user.create({
-        data: {
-          id: clerkId,
-          name: name || 'Anonymous',
-          email,
-        }
+        data: { id: clerkId, name: name || 'Anonymous', email }
       })
     }
 
