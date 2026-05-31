@@ -414,7 +414,11 @@ export default function LandingPage() {
 
             {/* Right: hero illustration */}
             <div className="hero-illo fu fu2" style={{ flexShrink: 0, width: '100%', maxWidth: '340px', alignSelf: 'center' }}>
-              <HeroIllustration />
+              <img
+  src="/hero-illustration.png"
+  alt="Student with books on BuddyBooks"
+  style={{ width: '100%', maxWidth: '420px', height: 'auto', borderRadius: '16px' }}
+/>
             </div>
           </div>
         </section>
