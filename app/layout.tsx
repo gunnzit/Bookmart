@@ -8,7 +8,7 @@ const APP_URL = 'https://buddybooks.in'
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
   title: {
-    default: 'BuddyBooks — Buy & Sell Books in Chandigarh',
+    default: 'BuddyBooks — Buy & Sell Second-Hand Books in Chandigarh',
     template: '%s | BuddyBooks Chandigarh',
   },
   description: 'Buy and sell second-hand textbooks, novels, notebooks and stationery from students near you in Chandigarh, Mohali and Panchkula. Save up to 60% on school books.',
@@ -33,20 +33,13 @@ export const metadata: Metadata = {
     locale: 'en_IN',
     url: APP_URL,
     siteName: 'BuddyBooks',
-    title: 'BuddyBooks — Buy & Sell Books in Chandigarh',
+    title: 'BuddyBooks — Buy & Sell Second-Hand Books in Chandigarh',
     description: 'Student marketplace for second-hand books, notebooks and stationery in Chandigarh Tricity. Save up to 60% on school and college books.',
-    images: [{
-      url: '/og-image.png',
-      width: 1200,
-      height: 630,
-      alt: 'BuddyBooks — Student Book Marketplace Chandigarh',
-    }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'BuddyBooks — Buy & Sell Books in Chandigarh',
+    title: 'BuddyBooks — Buy & Sell Second-Hand Books in Chandigarh',
     description: 'Student marketplace for second-hand books in Chandigarh Tricity. Free to list, no commission.',
-    images: ['/og-image.png'],
   },
   icons: {
     icon: '/favicon.ico',
@@ -55,9 +48,6 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   alternates: {
     canonical: APP_URL,
-  },
-  verification: {
-    // google: 'ADD_YOUR_GOOGLE_SEARCH_CONSOLE_CODE_HERE',
   },
 }
 
