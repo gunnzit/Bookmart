@@ -53,7 +53,12 @@ export default function RequestsPage() {
       const res = await fetch('/api/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...form, clerkId: user.id }),
+        body: JSON.stringify({
+  ...form,
+  clerkId: user.id,
+  name: user.fullName || user.firstName || 'User',
+  email: user.primaryEmailAddress?.emailAddress,
+}),
       })
       if (res.ok) {
         const newReq = await res.json()

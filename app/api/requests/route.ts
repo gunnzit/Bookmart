@@ -7,7 +7,7 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 export async function GET() {
   const requests = await prisma.bookRequest.findMany({
     where: { status: 'open' },
-    include: { user: { select: { name: true, phone: true } } },
+    include: { user: { select: { name: true, phone: true, clerkId: true } } },
     orderBy: { createdAt: 'desc' },
   })
   return Response.json(requests)
@@ -15,16 +15,29 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const body = await req.json()
-  const { title, author, category, maxPrice, location, note, clerkId } = body
+  const { title, author, category, maxPrice, location, note, clerkId, name, email } = body
   if (!title || !category || !location || !clerkId) {
     return Response.json({ error: 'Missing fields' }, { status: 400 })
   }
-  const user = await prisma.user.findUnique({ where: { clerkId } })
-  if (!user) return Response.json({ error: 'User not found' }, { status: 404 })
+
+  // Upsert user — create if doesn't exist
+  const user = await prisma.user.upsert({
+    where: { clerkId },
+    update: {},
+    create: {
+      clerkId,
+      name: name || 'User',
+      email: email || `${clerkId}@buddybooks.in`,
+    },
+  })
 
   const request = await prisma.bookRequest.create({
-    data: { title, author, category, maxPrice: maxPrice ? parseInt(maxPrice) : null, location, note, userId: user.id },
-    include: { user: { select: { name: true, phone: true } } },
+    data: {
+      title, author, category,
+      maxPrice: maxPrice ? parseInt(maxPrice) : null,
+      location, note, userId: user.id
+    },
+    include: { user: { select: { name: true, phone: true, clerkId: true } } },
   })
   return Response.json(request)
 }
