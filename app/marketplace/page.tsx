@@ -4,11 +4,33 @@ import { useUser, SignInButton, UserButton, useClerk } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 
 const cats = ['All', 'textbook', 'novel', 'notebook', 'art', 'stationery', 'competitive']
+
 const catEmoji: Record<string, string> = {
   All: '✦', textbook: '📗', novel: '📘', notebook: '📓',
   art: '🎨', stationery: '✏️', competitive: '📙'
 }
+
+const catColors: Record<string, { color: string; bg: string; border: string; dark: string }> = {
+  All:         { color: '#1D9E75', bg: '#E8F7F2', border: '#C0E8D8', dark: '#157A5A' },
+  textbook:    { color: '#3B82F6', bg: '#EFF6FF', border: '#BFDBFE', dark: '#1D4ED8' },
+  novel:       { color: '#8B5CF6', bg: '#F5F3FF', border: '#DDD6FE', dark: '#6D28D9' },
+  notebook:    { color: '#F59E0B', bg: '#FFFBEB', border: '#FDE68A', dark: '#D97706' },
+  art:         { color: '#EC4899', bg: '#FDF2F8', border: '#FBCFE8', dark: '#BE185D' },
+  stationery:  { color: '#06B6D4', bg: '#ECFEFF', border: '#A5F3FC', dark: '#0891B2' },
+  competitive: { color: '#F97316', bg: '#FFF7ED', border: '#FED7AA', dark: '#C2410C' },
+}
+
+const conditionColors: Record<string, { bg: string; color: string }> = {
+  New:  { bg: 'rgba(220,252,231,0.95)', color: '#166534' },
+  Good: { bg: 'rgba(219,234,254,0.95)', color: '#1E40AF' },
+  Fair: { bg: 'rgba(254,243,199,0.95)', color: '#92400E' },
+}
+
 const sortOptions = ['Newest', 'Cheapest', 'Most expensive', 'Active only']
+
+function getCatColor(category: string) {
+  return catColors[category] || catColors['All']
+}
 
 export default function Marketplace() {
   const router = useRouter()
@@ -79,6 +101,7 @@ export default function Marketplace() {
 
   const activeListings = listings.filter(l => !l.sold).length
   const hasFilters = activeCat !== 'All' || sortBy !== 'Newest' || search
+  const activeCatStyle = catColors[activeCat] || catColors['All']
 
   function requireAuth(action: () => void) {
     if (isSignedIn) action()
@@ -99,7 +122,6 @@ export default function Marketplace() {
           --shadow-card-hover: 0 16px 40px rgba(27,42,74,0.12);
           --skeleton-1: #f0ede8; --skeleton-2: #e8e4de;
           --navy: #1B2A4A; --scrollbar: #e0ddd6;
-          --hero-bg: linear-gradient(135deg, #1B2A4A 0%, #0F6E56 100%);
         }
         @media (prefers-color-scheme: dark) {
           :root {
@@ -111,7 +133,6 @@ export default function Marketplace() {
             --shadow-card-hover: 0 16px 40px rgba(0,0,0,0.35);
             --skeleton-1: #1E2130; --skeleton-2: #252840;
             --navy: #E8E6F0; --scrollbar: #2A2D3E;
-            --hero-bg: linear-gradient(135deg, #13151F 0%, #0F2D1F 100%);
           }
         }
         body { background: var(--bg); font-family: 'DM Sans', sans-serif; color: var(--text-primary); }
@@ -138,8 +159,6 @@ export default function Marketplace() {
         .suggestion-item:hover { background: var(--bg-img) !important; }
         @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
         .float { animation: float 3s ease-in-out infinite; }
-        @keyframes featuredPulse { 0%,100%{box-shadow:0 0 0 0 rgba(245,158,11,0.4)} 50%{box-shadow:0 0 0 4px rgba(245,158,11,0)} }
-        .featured-card { animation: featuredPulse 2.5s ease-in-out infinite; }
         @media (max-width: 480px) {
           .listings-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
           .nav-search { max-width: 100% !important; }
@@ -204,18 +223,21 @@ export default function Marketplace() {
             </div>
             {showSuggestions && suggestions.length > 0 && (
               <div style={{ position: 'absolute', top: '44px', left: 0, right: 0, background: 'var(--nav-bg)', border: '1.5px solid var(--border)', borderRadius: '14px', boxShadow: 'var(--shadow-card-hover)', zIndex: 100, overflow: 'hidden' }}>
-                {suggestions.map((l: any) => (
-                  <div key={l.id} className="suggestion-item" onClick={() => { window.location.href = '/listing/' + l.id }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid var(--border)' }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: 'var(--bg-img)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0, overflow: 'hidden' }}>
-                      {l.images?.[0] ? <img src={l.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : l.emoji}
+                {suggestions.map((l: any) => {
+                  const c = getCatColor(l.category)
+                  return (
+                    <div key={l.id} className="suggestion-item" onClick={() => { window.location.href = '/listing/' + l.id }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', cursor: 'pointer', borderBottom: '1px solid var(--border)' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: c.bg, border: '1px solid ' + c.border, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0, overflow: 'hidden' }}>
+                        {l.images?.[0] ? <img src={l.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : l.emoji}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>{l.title}</div>
+                        <div style={{ fontSize: '11px', color: c.color, fontWeight: '600' }}>₹{l.price} · {l.location}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>{l.title}</div>
-                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>₹{l.price} · {l.location}</div>
-                    </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             )}
           </div>
@@ -245,21 +267,23 @@ export default function Marketplace() {
           </div>
         </nav>
 
-        {/* Hero banner */}
-        <div className="hero-section" style={{ background: 'var(--hero-bg)', padding: '28px 24px 32px', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '140px', height: '140px', background: 'rgba(255,255,255,0.04)', borderRadius: '50%' }} />
-          <div style={{ position: 'absolute', bottom: '-40px', left: '40%', width: '100px', height: '100px', background: 'rgba(255,255,255,0.03)', borderRadius: '50%' }} />
+        {/* Hero banner — colorful gradient based on active category */}
+        <div className="hero-section" style={{ background: activeCat === 'All' ? 'linear-gradient(135deg, #1B2A4A 0%, #0F6E56 100%)' : 'linear-gradient(135deg, ' + activeCatStyle.dark + ' 0%, ' + activeCatStyle.color + ' 100%)', padding: '28px 24px 32px', position: 'relative', overflow: 'hidden', transition: 'background 0.4s ease' }}>
+          <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '140px', height: '140px', background: 'rgba(255,255,255,0.06)', borderRadius: '50%' }} />
+          <div style={{ position: 'absolute', bottom: '-40px', left: '40%', width: '100px', height: '100px', background: 'rgba(255,255,255,0.04)', borderRadius: '50%' }} />
           <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
             <div>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px', padding: '3px 12px', marginBottom: '10px' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(255,255,255,0.15)', borderRadius: '99px', padding: '3px 12px', marginBottom: '10px' }}>
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ADE80', display: 'inline-block' }} />
-                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.85)', fontWeight: '600' }}>{activeListings} active listings</span>
+                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.9)', fontWeight: '600' }}>{activeListings} active listings</span>
               </div>
-              <h1 className="logo-text hero-title" style={{ fontSize: '28px', color: '#fff', marginBottom: '6px', lineHeight: 1.2 }}>Find your next book 📚</h1>
-              <p className="hero-subtitle" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.5 }}>Second-hand books & stationery from students in Chandigarh</p>
+              <h1 className="logo-text hero-title" style={{ fontSize: '28px', color: '#fff', marginBottom: '6px', lineHeight: 1.2 }}>
+                {activeCat === 'All' ? 'Find your next book 📚' : catEmoji[activeCat] + ' ' + activeCat.charAt(0).toUpperCase() + activeCat.slice(1) + 's'}
+              </h1>
+              <p className="hero-subtitle" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.65)', lineHeight: 1.5 }}>Second-hand books & stationery from students in Chandigarh</p>
             </div>
             {isSignedIn ? (
-              <button onClick={() => router.push('/sell')} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '12px', padding: '10px 20px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', boxShadow: '0 4px 16px rgba(29,158,117,0.4)', flexShrink: 0, whiteSpace: 'nowrap' }}>
+              <button onClick={() => router.push('/sell')} style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: '12px', padding: '10px 20px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', flexShrink: 0, whiteSpace: 'nowrap', backdropFilter: 'blur(8px)' }}>
                 + Sell now
               </button>
             ) : (
@@ -272,22 +296,36 @@ export default function Marketplace() {
           </div>
         </div>
 
-        {/* Filters bar */}
+        {/* Filters bar — colored active chip */}
         <div className="filters-bar" style={{ background: 'var(--nav-bg)', borderBottom: '1.5px solid var(--border)', padding: '10px 16px', display: 'flex', gap: '8px', alignItems: 'center', overflowX: 'auto', WebkitOverflowScrolling: 'touch' as any, position: 'sticky', top: '56px', zIndex: 40 }}>
           <div style={{ display: 'flex', gap: '6px', flex: 1, overflowX: 'auto' }}>
-            {cats.map(cat => (
-              <button key={cat} className="cat-chip" onClick={() => setActiveCat(cat)} style={{
-                padding: '6px 14px', border: `1.5px solid ${activeCat === cat ? '#1D9E75' : 'var(--border)'}`,
-                borderRadius: '99px', background: activeCat === cat ? '#E1F5EE' : 'var(--bg-input)',
-                color: activeCat === cat ? '#0F6E56' : 'var(--text-secondary)',
-                fontWeight: activeCat === cat ? '600' : '400', whiteSpace: 'nowrap',
-                textTransform: 'capitalize', fontFamily: 'DM Sans, sans-serif',
-                fontSize: '12px', cursor: 'pointer', flexShrink: 0,
-                display: 'flex', alignItems: 'center', gap: '4px', transition: 'all 0.15s',
-              }}>
-                <span>{catEmoji[cat]}</span> {cat}
-              </button>
-            ))}
+            {cats.map(cat => {
+              const c = catColors[cat]
+              const isActive = activeCat === cat
+              return (
+                <button key={cat} className="cat-chip" onClick={() => setActiveCat(cat)} style={{
+                  padding: '6px 14px',
+                  border: '1.5px solid ' + (isActive ? c.color : 'var(--border)'),
+                  borderRadius: '99px',
+                  background: isActive ? c.bg : 'var(--bg-input)',
+                  color: isActive ? c.dark : 'var(--text-secondary)',
+                  fontWeight: isActive ? '700' : '400',
+                  whiteSpace: 'nowrap',
+                  textTransform: 'capitalize',
+                  fontFamily: 'DM Sans, sans-serif',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'all 0.15s',
+                  boxShadow: isActive ? '0 2px 8px ' + c.color + '33' : 'none',
+                }}>
+                  <span>{catEmoji[cat]}</span> {cat}
+                </button>
+              )
+            })}
           </div>
           <div style={{ width: '1px', height: '24px', background: 'var(--border)', flexShrink: 0 }} />
           <div ref={sortRef} style={{ position: 'relative', flexShrink: 0 }}>
@@ -319,10 +357,8 @@ export default function Marketplace() {
 
         {/* Book Request Banner */}
         <div style={{ padding: '16px 16px 0', maxWidth: '1200px', margin: '0 auto' }}>
-          <div
-            className="request-banner"
-            onClick={() => router.push('/requests')}
-            style={{ background: 'linear-gradient(135deg, #E1F5EE, #D1FAE5)', border: '1.5px solid #A7F3D0', borderRadius: '16px', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', gap: '12px', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 2px 12px rgba(29,158,117,0.08)' }}>
+          <div className="request-banner" onClick={() => router.push('/requests')}
+            style={{ background: 'linear-gradient(135deg, #E1F5EE, #EFF6FF)', border: '1.5px solid #C0E8D8', borderRadius: '16px', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', gap: '12px', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 2px 12px rgba(29,158,117,0.08)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ fontSize: '28px', flexShrink: 0 }}>🔍</span>
               <div>
@@ -374,8 +410,10 @@ export default function Marketplace() {
               {filtered.map((l: any, idx: number) => {
                 const discount = l.origPrice ? Math.round((1 - l.price / l.origPrice) * 100) : 0
                 const isFeatured = l.featured && !l.sold
+                const c = getCatColor(l.category)
+                const cond = conditionColors[l.condition] || conditionColors['Good']
                 return (
-                  <div key={l.id} className={`card fade-up`}
+                  <div key={l.id} className="card fade-up"
                     onClick={() => window.location.href = '/listing/' + l.id}
                     style={{
                       background: 'var(--bg-card)',
@@ -387,30 +425,44 @@ export default function Marketplace() {
                       animationDelay: `${Math.min(idx * 0.04, 0.4)}s`,
                       position: 'relative',
                     }}>
-                    <div className="listing-card-img" style={{ height: '140px', background: 'var(--bg-img)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '44px', position: 'relative', overflow: 'hidden' }}>
+
+                    {/* Category color strip at top */}
+                    <div style={{ height: '3px', background: c.color, width: '100%' }} />
+
+                    <div className="listing-card-img" style={{ height: '137px', background: l.images?.[0] ? 'var(--bg-img)' : c.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '44px', position: 'relative', overflow: 'hidden' }}>
                       {l.images?.[0]
                         ? <img className="listing-img" src={l.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        : <span className="listing-img float" style={{ display: 'block', animationDelay: `${idx * 0.2}s` }}>{l.emoji}</span>}
-                      <span style={{ position: 'absolute', top: '8px', left: '8px', fontSize: '9px', background: l.condition === 'New' ? 'rgba(220,252,231,0.95)' : l.condition === 'Fair' ? 'rgba(254,243,199,0.95)' : 'rgba(239,246,255,0.95)', color: l.condition === 'New' ? '#166534' : l.condition === 'Fair' ? '#92400E' : '#1D4ED8', padding: '2px 8px', borderRadius: '99px', fontWeight: '700', backdropFilter: 'blur(4px)' }}>{l.condition}</span>
+                        : <span className="listing-img float" style={{ display: 'block', animationDelay: `${idx * 0.2}s`, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.12))' }}>{l.emoji}</span>}
+
+                      {/* Condition badge */}
+                      <span style={{ position: 'absolute', top: '8px', left: '8px', fontSize: '9px', background: cond.bg, color: cond.color, padding: '2px 8px', borderRadius: '99px', fontWeight: '700', backdropFilter: 'blur(4px)' }}>{l.condition}</span>
+
+                      {/* Discount badge */}
                       {discount >= 20 && !l.sold && (
                         <span style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '9px', background: 'linear-gradient(135deg, #FF6B35, #E24B4A)', color: '#fff', padding: '2px 7px', borderRadius: '99px', fontWeight: '700' }}>-{discount}%</span>
                       )}
+
+                      {/* Featured badge */}
                       {isFeatured && (
                         <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'linear-gradient(135deg, #F59E0B, #D97706)', color: '#fff', fontSize: '9px', fontWeight: '800', padding: '3px 8px', borderRadius: '99px', display: 'flex', alignItems: 'center', gap: '3px', boxShadow: '0 2px 8px rgba(245,158,11,0.5)', zIndex: 2 }}>
                           ⭐ FEATURED
                         </div>
                       )}
+
+                      {/* Sold overlay */}
                       {l.sold && (
                         <div style={{ position: 'absolute', inset: 0, background: 'rgba(27,42,74,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <span className="logo-text" style={{ color: '#fff', fontSize: '17px', letterSpacing: '3px' }}>SOLD</span>
                         </div>
                       )}
                     </div>
+
+                    {/* Card body */}
                     <div className="listing-card-body" style={{ padding: '11px 13px' }}>
                       <div className="listing-card-title" style={{ fontSize: '13px', fontWeight: '600', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: l.sold ? 'var(--text-muted)' : 'var(--text-primary)' }}>{l.title}</div>
                       <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '7px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.subtitle || l.seller?.name}</div>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px', marginBottom: '5px' }}>
-                        <span className="logo-text listing-card-price" style={{ fontSize: '17px', color: l.sold ? 'var(--text-muted)' : '#1D9E75' }}>₹{l.price}</span>
+                        <span className="logo-text listing-card-price" style={{ fontSize: '17px', color: l.sold ? 'var(--text-muted)' : c.color }}>₹{l.price}</span>
                         {l.origPrice && <span style={{ fontSize: '10px', color: 'var(--text-muted)', textDecoration: 'line-through' }}>₹{l.origPrice}</span>}
                       </div>
                       <div className="listing-card-location" style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '3px' }}>
