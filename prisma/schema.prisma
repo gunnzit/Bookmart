@@ -18,6 +18,7 @@ model User {
   listings  Listing[]
   orders    Order[]
   wishlist  Wishlist[]
+  bookRequests BookRequest[]
   reviewsGiven    Review[] @relation("ReviewsGiven")
   reviewsReceived Review[] @relation("ReviewsReceived")
 }
@@ -76,6 +77,20 @@ model Review {
   listingId  String?
   reviewer   User     @relation("ReviewsGiven", fields: [reviewerId], references: [id])
   seller     User     @relation("ReviewsReceived", fields: [sellerId], references: [id])
+}
+
+model BookRequest {
+  id        String   @id @default(cuid())
+  title     String
+  author    String?
+  category  String
+  maxPrice  Int?
+  location  String
+  note      String?
+  status    String   @default("open")
+  createdAt DateTime @default(now())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model playing_with_neon {
