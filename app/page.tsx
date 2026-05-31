@@ -398,7 +398,7 @@ export default function LandingPage() {
                 }
               </div>
 
-              <div className="fu fu4 stats-row" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div className="fu fu4 stats-row" style={{ display: 'flex', flexDirection: 'row', gap: '16px', flexWrap: 'wrap' }}>
                 {[
                   { n: '500+', l: 'Books available', color: '#3B82F6', bg: '#EFF6FF' },
                   { n: '₹250', l: 'Avg. savings per book', color: '#1D9E75', bg: '#E8F7F2' },
@@ -417,14 +417,14 @@ export default function LandingPage() {
               <img
   src="/hero-illustration.png"
   alt="Student with books on BuddyBooks"
-  style={{ width: '100%', maxWidth: '420px', height: 'auto', borderRadius: '16px' }}
+  style={{ width: '100%', maxWidth: '320px', height: 'auto', borderRadius: '16px' }}
 />
             </div>
           </div>
         </section>
 
         {/* Sample listings */}
-        <section style={{ padding: '0 20px 48px', maxWidth: '960px', margin: '0 auto' }}>
+        <section style={{ padding: '0 20px 16px', maxWidth: '960px', margin: '0 auto' }}>
           <div className="listings-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
             {sampleListings.map((l, i) => {
               const disc = Math.round((1 - l.price / l.origPrice) * 100)
