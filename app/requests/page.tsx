@@ -20,7 +20,7 @@ const LOCATIONS = [
 
 export default function RequestsPage() {
   const router = useRouter()
-  const { isSignedIn, user } = useUser()
+  const { isSignedIn, user, isLoaded } = useUser()
   const [requests, setRequests] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -44,18 +44,29 @@ export default function RequestsPage() {
 
   async function submit() {
     if (!form.title || !form.location) return
+    if (!isLoaded || !user?.id) {
+      alert('Please wait a moment and try again.')
+      return
+    }
     setSubmitting(true)
-    const res = await fetch('/api/requests', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, clerkId: user?.id }),
-    })
-    if (res.ok) {
-      const newReq = await res.json()
-      setRequests(prev => [newReq, ...prev])
-      setDone(true)
-      setShowForm(false)
-      setForm({ title: '', author: '', category: 'textbook', maxPrice: '', location: '', note: '' })
+    try {
+      const res = await fetch('/api/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...form, clerkId: user.id }),
+      })
+      if (res.ok) {
+        const newReq = await res.json()
+        setRequests(prev => [newReq, ...prev])
+        setDone(true)
+        setShowForm(false)
+        setForm({ title: '', author: '', category: 'textbook', maxPrice: '', location: '', note: '' })
+      } else {
+        const err = await res.json()
+        alert(err.error || 'Something went wrong. Try again.')
+      }
+    } catch (e) {
+      alert('Could not connect. Please try again.')
     }
     setSubmitting(false)
   }
@@ -182,8 +193,10 @@ export default function RequestsPage() {
               </div>
 
               <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={submit} disabled={submitting || !form.title || !form.location}
-                  style={{ background: form.title && form.location ? '#1D9E75' : '#ccc', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px 20px', fontSize: '14px', fontWeight: '700', cursor: form.title && form.location ? 'pointer' : 'not-allowed', fontFamily: 'Kalam, cursive', flex: 1 }}>
+                <button
+                  onClick={submit}
+                  disabled={submitting || !form.title || !form.location || !isLoaded}
+                  style={{ background: form.title && form.location && isLoaded ? '#1D9E75' : '#ccc', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px 20px', fontSize: '14px', fontWeight: '700', cursor: form.title && form.location && isLoaded ? 'pointer' : 'not-allowed', fontFamily: 'Kalam, cursive', flex: 1, transition: 'all 0.2s' }}>
                   {submitting ? 'Posting…' : 'Post request →'}
                 </button>
                 <button onClick={() => setShowForm(false)} style={{ background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '12px 16px', fontSize: '14px', cursor: 'pointer', color: 'var(--text-secondary)' }}>
@@ -235,7 +248,7 @@ export default function RequestsPage() {
                           💬 I have it!
                         </a>
                       )}
-                      {isSignedIn && user?.id === r.user?.clerkId && (
+                      {isSignedIn && user?.id && r.user?.clerkId === user.id && (
                         <button onClick={() => closeRequest(r.id)}
                           style={{ background: 'rgba(239,68,68,0.1)', color: '#EF4444', border: 'none', borderRadius: '8px', padding: '7px 12px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>
                           Close
