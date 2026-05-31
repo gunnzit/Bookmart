@@ -2,6 +2,7 @@ import { ClerkProvider } from '@clerk/nextjs'
 import Script from 'next/script'
 import type { Metadata } from 'next'
 import './globals.css'
+import { Analytics } from '@vercel/analytics/react'
 
 const APP_URL = 'https://buddybooks.in'
 
@@ -56,7 +57,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <ClerkProvider>
       <html lang="en">
         <head>
-          {/* Structured data — Local Business */}
           <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{
@@ -91,7 +91,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               }),
             }}
           />
-          {/* Structured data — Website with SearchAction */}
           <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{
@@ -111,6 +110,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </head>
         <body>
           {children}
+          <Analytics />
           <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
         </body>
       </html>
