@@ -160,6 +160,7 @@ export default function LandingPage() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <button className="btn-ghost" onClick={() => router.push('/marketplace')}>Browse</button>
+<button className="btn-ghost" onClick={() => router.push('/requests')}>📋 Requests</button>
             {isSignedIn
               ? <button className="btn-p" onClick={() => router.push('/sell')}>+ Sell</button>
               : <SignInButton mode="modal"><button className="btn-p">Get started</button></SignInButton>
