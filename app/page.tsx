@@ -3,9 +3,15 @@ import { useRouter } from 'next/navigation'
 import { useUser, SignInButton } from '@clerk/nextjs'
 import { useEffect, useRef, useState } from 'react'
 
-const steps = [
-  { icon: '📸', num: '1', title: 'Post your listing', desc: 'Add photos and set a price in under 2 minutes. Free.' },
-  { icon: '💬', num: '2', title: 'Buyers contact you', desc: 'Buyers reach you directly on WhatsApp. No middlemen.' },
+const buyerSteps = [
+  { icon: '🔍', num: '1', title: 'Search near you', desc: 'Browse hundreds of listings from students in your area. Filter by category, condition or price.' },
+  { icon: '💬', num: '2', title: 'Contact the seller', desc: 'Tap WhatsApp to chat directly with the seller. No middlemen, no delays.' },
+  { icon: '🤝', num: '3', title: 'Meet & save', desc: 'Meet locally, check the book, pay cash. Save up to 60% on every purchase.' },
+]
+
+const sellerSteps = [
+  { icon: '📸', num: '1', title: 'Post your listing', desc: 'Add photos and set a price in under 2 minutes. Completely free.' },
+  { icon: '💬', num: '2', title: 'Buyers contact you', desc: 'Interested buyers reach you directly on WhatsApp. No middlemen.' },
   { icon: '🤝', num: '3', title: 'Meet & exchange', desc: 'Meet locally, hand over the book, collect the cash.' },
 ]
 
@@ -34,7 +40,7 @@ const sampleListings = [
 
 const faqs = [
   { q: 'Is BuddyBooks free to use?', a: 'Yes, completely free. Listing, browsing, and contacting sellers costs nothing.' },
-  { q: 'How do I contact a seller?', a: 'Every listing has a WhatsApp button. One tap and you\'re chatting directly with the seller.' },
+  { q: 'How do I contact a seller?', a: "Every listing has a WhatsApp button. One tap and you're chatting directly with the seller." },
   { q: 'Is it safe to buy here?', a: 'We recommend meeting in a public place like a cafe or school campus. Never share OTPs or pay in advance.' },
   { q: 'What areas do you cover?', a: 'Chandigarh, Mohali, Panchkula and surrounding tricity areas.' },
 ]
@@ -53,113 +59,82 @@ function useInView(threshold = 0.1) {
 export default function LandingPage() {
   const router = useRouter()
   const { isSignedIn } = useUser()
+  const [search, setSearch] = useState('')
   const { ref: howRef, inView: howInView } = useInView()
+  const { ref: sellRef, inView: sellInView } = useInView()
   const { ref: catRef, inView: catInView } = useInView()
   const { ref: trustRef, inView: trustInView } = useInView()
   const { ref: testRef, inView: testInView } = useInView()
   const { ref: faqRef, inView: faqInView } = useInView()
   const [openFaq, setOpenFaq] = useState<number | null>(null)
 
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault()
+    router.push(search.trim() ? `/marketplace?q=${encodeURIComponent(search.trim())}` : '/marketplace')
+  }
+
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg: #F7F6F3;
-      --white: #FFFFFF;
-      --card: #FFFFFF;
-      --subtle: #F0EEE9;
-      --border: #E5E2DA;
-      --border-strong: #CCC9C0;
-      --text: #1A1A1A;
-      --text-2: #5C5C5C;
-      --text-3: #9A9690;
-      --green: #1D9E75;
-      --green-dark: #157A5A;
-      --green-bg: #E8F7F2;
-      --green-border: #C0E8D8;
+      --bg: #F7F6F3; --white: #FFFFFF; --card: #FFFFFF; --subtle: #F0EEE9;
+      --border: #E5E2DA; --border-strong: #CCC9C0;
+      --text: #1A1A1A; --text-2: #5C5C5C; --text-3: #9A9690;
+      --green: #1D9E75; --green-dark: #157A5A; --green-bg: #E8F7F2; --green-border: #C0E8D8;
       --navy: #1B2A4A;
       --shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.05);
-      --shadow-lg: 0 8px 32px rgba(0,0,0,0.10);
-      --r: 14px;
+      --shadow-lg: 0 8px 32px rgba(0,0,0,0.10); --r: 14px;
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #111;
-        --white: #1A1A1A;
-        --card: #1E1E1E;
-        --subtle: #252525;
-        --border: #2A2A2A;
-        --border-strong: #3A3A3A;
-        --text: #F0EEE9;
-        --text-2: #A0A0A0;
-        --text-3: #666;
-        --green-bg: #0D2B22;
-        --green-border: #1A4035;
+        --bg: #111; --white: #1A1A1A; --card: #1E1E1E; --subtle: #252525;
+        --border: #2A2A2A; --border-strong: #3A3A3A;
+        --text: #F0EEE9; --text-2: #A0A0A0; --text-3: #666;
+        --green-bg: #0D2B22; --green-border: #1A4035;
         --shadow: 0 1px 4px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.3);
         --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
       }
     }
-
     body { background: var(--bg); font-family: 'DM Sans', sans-serif; color: var(--text); -webkit-font-smoothing: antialiased; }
     .k { font-family: 'Kalam', cursive; }
-
-    /* Nav */
     .nav { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 20px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
-
-    /* Buttons */
     .btn-p { display: inline-flex; align-items: center; justify-content: center; background: var(--green); color: #fff; border: none; border-radius: 10px; padding: 11px 22px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background 0.15s, transform 0.15s; white-space: nowrap; }
     .btn-p:hover { background: var(--green-dark); transform: translateY(-1px); }
     .btn-ghost { display: inline-flex; align-items: center; justify-content: center; background: transparent; color: var(--text-2); border: none; border-radius: 10px; padding: 11px 16px; font-size: 14px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background 0.15s; white-space: nowrap; }
     .btn-ghost:hover { background: var(--subtle); color: var(--text); }
     .btn-o { display: inline-flex; align-items: center; justify-content: center; background: transparent; color: var(--text); border: 1.5px solid var(--border-strong); border-radius: 10px; padding: 10px 22px; font-size: 15px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; white-space: nowrap; }
     .btn-o:hover { border-color: var(--green); color: var(--green); }
-
-    /* Card */
     .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); box-shadow: var(--shadow); }
     .card-hover { transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; }
     .card-hover:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
-
-    /* Reveal animations */
     .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.5s ease, transform 0.5s ease; }
     .reveal.in { opacity: 1; transform: none; }
-    .r1 { transition-delay: 0s; }
-    .r2 { transition-delay: 0.08s; }
-    .r3 { transition-delay: 0.16s; }
-    .r4 { transition-delay: 0.24s; }
-
+    .r1 { transition-delay: 0s; } .r2 { transition-delay: 0.08s; } .r3 { transition-delay: 0.16s; } .r4 { transition-delay: 0.24s; }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
     .fu { animation: fadeUp 0.5s ease both; }
-    .fu1 { animation-delay: 0.05s; }
-    .fu2 { animation-delay: 0.1s; }
-    .fu3 { animation-delay: 0.15s; }
-    .fu4 { animation-delay: 0.22s; }
-
-    /* Ticker */
+    .fu1 { animation-delay: 0.05s; } .fu2 { animation-delay: 0.1s; } .fu3 { animation-delay: 0.15s; } .fu4 { animation-delay: 0.22s; }
     @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
     .ticker-wrap { overflow: hidden; background: var(--green); padding: 9px 0; }
     .ticker-track { display: flex; animation: ticker 22s linear infinite; width: max-content; }
     .ticker-item { white-space: nowrap; padding: 0 24px; font-size: 12px; color: rgba(255,255,255,0.92); font-weight: 500; }
-
-    /* Section */
     .section { padding: 56px 20px; }
     .max { max-width: 920px; margin: 0 auto; }
     .section-tag { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--green); margin-bottom: 8px; }
     .section-h { font-family: 'Kalam', cursive; font-size: clamp(24px, 4vw, 34px); color: var(--text); margin-bottom: 10px; line-height: 1.2; }
     .section-p { font-size: 15px; color: var(--text-2); line-height: 1.7; }
-
-    /* FAQ */
+    .search-bar { display: flex; gap: 0; width: 100%; max-width: 480px; background: var(--white); border: 2px solid var(--green); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(29,158,117,0.15); }
+    .search-bar input { flex: 1; border: none; background: transparent; padding: 13px 16px; font-size: 15px; color: var(--text); font-family: 'DM Sans', sans-serif; outline: none; }
+    .search-bar input::placeholder { color: var(--text-3); }
+    .search-bar button { background: var(--green); color: #fff; border: none; padding: 0 20px; font-size: 15px; cursor: pointer; font-weight: 600; font-family: 'DM Sans', sans-serif; transition: background 0.15s; white-space: nowrap; }
+    .search-bar button:hover { background: var(--green-dark); }
     .faq-btn { width: 100%; text-align: left; background: none; border: none; padding: 17px 0; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 600; color: var(--text); font-family: 'DM Sans', sans-serif; gap: 12px; }
     .faq-body { font-size: 14px; color: var(--text-2); line-height: 1.7; padding-bottom: 17px; }
-
-    /* Listing card */
     .lcard { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
     .lcard:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
-
-    /* Responsive */
+    .tab-btn { padding: 8px 20px; border-radius: 99px; border: 1.5px solid var(--border); background: transparent; color: var(--text-2); font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+    .tab-btn.active { background: var(--green); color: #fff; border-color: var(--green); }
     @media (min-width: 640px) {
-      .nav { padding: 0 32px; }
-      .section { padding: 72px 32px; }
+      .nav { padding: 0 32px; } .section { padding: 72px 32px; }
       .stats-row { flex-direction: row !important; gap: 40px !important; }
       .listings-grid { grid-template-columns: repeat(4, 1fr) !important; }
       .steps-grid { grid-template-columns: repeat(3, 1fr) !important; }
@@ -167,10 +142,7 @@ export default function LandingPage() {
       .trust-grid { grid-template-columns: repeat(4, 1fr) !important; }
       .test-grid { grid-template-columns: repeat(2, 1fr) !important; }
     }
-    @media (min-width: 900px) {
-      .test-grid { grid-template-columns: repeat(4, 1fr) !important; }
-    }
-
+    @media (min-width: 900px) { .test-grid { grid-template-columns: repeat(4, 1fr) !important; } }
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; }
   `
@@ -199,44 +171,52 @@ export default function LandingPage() {
         <div className="ticker-wrap">
           <div className="ticker-track">
             {[...Array(3)].map((_, j) =>
-              ['📚 100% free to use', '✅ No commission ever', '📍 Chandigarh · Mohali · Panchkula', '💬 WhatsApp direct contact', '📗 NCERT books available', '📙 JEE & NEET prep books', '🤝 Meet locally & exchange'].map((t, i) => (
+              ['🔍 Find books near you', '💸 Save up to 60%', '📍 Chandigarh · Mohali · Panchkula', '📗 NCERT books available', '📙 JEE & NEET prep books', '✅ 100% free · No commission', '💬 WhatsApp direct contact'].map((t, i) => (
                 <span key={`${j}-${i}`} className="ticker-item">{t}</span>
               ))
             )}
           </div>
         </div>
 
-        {/* Hero — mobile first, stacked */}
+        {/* Hero */}
         <section style={{ padding: 'clamp(36px, 6vw, 72px) 20px clamp(32px, 5vw, 56px)', maxWidth: '920px', margin: '0 auto' }}>
-
-          {/* Badge */}
           <div className="fu" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'var(--green-bg)', color: 'var(--green)', fontSize: '11px', fontWeight: '700', padding: '5px 13px', borderRadius: '99px', marginBottom: '18px', border: '1px solid var(--green-border)', letterSpacing: '0.2px' }}>
             <span style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'var(--green)', display: 'inline-block' }} />
-            Chandigarh's student marketplace
+            Chandigarh's student book marketplace
           </div>
 
-          {/* Title */}
           <h1 className="k fu fu1" style={{ fontSize: 'clamp(34px, 7vw, 58px)', color: 'var(--text)', lineHeight: 1.15, marginBottom: '16px' }}>
-            Buy & sell books<br /><span style={{ color: 'var(--green)' }}>the smart way</span>
+            Find books near you<br /><span style={{ color: 'var(--green)' }}>at half the price</span>
           </h1>
 
-          {/* Subtitle */}
-          <p className="fu fu2" style={{ fontSize: '15px', color: 'var(--text-2)', lineHeight: 1.75, marginBottom: '24px', maxWidth: '480px' }}>
-            Find second-hand textbooks, novels and stationery from students near you — at half the price.
+          <p className="fu fu2" style={{ fontSize: '15px', color: 'var(--text-2)', lineHeight: 1.75, marginBottom: '28px', maxWidth: '480px' }}>
+            Buy second-hand textbooks, novels and stationery from students in Chandigarh, Mohali and Panchkula. Save up to 60%.
           </p>
+
+          {/* Search bar */}
+          <form className="fu fu2" onSubmit={handleSearch} style={{ marginBottom: '24px' }}>
+            <div className="search-bar">
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search for NCERT, JEE books, novels…"
+              />
+              <button type="submit">Search →</button>
+            </div>
+          </form>
 
           {/* CTA buttons */}
           <div className="fu fu3" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '32px' }}>
-            <button className="btn-p" style={{ fontSize: '16px', padding: '13px 28px' }} onClick={() => router.push('/marketplace')}>Browse listings →</button>
+            <button className="btn-p" style={{ fontSize: '16px', padding: '13px 28px' }} onClick={() => router.push('/marketplace')}>Browse all listings →</button>
             {isSignedIn
               ? <button className="btn-o" style={{ fontSize: '16px', padding: '12px 24px' }} onClick={() => router.push('/sell')}>Sell your books</button>
               : <SignInButton mode="modal"><button className="btn-o" style={{ fontSize: '16px', padding: '12px 24px' }}>Sell your books</button></SignInButton>
             }
           </div>
 
-          {/* Stats row */}
+          {/* Stats */}
           <div className="fu fu4 stats-row" style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '40px' }}>
-            {[['500+', 'Listings posted'], ['₹250', 'Avg. savings'], ['Free', 'No commission']].map(([n, l]) => (
+            {[['500+', 'Books available'], ['₹250', 'Avg. savings per book'], ['Free', 'No commission ever']].map(([n, l]) => (
               <div key={l} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span className="k" style={{ fontSize: '22px', color: 'var(--green)', fontWeight: '700', lineHeight: 1 }}>{n}</span>
                 <span style={{ fontSize: '13px', color: 'var(--text-3)' }}>{l}</span>
@@ -244,7 +224,7 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* Sample listing cards */}
+          {/* Sample listings */}
           <div className="listings-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
             {sampleListings.map((l, i) => {
               const disc = Math.round((1 - l.price / l.origPrice) * 100)
@@ -275,7 +255,7 @@ export default function LandingPage() {
             {[
               { icon: '🔒', title: 'Safe & local', desc: 'Meet in person. No prepayment needed.' },
               { icon: '💸', title: 'Always free', desc: 'No listing fees. No commission.' },
-              { icon: '⚡', title: 'Fast & simple', desc: 'List in 2 minutes. Sell within hours.' },
+              { icon: '⚡', title: 'Fast & simple', desc: 'Find a book in minutes. Buy same day.' },
               { icon: '📍', title: 'Tricity only', desc: 'Chandigarh, Mohali & Panchkula.' },
             ].map((t, i) => (
               <div key={t.title} className={`card reveal${trustInView ? ' in' : ''} r${i + 1}`} style={{ padding: '16px', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
@@ -289,16 +269,16 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* How it works */}
+        {/* How it works — BUYERS */}
         <section ref={howRef} style={{ background: 'var(--white)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)' }}>
           <div className="section max">
             <div style={{ marginBottom: '32px' }}>
-              <div className={`section-tag reveal${howInView ? ' in' : ''}`}>How it works</div>
-              <h2 className={`section-h reveal${howInView ? ' in' : ''} r2`}>Three steps. Zero fees.</h2>
-              <p className={`section-p reveal${howInView ? ' in' : ''} r3`} style={{ maxWidth: '480px' }}>No registration hassle. Post, connect, sell.</p>
+              <div className={`section-tag reveal${howInView ? ' in' : ''}`}>For buyers</div>
+              <h2 className={`section-h reveal${howInView ? ' in' : ''} r2`}>How to find a book</h2>
+              <p className={`section-p reveal${howInView ? ' in' : ''} r3`} style={{ maxWidth: '480px' }}>Three steps to save up to 60% on your next book.</p>
             </div>
             <div className="steps-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
-              {steps.map((s, i) => (
+              {buyerSteps.map((s, i) => (
                 <div key={s.num} className={`card reveal${howInView ? ' in' : ''} r${i + 1}`} style={{ padding: '24px 20px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
                     <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--green-bg)', border: '1px solid var(--green-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>{s.icon}</div>
@@ -308,6 +288,38 @@ export default function LandingPage() {
                   <div style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.7 }}>{s.desc}</div>
                 </div>
               ))}
+            </div>
+            <div style={{ marginTop: '24px' }}>
+              <button className="btn-p" style={{ fontSize: '15px', padding: '13px 28px' }} onClick={() => router.push('/marketplace')}>Find books near you →</button>
+            </div>
+          </div>
+        </section>
+
+        {/* How it works — SELLERS */}
+        <section ref={sellRef} style={{ background: 'var(--subtle)', borderBottom: '1px solid var(--border)' }}>
+          <div className="section max">
+            <div style={{ marginBottom: '32px' }}>
+              <div className={`section-tag reveal${sellInView ? ' in' : ''}`}>For sellers</div>
+              <h2 className={`section-h reveal${sellInView ? ' in' : ''} r2`}>How to sell a book</h2>
+              <p className={`section-p reveal${sellInView ? ' in' : ''} r3`} style={{ maxWidth: '480px' }}>List in 2 minutes. Earn cash from books collecting dust.</p>
+            </div>
+            <div className="steps-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
+              {sellerSteps.map((s, i) => (
+                <div key={s.num} className={`card reveal${sellInView ? ' in' : ''} r${i + 1}`} style={{ padding: '24px 20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--green-bg)', border: '1px solid var(--green-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>{s.icon}</div>
+                    <div style={{ width: '26px', height: '26px', borderRadius: '50%', background: 'var(--white)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '700', color: 'var(--text-3)', flexShrink: 0 }}>{s.num}</div>
+                  </div>
+                  <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text)', marginBottom: '7px' }}>{s.title}</div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.7 }}>{s.desc}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: '24px' }}>
+              {isSignedIn
+                ? <button className="btn-p" style={{ fontSize: '15px', padding: '13px 28px' }} onClick={() => router.push('/sell')}>Post a listing →</button>
+                : <SignInButton mode="modal"><button className="btn-p" style={{ fontSize: '15px', padding: '13px 28px' }}>Start selling →</button></SignInButton>
+              }
             </div>
           </div>
         </section>
@@ -378,23 +390,35 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* CTA banner */}
+        {/* CTA banner — split buyer / seller */}
         <section className="section" style={{ maxWidth: '920px', margin: '0 auto', paddingTop: '0' }}>
-          <div style={{ background: 'var(--navy)', borderRadius: '20px', padding: 'clamp(32px, 6vw, 56px) clamp(24px, 5vw, 48px)', textAlign: 'center' }}>
-            <div style={{ fontSize: '36px', marginBottom: '14px' }}>📚</div>
-            <h2 className="k" style={{ fontSize: 'clamp(24px, 4vw, 34px)', color: '#fff', marginBottom: '10px', lineHeight: 1.2 }}>Ready to get started?</h2>
-            <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', marginBottom: '28px', lineHeight: 1.7, maxWidth: '360px', margin: '0 auto 28px' }}>List your old books today and earn extra cash. Completely free, no sign-up required to browse.</p>
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-              {isSignedIn
-                ? <button className="btn-p" style={{ fontSize: '15px', padding: '13px 28px' }} onClick={() => router.push('/sell')}>Sell a book →</button>
-                : <SignInButton mode="modal"><button className="btn-p" style={{ fontSize: '15px', padding: '13px 28px' }}>Start selling →</button></SignInButton>
-              }
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
+            {/* Buyer CTA */}
+            <div style={{ background: 'var(--green)', borderRadius: '20px', padding: 'clamp(28px, 5vw, 44px) clamp(24px, 5vw, 40px)', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px' }}>
+              <div style={{ fontSize: '32px' }}>🔍</div>
+              <h2 className="k" style={{ fontSize: 'clamp(22px, 3.5vw, 28px)', color: '#fff', lineHeight: 1.2 }}>Find your next book</h2>
+              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.8)', lineHeight: 1.7, maxWidth: '340px' }}>Hundreds of listings from students near you. Save up to 60% on school and college books.</p>
               <button onClick={() => router.push('/marketplace')}
-                style={{ background: 'rgba(255,255,255,0.08)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', padding: '12px 24px', fontSize: '15px', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', fontWeight: '500', transition: 'background 0.15s' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.14)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}>
-                Browse first
+                style={{ background: '#fff', color: 'var(--green)', border: 'none', borderRadius: '10px', padding: '12px 24px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'opacity 0.15s' }}>
+                Browse listings →
               </button>
+            </div>
+            {/* Seller CTA */}
+            <div style={{ background: 'var(--navy)', borderRadius: '20px', padding: 'clamp(28px, 5vw, 44px) clamp(24px, 5vw, 40px)', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '12px' }}>
+              <div style={{ fontSize: '32px' }}>📚</div>
+              <h2 className="k" style={{ fontSize: 'clamp(22px, 3.5vw, 28px)', color: '#fff', lineHeight: 1.2 }}>Turn old books into cash</h2>
+              <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.65)', lineHeight: 1.7, maxWidth: '340px' }}>List your books in 2 minutes. Completely free. Buyers in your area are already looking.</p>
+              {isSignedIn
+                ? <button onClick={() => router.push('/sell')}
+                    style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px 24px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                    Post a listing →
+                  </button>
+                : <SignInButton mode="modal">
+                    <button style={{ background: 'var(--green)', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px 24px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                      Start selling →
+                    </button>
+                  </SignInButton>
+              }
             </div>
           </div>
         </section>
@@ -408,12 +432,12 @@ export default function LandingPage() {
             </div>
             <span style={{ fontSize: '11px', color: 'var(--text-3)' }}>Student marketplace · Chandigarh · Free</span>
             <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap' }}>
-  {[['Browse', '/marketplace'], ['Sell', '/sell'], ['Wishlist', '/wishlist'], ['Privacy', '/privacy'], ['Terms', '/terms'], ['Refund', '/refund'], ['Contact', '/contact']].map(([l, h]) => (
-    <span key={l} onClick={() => router.push(h)} style={{ fontSize: '12px', color: 'var(--text-3)', cursor: 'pointer', transition: 'color 0.15s' }}
-      onMouseEnter={e => (e.currentTarget.style.color = 'var(--green)')}
-      onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-3)')}>{l}</span>
-  ))}
-</div>
+              {[['Browse', '/marketplace'], ['Sell', '/sell'], ['Wishlist', '/wishlist'], ['Privacy', '/privacy'], ['Terms', '/terms'], ['Refund', '/refund'], ['Contact', '/contact']].map(([l, h]) => (
+                <span key={l} onClick={() => router.push(h)} style={{ fontSize: '12px', color: 'var(--text-3)', cursor: 'pointer', transition: 'color 0.15s' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--green)')}
+                  onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-3)')}>{l}</span>
+              ))}
+            </div>
           </div>
         </footer>
 
