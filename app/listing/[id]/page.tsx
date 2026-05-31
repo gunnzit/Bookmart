@@ -325,7 +325,7 @@ export default function ListingPage() {
     {copied ? '✅' : '🔗'} {copied ? 'Copied!' : 'Copy link'}
   </button>
   
-    href={`https://wa.me/?text=${encodeURIComponent('Check out this listing on BuddyBooks: ' + listing.title + ' for ₹' + listing.price + ' — ' + https://buddybooks.in/listing/' + listing.id)}`}
+    href={`https://wa.me/?text=${encodeURIComponent('Check out this listing on BuddyBooks: ' + listing.title + ' — https://buddybooks.in/listing/' + listing.id)}`}
     target="_blank"
     rel="noopener noreferrer"
     style={{ background: '#E7F9EE', border: '1.5px solid #B2E8D6', borderRadius: '10px', padding: '7px 13px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: '#1D9E75', display: 'flex', alignItems: 'center', gap: '5px', textDecoration: 'none', whiteSpace: 'nowrap' }}>
