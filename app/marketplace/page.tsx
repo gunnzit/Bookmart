@@ -68,7 +68,6 @@ export default function Marketplace() {
   }).sort((a, b) => {
     if (sortBy === 'Cheapest') return a.price - b.price
     if (sortBy === 'Most expensive') return b.price - a.price
-    // Featured first, then by date
     if (a.featured && !b.featured) return -1
     if (!a.featured && b.featured) return 1
     return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -126,6 +125,7 @@ export default function Marketplace() {
         .cat-chip { transition: all 0.15s ease; cursor: pointer; }
         .cat-chip:hover { transform: translateY(-1px); }
         .sort-opt:hover { background: var(--bg-img) !important; }
+        .request-banner:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(29,158,117,0.15) !important; }
         input { color: var(--text-primary) !important; font-weight: 500; }
         input::placeholder { color: var(--text-muted) !important; font-weight: 400; }
         input:focus { outline: none; border-color: #1D9E75 !important; box-shadow: 0 0 0 3px rgba(29,158,117,0.12) !important; }
@@ -158,6 +158,7 @@ export default function Marketplace() {
           .hero-title { font-size: 22px !important; }
           .hero-subtitle { display: none !important; }
           .filters-bar { padding: 10px 12px !important; }
+          .request-banner-text { display: none !important; }
         }
         @media (min-width: 481px) and (max-width: 768px) {
           .listings-grid { grid-template-columns: repeat(3, 1fr) !important; }
@@ -222,11 +223,10 @@ export default function Marketplace() {
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
             {isSignedIn ? (
               <>
-
-            <button onClick={() => router.push('/requests')}
-  style={{ background: 'var(--bg-input)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '8px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: 'var(--text-secondary)', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap', flexShrink: 0 }}>
-  📋 Requests
-</button>
+                <button onClick={() => router.push('/requests')}
+                  style={{ background: 'var(--bg-input)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '8px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: 'var(--text-secondary)', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  📋 Requests
+                </button>
                 <span onClick={() => router.push('/profile')} style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#E1F5EE', color: '#0F6E56', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', border: '1.5px solid #B2E8D6', flexShrink: 0 }}>
                   {user?.firstName?.charAt(0).toUpperCase()}
                 </span>
@@ -317,6 +317,25 @@ export default function Marketplace() {
           )}
         </div>
 
+        {/* Book Request Banner */}
+        <div style={{ padding: '16px 16px 0', maxWidth: '1200px', margin: '0 auto' }}>
+          <div
+            className="request-banner"
+            onClick={() => router.push('/requests')}
+            style={{ background: 'linear-gradient(135deg, #E1F5EE, #D1FAE5)', border: '1.5px solid #A7F3D0', borderRadius: '16px', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', gap: '12px', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 2px 12px rgba(29,158,117,0.08)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '28px', flexShrink: 0 }}>🔍</span>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: '#065F46' }}>Can't find what you're looking for?</div>
+                <div className="request-banner-text" style={{ fontSize: '12px', color: '#047857', marginTop: '2px' }}>Post a book request — sellers in your area will contact you on WhatsApp</div>
+              </div>
+            </div>
+            <div style={{ background: '#1D9E75', color: '#fff', borderRadius: '10px', padding: '8px 16px', fontSize: '12px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0, boxShadow: '0 3px 10px rgba(29,158,117,0.3)' }}>
+              Request a book →
+            </div>
+          </div>
+        </div>
+
         {/* Listings */}
         <div className="main-padding" style={{ padding: '20px 16px', maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
@@ -343,8 +362,12 @@ export default function Marketplace() {
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>📭</div>
               <div className="logo-text" style={{ fontSize: '20px', color: 'var(--text-primary)', marginBottom: '8px' }}>Nothing found</div>
               <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>Try a different search, category or sort</div>
-              <button onClick={() => { setSearch(''); setActiveCat('All'); setSortBy('Newest') }}
-                style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px 24px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>Reset filters</button>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button onClick={() => { setSearch(''); setActiveCat('All'); setSortBy('Newest') }}
+                  style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px 24px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>Reset filters</button>
+                <button onClick={() => router.push('/requests')}
+                  style={{ background: 'var(--bg-card)', color: '#1D9E75', border: '1.5px solid #1D9E75', borderRadius: '10px', padding: '10px 24px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>Request this book →</button>
+              </div>
             </div>
           ) : (
             <div className="listings-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '14px' }}>
@@ -364,37 +387,25 @@ export default function Marketplace() {
                       animationDelay: `${Math.min(idx * 0.04, 0.4)}s`,
                       position: 'relative',
                     }}>
-
-                    {/* Image area */}
                     <div className="listing-card-img" style={{ height: '140px', background: 'var(--bg-img)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '44px', position: 'relative', overflow: 'hidden' }}>
                       {l.images?.[0]
                         ? <img className="listing-img" src={l.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         : <span className="listing-img float" style={{ display: 'block', animationDelay: `${idx * 0.2}s` }}>{l.emoji}</span>}
-
-                      {/* Condition badge */}
                       <span style={{ position: 'absolute', top: '8px', left: '8px', fontSize: '9px', background: l.condition === 'New' ? 'rgba(220,252,231,0.95)' : l.condition === 'Fair' ? 'rgba(254,243,199,0.95)' : 'rgba(239,246,255,0.95)', color: l.condition === 'New' ? '#166534' : l.condition === 'Fair' ? '#92400E' : '#1D4ED8', padding: '2px 8px', borderRadius: '99px', fontWeight: '700', backdropFilter: 'blur(4px)' }}>{l.condition}</span>
-
-                      {/* Discount badge */}
                       {discount >= 20 && !l.sold && (
                         <span style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '9px', background: 'linear-gradient(135deg, #FF6B35, #E24B4A)', color: '#fff', padding: '2px 7px', borderRadius: '99px', fontWeight: '700' }}>-{discount}%</span>
                       )}
-
-                      {/* Featured badge */}
                       {isFeatured && (
                         <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'linear-gradient(135deg, #F59E0B, #D97706)', color: '#fff', fontSize: '9px', fontWeight: '800', padding: '3px 8px', borderRadius: '99px', display: 'flex', alignItems: 'center', gap: '3px', boxShadow: '0 2px 8px rgba(245,158,11,0.5)', zIndex: 2 }}>
                           ⭐ FEATURED
                         </div>
                       )}
-
-                      {/* Sold overlay */}
                       {l.sold && (
                         <div style={{ position: 'absolute', inset: 0, background: 'rgba(27,42,74,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <span className="logo-text" style={{ color: '#fff', fontSize: '17px', letterSpacing: '3px' }}>SOLD</span>
                         </div>
                       )}
                     </div>
-
-                    {/* Card body */}
                     <div className="listing-card-body" style={{ padding: '11px 13px' }}>
                       <div className="listing-card-title" style={{ fontSize: '13px', fontWeight: '600', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: l.sold ? 'var(--text-muted)' : 'var(--text-primary)' }}>{l.title}</div>
                       <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '7px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.subtitle || l.seller?.name}</div>
@@ -423,9 +434,9 @@ export default function Marketplace() {
             Browse
           </button>
           <button className="bottom-nav-btn" onClick={() => router.push('/requests')}>
-  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-  Requests
-</button>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            Requests
+          </button>
           <button className="bottom-nav-btn" onClick={() => requireAuth(() => { window.location.href = '/sell' })} style={{ color: '#1D9E75' }}>
             <div style={{ width: '40px', height: '40px', background: '#1D9E75', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '-4px', boxShadow: '0 4px 12px rgba(29,158,117,0.4)' }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
