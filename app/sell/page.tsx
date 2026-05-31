@@ -82,6 +82,11 @@ export default function SellPage() {
   const [hasPhone, setHasPhone] = useState(false)
   const [phone, setPhone] = useState('')
   const [savingPhone, setSavingPhone] = useState(false)
+  const [otpSent, setOtpSent] = useState(false)
+  const [otp, setOtp] = useState('')
+  const [otpError, setOtpError] = useState('')
+  const [sendingOtp, setSendingOtp] = useState(false)
+  const [verifyingOtp, setVerifyingOtp] = useState(false)
 
   const [form, setForm] = useState({
     title: '', subtitle: '', price: '',
@@ -117,8 +122,33 @@ export default function SellPage() {
 
   if (!isSignedIn) return null
 
+  async function sendOtp() {
+    setSendingOtp(true)
+    setOtpError('')
+    const res = await fetch('/api/otp/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone }),
+    })
+    setSendingOtp(false)
+    if (res.ok) setOtpSent(true)
+    else setOtpError('Failed to send OTP. Try again.')
+  }
+
+  async function verifyOtp() {
+    setVerifyingOtp(true)
+    setOtpError('')
+    const res = await fetch(`/api/otp/send?phone=${phone}&otp=${otp}`)
+    const data = await res.json()
+    if (data.valid) {
+      await savePhone()
+    } else {
+      setOtpError(data.reason === 'Expired' ? '⏰ OTP expired. Request a new one.' : '❌ Wrong OTP. Try again.')
+    }
+    setVerifyingOtp(false)
+  }
+
   async function savePhone() {
-    if (!phone || phone.length < 10) return
     setSavingPhone(true)
     await fetch('/api/user', {
       method: 'PATCH',
@@ -287,40 +317,97 @@ export default function SellPage() {
     </>
   )
 
-  // WhatsApp gate
+  // OTP gate
   if (!hasPhone) return (
     <>
       <style>{css}</style>
       <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
         <nav style={{ background: 'var(--nav-bg)', borderBottom: '1.5px solid var(--border)', padding: '0 20px', height: '60px', display: 'flex', alignItems: 'center', gap: '12px', position: 'sticky', top: 0, zIndex: 50, boxShadow: 'var(--shadow-nav)' }}>
           <button onClick={() => router.push('/marketplace')} style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', width: '38px', height: '38px', borderRadius: '12px', cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)', flexShrink: 0 }}>←</button>
-          <span className="kalam" style={{ fontSize: '16px', fontWeight: '700', color: '#1D9E75' }}>One quick thing</span>
+          <span className="kalam" style={{ fontSize: '16px', fontWeight: '700', color: '#1D9E75' }}>
+            {otpSent ? 'Enter your OTP' : 'Verify your number'}
+          </span>
         </nav>
         <div style={{ maxWidth: '460px', margin: '48px auto', padding: '0 16px' }}>
           <div className="card fade-in">
-            <div style={{ width: '64px', height: '64px', background: '#E1F5EE', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', margin: '0 auto 20px' }}>💬</div>
-            <h2 className="kalam" style={{ fontSize: '22px', color: 'var(--text-primary)', textAlign: 'center', marginBottom: '8px' }}>Add your WhatsApp number</h2>
+            <div style={{ width: '64px', height: '64px', background: '#E1F5EE', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', margin: '0 auto 20px' }}>
+              {otpSent ? '🔐' : '💬'}
+            </div>
+            <h2 className="kalam" style={{ fontSize: '22px', color: 'var(--text-primary)', textAlign: 'center', marginBottom: '8px' }}>
+              {otpSent ? 'Enter verification code' : 'Verify your WhatsApp'}
+            </h2>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: '1.6', marginBottom: '24px' }}>
-              Buyers contact you directly on WhatsApp. Your number is only shown when someone taps the contact button.
+              {otpSent
+                ? `We sent a 6-digit code to +91 ${phone} on WhatsApp`
+                : 'We\'ll send a one-time code to verify your number is real'}
             </p>
-            <div style={{ background: 'var(--bg)', borderRadius: '12px', padding: '14px 16px', marginBottom: '20px', border: '1px dashed var(--border)' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.8' }}>
-                <div>✅ Required to receive buyer inquiries</div>
-                <div>✅ Only shown when someone contacts you</div>
-                <div>✅ You can change it anytime in your profile</div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '0 12px', fontSize: '13px', color: 'var(--text-secondary)', flexShrink: 0, gap: '4px' }}>🇮🇳 +91</div>
-              <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="98765 43210"
-                style={{ flex: 1, padding: '11px 13px', borderRadius: '10px', border: `1.5px solid ${phone.length === 10 ? '#1D9E75' : 'var(--border)'}`, fontSize: '14px', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.15s' }} />
-            </div>
-            {phone.length > 0 && phone.length < 10 && <div style={{ fontSize: '11px', color: '#E24B4A', marginBottom: '12px' }}>⚠️ Enter a 10-digit number</div>}
-            <button onClick={savePhone} disabled={savingPhone || phone.length < 10}
-              style={{ width: '100%', background: phone.length === 10 ? '#1D9E75' : '#ccc', color: '#fff', border: 'none', borderRadius: '12px', padding: '14px', fontSize: '15px', fontWeight: '700', cursor: phone.length < 10 ? 'not-allowed' : 'pointer', fontFamily: 'Kalam, cursive', marginTop: '8px', transition: 'all 0.2s', boxShadow: phone.length === 10 ? '0 4px 16px rgba(29,158,117,0.3)' : 'none' }}>
-              {savingPhone ? 'Saving…' : 'Save & continue →'}
-            </button>
-            <button onClick={() => router.push('/marketplace')} style={{ width: '100%', background: 'transparent', color: 'var(--text-muted)', border: 'none', padding: '12px', fontSize: '13px', cursor: 'pointer', marginTop: '6px' }}>
+
+            {!otpSent ? (
+              <>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '0 12px', fontSize: '13px', color: 'var(--text-secondary)', flexShrink: 0, gap: '4px' }}>🇮🇳 +91</div>
+                  <input
+                    value={phone}
+                    onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    placeholder="98765 43210"
+                    style={{ flex: 1, padding: '11px 13px', borderRadius: '10px', border: `1.5px solid ${phone.length === 10 ? '#1D9E75' : 'var(--border)'}`, fontSize: '14px', fontFamily: 'DM Sans, sans-serif', background: 'var(--bg-input)', color: 'var(--text-primary)', transition: 'all 0.15s' }}
+                  />
+                </div>
+                {phone.length > 0 && phone.length < 10 && (
+                  <div style={{ fontSize: '11px', color: '#E24B4A', marginBottom: '8px' }}>⚠️ Enter a 10-digit number</div>
+                )}
+                {otpError && (
+                  <div style={{ fontSize: '12px', color: '#E24B4A', marginBottom: '8px' }}>{otpError}</div>
+                )}
+                <div style={{ background: 'var(--bg)', borderRadius: '12px', padding: '12px 14px', marginBottom: '16px', border: '1px dashed var(--border)' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.8' }}>
+                    <div>✅ Required to receive buyer inquiries</div>
+                    <div>✅ Only shown when someone contacts you</div>
+                    <div>✅ Verified numbers only — keeps fakes out</div>
+                  </div>
+                </div>
+                <button
+                  onClick={sendOtp}
+                  disabled={sendingOtp || phone.length < 10}
+                  style={{ width: '100%', background: phone.length === 10 ? '#1D9E75' : '#ccc', color: '#fff', border: 'none', borderRadius: '12px', padding: '14px', fontSize: '15px', fontWeight: '700', cursor: phone.length < 10 ? 'not-allowed' : 'pointer', fontFamily: 'Kalam, cursive', marginTop: '4px', transition: 'all 0.2s', boxShadow: phone.length === 10 ? '0 4px 16px rgba(29,158,117,0.3)' : 'none' }}>
+                  {sendingOtp ? 'Sending…' : 'Send OTP on WhatsApp →'}
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px' }}>
+                  <input
+                    value={otp}
+                    onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="• • • • • •"
+                    maxLength={6}
+                    style={{ width: '200px', padding: '14px', borderRadius: '12px', border: `1.5px solid ${otp.length === 6 ? '#1D9E75' : 'var(--border)'}`, fontSize: '26px', fontFamily: 'Kalam, cursive', textAlign: 'center', letterSpacing: '10px', background: 'var(--bg-input)', color: 'var(--text-primary)', transition: 'all 0.15s' }}
+                  />
+                </div>
+                {otpError && (
+                  <div style={{ fontSize: '12px', color: '#E24B4A', textAlign: 'center', marginBottom: '8px' }}>{otpError}</div>
+                )}
+                <button
+                  onClick={verifyOtp}
+                  disabled={verifyingOtp || savingPhone || otp.length < 6}
+                  style={{ width: '100%', background: otp.length === 6 ? '#1D9E75' : '#ccc', color: '#fff', border: 'none', borderRadius: '12px', padding: '14px', fontSize: '15px', fontWeight: '700', cursor: otp.length < 6 ? 'not-allowed' : 'pointer', fontFamily: 'Kalam, cursive', marginTop: '8px', transition: 'all 0.2s', boxShadow: otp.length === 6 ? '0 4px 16px rgba(29,158,117,0.3)' : 'none' }}>
+                  {verifyingOtp || savingPhone ? 'Verifying…' : 'Verify & continue →'}
+                </button>
+                <button
+                  onClick={() => { setOtpSent(false); setOtp(''); setOtpError('') }}
+                  style={{ width: '100%', background: 'transparent', color: 'var(--text-muted)', border: 'none', padding: '10px', fontSize: '13px', cursor: 'pointer', marginTop: '4px' }}>
+                  ← Change number
+                </button>
+                <button
+                  onClick={sendOtp}
+                  disabled={sendingOtp}
+                  style={{ width: '100%', background: 'transparent', color: '#1D9E75', border: 'none', padding: '8px', fontSize: '12px', cursor: 'pointer' }}>
+                  {sendingOtp ? 'Resending…' : 'Resend OTP'}
+                </button>
+              </>
+            )}
+
+            <button onClick={() => router.push('/marketplace')} style={{ width: '100%', background: 'transparent', color: 'var(--text-muted)', border: 'none', padding: '12px', fontSize: '13px', cursor: 'pointer', marginTop: '4px' }}>
               Cancel — go back to marketplace
             </button>
           </div>
@@ -403,8 +490,6 @@ export default function SellPage() {
               <div className="card">
                 <div className="kalam" style={{ fontSize: '18px', color: 'var(--text-primary)', marginBottom: '4px' }}>📷 Add photos</div>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px' }}>Minimum 2 photos required. Must include MRP/price tag.</p>
-
-                {/* Photo requirement info */}
                 <div style={{ background: '#FFFBEB', border: '1px solid #FEF3C7', borderRadius: '12px', padding: '12px 14px', marginBottom: '16px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
                   <span style={{ fontSize: '16px', flexShrink: 0 }}>📋</span>
                   <div style={{ fontSize: '12px', color: '#92400E', lineHeight: '1.7' }}>
@@ -418,7 +503,6 @@ export default function SellPage() {
                     {images.length >= 3 && <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ color: '#1D9E75' }}>✅</span> Photo 3 — optional extra</div>}
                   </div>
                 </div>
-
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
                   {previews.map((src, i) => (
                     <div key={i} className="photo-slot" style={{ position: 'relative' }}>
@@ -439,8 +523,6 @@ export default function SellPage() {
                     </label>
                   )}
                 </div>
-
-                {/* Progress indicator */}
                 <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                   {[0, 1, 2].map(i => (
                     <div key={i} style={{ height: '4px', flex: 1, borderRadius: '99px', background: images.length > i ? (i < 2 ? '#1D9E75' : '#8B8FA8') : 'var(--border)', transition: 'background 0.3s' }} />
@@ -448,15 +530,12 @@ export default function SellPage() {
                   <span style={{ fontSize: '11px', color: images.length >= 2 ? '#1D9E75' : '#D97706', fontWeight: '600', flexShrink: 0 }}>{images.length}/3 {images.length < 2 ? `(${2 - images.length} more needed)` : '✓'}</span>
                 </div>
               </div>
-
-              {/* Warning if not enough photos */}
               {images.length < 2 && (
                 <div style={{ background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '12px', padding: '12px 16px', marginBottom: '14px', fontSize: '12px', color: '#E24B4A', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span>⚠️</span>
                   <span>Add at least 2 photos — cover + MRP tag. Listings without price proof may be rejected.</span>
                 </div>
               )}
-
               <button onClick={nextStep} disabled={images.length < 2}
                 style={{ width: '100%', background: images.length >= 2 ? '#1D9E75' : '#ccc', color: '#fff', border: 'none', borderRadius: '14px', padding: '15px', fontSize: '15px', fontWeight: '700', cursor: images.length < 2 ? 'not-allowed' : 'pointer', fontFamily: 'Kalam, cursive', boxShadow: images.length >= 2 ? '0 4px 16px rgba(29,158,117,0.3)' : 'none', transition: 'all 0.2s' }}>
                 {images.length < 2 ? `Add ${2 - images.length} more photo${2 - images.length > 1 ? 's' : ''} to continue` : 'Continue → Item details'}
@@ -577,7 +656,6 @@ export default function SellPage() {
                 </div>
               </div>
 
-              {/* Preview */}
               {form.title && form.price && form.location && (
                 <div style={{ background: 'var(--bg-card)', borderRadius: '20px', border: '1.5px solid #1D9E75', padding: '18px 20px', marginBottom: '16px', boxShadow: 'var(--shadow-card)' }}>
                   <div style={{ fontSize: '11px', color: '#1D9E75', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '12px' }}>✅ Ready to submit for review</div>
