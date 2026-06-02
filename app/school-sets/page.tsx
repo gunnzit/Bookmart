@@ -689,6 +689,9 @@ export default function SchoolSetsPage() {
 
 
       <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+
+        {/* Nav */}
+        <nav className="nav">
           <button onClick={() => router.push('/marketplace')} style={{ background: 'none', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '6px 10px', cursor: 'pointer', color: 'var(--text-2)', display: 'flex', alignItems: 'center' }}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
@@ -1006,6 +1009,7 @@ export default function SchoolSetsPage() {
 
           </div>
         </div>
+      </div>
     </>
   )
 }
