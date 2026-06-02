@@ -5,10 +5,12 @@ import { useUser, SignInButton, useClerk } from '@clerk/nextjs'
 
 const SCHOOL = 'Shivalik Public School'
 
+// Notebook items have unitPrice + recommended quantity
+// Books and stationery have flat price only
 const kits: Record<number, {
   ncert: { name: string; price: number }[]
   pvt: { name: string; price: number }[]
-  notebooks: { name: string; price: number }[]
+  notebooks: { name: string; unitPrice: number; qty: number }[]
   stationery: { name: string; price: number }[]
 }> = {
   1: {
@@ -22,12 +24,12 @@ const kits: Record<number, {
       { name: 'Bhasha Setu Praveshika', price: 340 },
     ],
     notebooks: [
-      { name: 'Four-Lined Notebooks (×2)', price: 124 },
-      { name: 'Square-Lined Notebooks (×2)', price: 124 },
-      { name: 'Five-Lined Notebooks (×2)', price: 124 },
+      { name: 'Four-Lined Notebooks', unitPrice: 62, qty: 2 },
+      { name: 'Square-Lined Notebooks (half inch)', unitPrice: 62, qty: 2 },
+      { name: 'Five-Lined Notebooks', unitPrice: 62, qty: 2 },
     ],
     stationery: [
-      { name: 'Drawing File (spiral)', price: 90 },
+      { name: 'Drawing File (spiral binded)', price: 90 },
       { name: 'Drawing Sheets - 1 packet', price: 30 },
       { name: 'Origami Sheets - 1 packet', price: 20 },
       { name: 'Plastic Crayons (24 Shades)', price: 100 },
@@ -52,12 +54,12 @@ const kits: Record<number, {
       { name: 'Joyful Maths Workbook - 2', price: 239 },
     ],
     notebooks: [
-      { name: 'Four-Lined Notebooks (×2)', price: 124 },
-      { name: 'Square-Lined Notebooks (×2)', price: 124 },
-      { name: 'Double-Lined Notebooks (×2)', price: 124 },
+      { name: 'Four-Lined Notebooks', unitPrice: 62, qty: 2 },
+      { name: 'Square-Lined Notebooks (half inch)', unitPrice: 62, qty: 2 },
+      { name: 'Double-Lined Notebooks', unitPrice: 62, qty: 2 },
     ],
     stationery: [
-      { name: 'Drawing File (spiral)', price: 90 },
+      { name: 'Drawing File (spiral binded)', price: 90 },
       { name: 'Drawing Sheets - 1 packet', price: 30 },
       { name: 'Origami Sheets - 1 packet', price: 20 },
       { name: 'Plastic Crayons (24 Shades)', price: 100 },
@@ -89,20 +91,20 @@ const kits: Record<number, {
       { name: 'Parvaz Punjabi - 0', price: 325 },
     ],
     notebooks: [
-      { name: 'Four-Lined Notebooks (×6)', price: 372 },
-      { name: 'Four-Line Inter Leaf Notebooks (×2)', price: 124 },
-      { name: 'Double-Lined Notebooks (×4)', price: 248 },
-      { name: 'Square-Lined Notebooks (×4)', price: 248 },
-      { name: 'Test Copies (×5)', price: 125 },
+      { name: 'Four-Lined Notebooks', unitPrice: 62, qty: 6 },
+      { name: 'Four-Line Inter Leaf Notebooks', unitPrice: 62, qty: 2 },
+      { name: 'Double-Lined Notebooks', unitPrice: 62, qty: 4 },
+      { name: 'Square-Lined Notebooks', unitPrice: 62, qty: 4 },
+      { name: 'Test Copies', unitPrice: 25, qty: 5 },
     ],
     stationery: [
       { name: 'Drawing Copy', price: 65 },
       { name: 'Black Sketch Pen', price: 5 },
-      { name: 'Origami Sheets - 1 packet', price: 20 },
+      { name: 'Origami Sheets - 1 Packet', price: 20 },
       { name: 'Plastic Crayons (24 Shades)', price: 100 },
       { name: 'Pencil Colours (12 Shades)', price: 35 },
       { name: 'Oxford English Mini Dictionary', price: 285 },
-      { name: 'Scrap Sheets - 1 packet', price: 65 },
+      { name: 'Scrap Sheets - 1 Packet', price: 65 },
     ],
   },
   4: {
@@ -122,20 +124,20 @@ const kits: Record<number, {
       { name: 'My Moral Values - 4', price: 240 },
     ],
     notebooks: [
-      { name: 'Four-Lined Notebooks (×6)', price: 372 },
-      { name: 'Four-Line Inter Leaf Notebooks (×2)', price: 124 },
-      { name: 'Double-Lined Notebooks (×4)', price: 248 },
-      { name: 'Square-Lined Notebooks (×4)', price: 248 },
-      { name: 'Test Copies (×5)', price: 125 },
+      { name: 'Four-Lined Notebooks', unitPrice: 62, qty: 6 },
+      { name: 'Four-Line Inter Leaf Notebooks', unitPrice: 62, qty: 2 },
+      { name: 'Double-Lined Notebooks', unitPrice: 62, qty: 4 },
+      { name: 'Square-Lined Notebooks', unitPrice: 62, qty: 4 },
+      { name: 'Test Copies', unitPrice: 25, qty: 5 },
     ],
     stationery: [
       { name: 'Drawing Copy', price: 65 },
       { name: 'Black Sketch Pen', price: 5 },
-      { name: 'Origami Sheets - 1 packet', price: 20 },
+      { name: 'Origami Sheets - 1 Packet', price: 20 },
       { name: 'Plastic Crayons (24 Shades)', price: 100 },
       { name: 'Pencil Colours (12 Shades)', price: 35 },
       { name: 'Oxford English Mini Dictionary', price: 285 },
-      { name: 'Scrap Sheets - 1 packet', price: 65 },
+      { name: 'Scrap Sheets - 1 Packet', price: 65 },
     ],
   },
   5: {
@@ -156,18 +158,18 @@ const kits: Record<number, {
       { name: 'My Moral Values - 5', price: 250 },
     ],
     notebooks: [
-      { name: 'Single-Lined Notebooks (×11)', price: 682 },
-      { name: 'Single-Line Inter Leaf Notebooks (×2)', price: 124 },
-      { name: 'Test Copies (×5)', price: 125 },
+      { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 11 },
+      { name: 'Single-Line Inter Leaf Notebooks', unitPrice: 62, qty: 2 },
+      { name: 'Test Copies', unitPrice: 25, qty: 5 },
     ],
     stationery: [
       { name: 'Drawing Copy', price: 65 },
       { name: 'Black Sketch Pen', price: 5 },
-      { name: 'Origami Sheets - 1 packet', price: 20 },
+      { name: 'Origami Sheets - 1 Packet', price: 20 },
       { name: 'Plastic Crayons (24 Shades)', price: 100 },
       { name: 'Pencil Colours (12 Shades)', price: 35 },
       { name: 'Oxford English Mini Dictionary', price: 285 },
-      { name: 'Scrap Sheets - 1 packet', price: 65 },
+      { name: 'Scrap Sheets - 1 Packet', price: 65 },
     ],
   },
   6: {
@@ -188,10 +190,10 @@ const kits: Record<number, {
       { name: 'Ganita Prakash Workbook - 6', price: 249 },
     ],
     notebooks: [
-      { name: 'Single-Lined Notebooks (×14)', price: 868 },
-      { name: 'Single-Line Inter Leaf Notebooks (×2)', price: 124 },
-      { name: 'Maths Registers (×2)', price: 220 },
-      { name: 'Test Copies (×8)', price: 200 },
+      { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 14 },
+      { name: 'Single-Line Inter Leaf Notebooks', unitPrice: 62, qty: 2 },
+      { name: 'Maths Registers', unitPrice: 110, qty: 2 },
+      { name: 'Test Copies', unitPrice: 25, qty: 8 },
     ],
     stationery: [
       { name: 'Drawing Copy', price: 65 },
@@ -220,10 +222,10 @@ const kits: Record<number, {
       { name: 'BBC Compacta Basic - 7', price: 532 },
     ],
     notebooks: [
-      { name: 'Single-Lined Notebooks (×14)', price: 868 },
-      { name: 'Single-Line Inter Leaf Notebooks (×2)', price: 124 },
-      { name: 'Maths Registers (×2)', price: 220 },
-      { name: 'Test Copies (×8)', price: 200 },
+      { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 14 },
+      { name: 'Single-Line Inter Leaf Notebooks', unitPrice: 62, qty: 2 },
+      { name: 'Maths Registers', unitPrice: 110, qty: 2 },
+      { name: 'Test Copies', unitPrice: 25, qty: 8 },
     ],
     stationery: [
       { name: 'Drawing Copy', price: 65 },
@@ -250,10 +252,10 @@ const kits: Record<number, {
       { name: 'Byte Code - 8', price: 545 },
     ],
     notebooks: [
-      { name: 'Single-Lined Notebooks (×14)', price: 868 },
-      { name: 'Single-Line Inter Leaf Notebooks (×2)', price: 124 },
-      { name: 'Maths Registers (×2)', price: 220 },
-      { name: 'Test Copies (×8)', price: 200 },
+      { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 14 },
+      { name: 'Single-Line Inter Leaf Notebooks', unitPrice: 62, qty: 2 },
+      { name: 'Maths Registers', unitPrice: 110, qty: 2 },
+      { name: 'Test Copies', unitPrice: 25, qty: 8 },
     ],
     stationery: [
       { name: 'Drawing Copy', price: 65 },
@@ -283,11 +285,11 @@ const kits: Record<number, {
       { name: 'Vyakaran - B - 9&10', price: 529 },
     ],
     notebooks: [
-      { name: 'Register - 11×110', price: 1210 },
-      { name: 'Single Line Unit Test Notebooks (×7)', price: 434 },
+      { name: 'Registers (11")', unitPrice: 110, qty: 11 },
+      { name: 'Single Line Unit Test Notebooks', unitPrice: 62, qty: 7 },
     ],
     stationery: [
-      { name: 'Blank Laboratory Manual (×1)', price: 85 },
+      { name: 'Blank Laboratory Manual', price: 85 },
     ],
   },
   10: {
@@ -311,11 +313,11 @@ const kits: Record<number, {
       { name: 'Activity and Project - 10', price: 164 },
     ],
     notebooks: [
-      { name: 'Register - 11×110', price: 1210 },
-      { name: 'Single Line Unit Test Notebooks (×7)', price: 434 },
+      { name: 'Registers (11")', unitPrice: 110, qty: 11 },
+      { name: 'Single Line Unit Test Notebooks', unitPrice: 62, qty: 7 },
     ],
     stationery: [
-      { name: 'Blank Laboratory Manual (×1)', price: 85 },
+      { name: 'Blank Laboratory Manual', price: 85 },
     ],
   },
 }
@@ -337,13 +339,14 @@ export default function SchoolSetsPage() {
   const [selectedClass, setSelectedClass] = useState<number>(1)
   const [openSections, setOpenSections] = useState<Record<Section, boolean>>({ ncert: true, pvt: true, notebooks: true, stationery: true })
   const [checked, setChecked] = useState<Record<Section, boolean[]>>({} as any)
+  const [nbQty, setNbQty] = useState<number[]>([]) // quantity per notebook item
   const [deliveryMode, setDeliveryMode] = useState<'pickup' | 'delivery'>('pickup')
   const [address, setAddress] = useState('')
   const [phone, setPhone] = useState('')
   const [ordering, setOrdering] = useState(false)
   const [ordered, setOrdered] = useState(false)
+  const [warnModal, setWarnModal] = useState<{ section: Section; idx: number } | null>(null)
 
-  // Init checked state when class changes
   useEffect(() => {
     const kit = kits[selectedClass]
     setChecked({
@@ -352,6 +355,7 @@ export default function SchoolSetsPage() {
       notebooks: kit.notebooks.map(() => true),
       stationery: kit.stationery.map(() => true),
     })
+    setNbQty(kit.notebooks.map(n => n.qty))
     setOrdered(false)
   }, [selectedClass])
 
@@ -361,52 +365,93 @@ export default function SchoolSetsPage() {
     setOpenSections(prev => ({ ...prev, [s]: !prev[s] }))
   }
 
-  function toggleItem(s: Section, i: number) {
+  // For books/stationery: clicking unchecked item → warn; clicking checked → just uncheck
+  function handleCheckClick(s: Section, i: number) {
+    if (checked[s]?.[i]) {
+      // Already checked → show warning before unchecking
+      setWarnModal({ section: s, idx: i })
+    } else {
+      // Currently unchecked → re-check directly, no warning
+      setChecked(prev => {
+        const arr = [...prev[s]]
+        arr[i] = true
+        return { ...prev, [s]: arr }
+      })
+    }
+  }
+
+  function confirmUncheck() {
+    if (!warnModal) return
+    const { section, idx } = warnModal
     setChecked(prev => {
-      const arr = [...prev[s]]
-      arr[i] = !arr[i]
-      return { ...prev, [s]: arr }
+      const arr = [...prev[section]]
+      arr[idx] = false
+      return { ...prev, [section]: arr }
     })
+    setWarnModal(null)
   }
 
   function toggleAll(s: Section, val: boolean) {
+    if (!val) {
+      // Unchecking all — warn
+      if (!window.confirm('This will remove all ' + sectionLabels[s].label + ' from your kit. These are listed in the official book list. Are you sure?')) return
+    }
     setChecked(prev => ({ ...prev, [s]: prev[s].map(() => val) }))
+  }
+
+  function setQty(i: number, val: number) {
+    if (val < 0) return
+    const recommended = kit.notebooks[i].qty
+    if (val > recommended * 2) return // cap at 2x recommended
+    const newQty = [...nbQty]
+    newQty[i] = val
+    setNbQty(newQty)
   }
 
   function calcTotal() {
     if (!checked.ncert) return 0
     let total = 0
-    const sections: Section[] = ['ncert', 'pvt', 'notebooks', 'stationery']
-    sections.forEach(s => {
-      kit[s].forEach((item, i) => {
+    const flatSections: Section[] = ['ncert', 'pvt', 'stationery']
+    flatSections.forEach(s => {
+      kit[s].forEach((item: any, i: number) => {
         if (checked[s]?.[i]) total += item.price
       })
+    })
+    // Notebooks: unitPrice × qty
+    kit.notebooks.forEach((item, i) => {
+      if (checked.notebooks?.[i]) total += item.unitPrice * (nbQty[i] || 0)
     })
     if (deliveryMode === 'delivery') total += 99
     return total
   }
 
   function getSelectedItems() {
-    const sections: Section[] = ['ncert', 'pvt', 'notebooks', 'stationery']
     const items: string[] = []
-    sections.forEach(s => {
-      kit[s].forEach((item, i) => {
+    const flatSections: Section[] = ['ncert', 'pvt', 'stationery']
+    flatSections.forEach(s => {
+      kit[s].forEach((item: any, i: number) => {
         if (checked[s]?.[i]) items.push(item.name + ' ₹' + item.price)
       })
+    })
+    kit.notebooks.forEach((item, i) => {
+      if (checked.notebooks?.[i] && (nbQty[i] || 0) > 0) {
+        items.push(item.name + ' x' + nbQty[i] + ' ₹' + (item.unitPrice * nbQty[i]))
+      }
     })
     return items
   }
 
   function billTotal() {
-    const sections: Section[] = ['ncert', 'pvt', 'notebooks', 'stationery']
-    return sections.reduce((sum, s) => sum + kit[s].reduce((a, b) => a + b.price, 0), 0)
+    const flatSections: Section[] = ['ncert', 'pvt', 'stationery']
+    let total = flatSections.reduce((sum, s) => sum + (kit[s] as any[]).reduce((a: number, b: any) => a + b.price, 0), 0)
+    kit.notebooks.forEach(n => { total += n.unitPrice * n.qty })
+    return total
   }
 
   async function handleOrder() {
     if (!isSignedIn) { openSignIn(); return }
     if (deliveryMode === 'delivery' && !address.trim()) { alert('Please enter delivery address'); return }
-    if (!phone.trim()) { alert('Please enter your phone number'); return }
-
+    if (!phone.trim()) { alert('Please enter your WhatsApp number'); return }
     setOrdering(true)
     try {
       const total = calcTotal()
@@ -428,7 +473,6 @@ export default function SchoolSetsPage() {
         image: '/logo.png',
         order_id: order.id,
         handler: async (response: any) => {
-          // Send WhatsApp to admin
           const msg = '📦 NEW KIT ORDER\nClass ' + selectedClass + ' — ' + SCHOOL + '\nStudent: ' + (user?.fullName || '') + '\nPhone: ' + phone + '\nMode: ' + deliveryMode + (deliveryMode === 'delivery' ? '\nAddress: ' + address : '') + '\nItems:\n' + items.join('\n') + '\nTotal: ₹' + total + '\nPayment ID: ' + response.razorpay_payment_id
           window.open('https://wa.me/919914735738?text=' + encodeURIComponent(msg), '_blank')
           setOrdered(true)
@@ -439,14 +483,20 @@ export default function SchoolSetsPage() {
       }
       const rzp = new (window as any).Razorpay(options)
       rzp.open()
-    } catch (e) {
-      alert('Something went wrong. Try again.')
-    }
+    } catch { alert('Something went wrong. Try again.') }
     setOrdering(false)
   }
 
   const total = calcTotal()
   const bill = billTotal()
+
+  // Item name for warning modal
+  function warnItemName() {
+    if (!warnModal) return ''
+    const { section, idx } = warnModal
+    if (section === 'notebooks') return kit.notebooks[idx]?.name
+    return (kit[section] as any[])[idx]?.name || ''
+  }
 
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
@@ -472,20 +522,28 @@ export default function SchoolSetsPage() {
     .class-btn { padding: 8px 0; border-radius: 10px; border: 2px solid var(--border); background: var(--white); color: var(--text-2); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; font-family: 'DM Sans', sans-serif; text-align: center; }
     .class-btn.active { background: var(--green); color: #fff; border-color: var(--green); box-shadow: 0 4px 12px rgba(29,158,117,0.3); }
     .class-btn:hover:not(.active) { border-color: var(--green); color: var(--green); }
-    .section-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; cursor: pointer; user-select: none; transition: background 0.15s; border-radius: var(--r); }
+    .section-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; cursor: pointer; user-select: none; transition: background 0.15s; }
     .section-header:hover { background: var(--bg) !important; }
-    .item-row { display: flex; align-items: center; gap: 12px; padding: 9px 18px; transition: background 0.1s; cursor: pointer; }
+    .item-row { display: flex; align-items: center; gap: 12px; padding: 10px 18px; transition: background 0.1s; border-bottom: 1px solid var(--border); }
+    .item-row:last-child { border-bottom: none; }
     .item-row:hover { background: var(--bg); }
     .checkbox { width: 18px; height: 18px; border-radius: 5px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; cursor: pointer; }
     .checkbox.checked { background: var(--green); border-color: var(--green); }
+    .qty-ctrl { display: flex; align-items: center; gap: 6px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px; padding: 2px 4px; }
+    .qty-btn { width: 24px; height: 24px; border-radius: 6px; border: none; background: var(--white); cursor: pointer; font-size: 15px; font-weight: 700; color: var(--text-2); display: flex; align-items: center; justify-content: center; transition: all 0.1s; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+    .qty-btn:hover { background: #E8F7F2; color: #1D9E75; }
+    .qty-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .qty-num { font-size: 13px; font-weight: 700; color: var(--text); min-width: 22px; text-align: center; }
     .delivery-btn { flex: 1; padding: 10px; border-radius: 10px; border: 2px solid var(--border); background: var(--white); color: var(--text-2); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; font-family: 'DM Sans', sans-serif; }
     .delivery-btn.active { border-color: var(--green); background: var(--green-bg); color: var(--green); }
     input[type="text"], textarea { color: var(--text) !important; background: var(--bg) !important; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 14px; font-size: 14px; font-family: 'DM Sans', sans-serif; width: 100%; outline: none; transition: border 0.15s; }
     input[type="text"]:focus, textarea:focus { border-color: var(--green) !important; box-shadow: 0 0 0 3px rgba(29,158,117,0.1); }
     .order-btn { width: 100%; background: var(--green); color: #fff; border: none; border-radius: 14px; padding: 16px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: 'Kalam', cursive; transition: all 0.2s; box-shadow: 0 6px 20px rgba(29,158,117,0.3); }
-    .order-btn:hover { background: var(--green-dark); transform: translateY(-2px); box-shadow: 0 10px 28px rgba(29,158,117,0.4); }
+    .order-btn:hover { background: var(--green-dark); transform: translateY(-2px); }
     .order-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-    .sticky-summary { position: sticky; top: 72px; }
+    .sticky-summary { position: sticky; top: 120px; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+    .modal-box { background: var(--white); border-radius: 20px; padding: 28px 24px; max-width: 380px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
     @keyframes slideDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
     .slide-down { animation: slideDown 0.2s ease; }
     @media (min-width: 900px) { .layout { display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start; } }
@@ -496,6 +554,29 @@ export default function SchoolSetsPage() {
     <>
       <style>{css}</style>
       <script src="https://checkout.razorpay.com/v1/checkout.js" async />
+
+      {/* Warning modal */}
+      {warnModal && (
+        <div className="modal-overlay" onClick={() => setWarnModal(null)}>
+          <div className="modal-box" onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: '36px', marginBottom: '12px', textAlign: 'center' }}>⚠️</div>
+            <h3 className="k" style={{ fontSize: '18px', color: 'var(--text)', marginBottom: '10px', textAlign: 'center' }}>Remove from kit?</h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.6, marginBottom: '20px', textAlign: 'center' }}>
+              <strong style={{ color: 'var(--text)' }}>{warnItemName()}</strong> is listed in the official Shivalik Public School book list. Are you sure you want to remove it?
+            </p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => setWarnModal(null)}
+                style={{ flex: 1, background: 'var(--bg)', color: 'var(--text-2)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '11px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                Keep it
+              </button>
+              <button onClick={confirmUncheck}
+                style={{ flex: 1, background: '#FEF2F2', color: '#E24B4A', border: '1.5px solid #FCA5A5', borderRadius: '10px', padding: '11px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                Yes, remove
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
 
@@ -520,7 +601,7 @@ export default function SchoolSetsPage() {
             </div>
             <h1 className="k" style={{ fontSize: 'clamp(24px, 5vw, 38px)', color: '#fff', marginBottom: '8px', lineHeight: 1.2 }}>School Sets 🎒</h1>
             <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.6, maxWidth: '480px' }}>
-              Complete book + stationery kits for {SCHOOL}. Pick your class, customise what you need, and order in minutes.
+              Complete book + stationery kits for {SCHOOL}. All items from the official book list. Customise what you need and order in minutes.
             </p>
           </div>
         </div>
@@ -547,22 +628,19 @@ export default function SchoolSetsPage() {
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                 <h2 className="k" style={{ fontSize: '20px', color: 'var(--text)' }}>Class {selectedClass} Kit</h2>
-                <span style={{ fontSize: '12px', color: 'var(--text-3)' }}>Bill total: ₹{bill.toLocaleString()}</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-3)' }}>Book list total: ₹{bill.toLocaleString()}</span>
               </div>
 
-              {(Object.keys(sectionLabels) as Section[]).map(s => {
+              {/* NCERT, PVT, STATIONERY sections */}
+              {(['ncert', 'pvt', 'stationery'] as Section[]).map(s => {
                 const sec = sectionLabels[s]
-                const items = kit[s]
+                const items = kit[s] as { name: string; price: number }[]
                 const checkedItems = checked[s] || []
                 const allChecked = checkedItems.every(Boolean)
-                const anyChecked = checkedItems.some(Boolean)
                 const secTotal = items.reduce((sum, item, i) => sum + (checkedItems[i] ? item.price : 0), 0)
                 const isOpen = openSections[s]
-
                 return (
                   <div key={s} style={{ background: 'var(--card)', borderRadius: 'var(--r)', border: '1.5px solid ' + sec.border, boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
-
-                    {/* Section header */}
                     <div className="section-header" style={{ background: sec.bg }} onClick={() => toggleSection(s)}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span style={{ fontSize: '20px' }}>{sec.emoji}</span>
@@ -576,27 +654,20 @@ export default function SchoolSetsPage() {
                           style={{ fontSize: '11px', color: sec.color, background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700', fontFamily: 'DM Sans, sans-serif' }}>
                           {allChecked ? 'Deselect all' : 'Select all'}
                         </button>
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', color: sec.color }}>
-                          <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}>
+                          <path d="M4 6l4 4 4-4" stroke={sec.color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                         </svg>
                       </div>
                     </div>
-
-                    {/* Items list */}
                     {isOpen && (
                       <div className="slide-down" style={{ borderTop: '1px solid ' + sec.border }}>
                         {items.map((item, i) => (
-                          <div key={i} className="item-row" onClick={() => toggleItem(s, i)}
-                            style={{ borderBottom: i < items.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                          <div key={i} className="item-row" onClick={() => handleCheckClick(s, i)}>
                             <div className={'checkbox' + (checkedItems[i] ? ' checked' : '')}>
-                              {checkedItems[i] && (
-                                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                                  <path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                              )}
+                              {checkedItems[i] && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                             </div>
                             <div style={{ flex: 1, fontSize: '13px', color: checkedItems[i] ? 'var(--text)' : 'var(--text-3)', fontWeight: checkedItems[i] ? '500' : '400', textDecoration: checkedItems[i] ? 'none' : 'line-through' }}>{item.name}</div>
-                            <div style={{ fontSize: '13px', fontWeight: '700', color: checkedItems[i] ? sec.color : 'var(--text-3)', fontFamily: 'Kalam, cursive' }}>₹{item.price}</div>
+                            <div style={{ fontSize: '13px', fontWeight: '700', color: checkedItems[i] ? sec.color : 'var(--text-3)', fontFamily: 'Kalam, cursive', flexShrink: 0 }}>₹{item.price}</div>
                           </div>
                         ))}
                       </div>
@@ -604,6 +675,109 @@ export default function SchoolSetsPage() {
                   </div>
                 )
               })}
+
+              {/* NOTEBOOKS section — with quantity controls */}
+              {(() => {
+                const s: Section = 'notebooks'
+                const sec = sectionLabels[s]
+                const checkedItems = checked[s] || []
+                const isOpen = openSections[s]
+                const allChecked = checkedItems.every(Boolean)
+                const secTotal = kit.notebooks.reduce((sum, item, i) => sum + (checkedItems[i] ? item.unitPrice * (nbQty[i] || 0) : 0), 0)
+                return (
+                  <div style={{ background: 'var(--card)', borderRadius: 'var(--r)', border: '1.5px solid ' + sec.border, boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
+                    <div className="section-header" style={{ background: sec.bg }} onClick={() => toggleSection(s)}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '20px' }}>{sec.emoji}</span>
+                        <div>
+                          <div style={{ fontSize: '14px', fontWeight: '700', color: sec.color }}>{sec.label}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '1px' }}>{kit.notebooks.length} types · ₹{secTotal.toLocaleString()} selected</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <button onClick={e => { e.stopPropagation(); toggleAll(s, !allChecked) }}
+                          style={{ fontSize: '11px', color: sec.color, background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700', fontFamily: 'DM Sans, sans-serif' }}>
+                          {allChecked ? 'Deselect all' : 'Select all'}
+                        </button>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}>
+                          <path d="M4 6l4 4 4-4" stroke={sec.color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                    </div>
+                    {isOpen && (
+                      <div className="slide-down" style={{ borderTop: '1px solid ' + sec.border }}>
+                        {/* Column header */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 18px', background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
+                          <div style={{ width: '18px', flexShrink: 0 }} />
+                          <div style={{ flex: 1, fontSize: '10px', fontWeight: '700', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Notebook type</div>
+                          <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '90px', textAlign: 'center' }}>Qty (recommended)</div>
+                          <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '60px', textAlign: 'right' }}>Price</div>
+                        </div>
+                        {kit.notebooks.map((item, i) => {
+                          const isChecked = checkedItems[i]
+                          const qty = nbQty[i] || 0
+                          const itemTotal = isChecked ? item.unitPrice * qty : 0
+                          const recommended = item.qty
+                          const isOverRecommended = qty > recommended
+                          const isUnderRecommended = qty < recommended
+                          return (
+                            <div key={i} className="item-row" style={{ alignItems: 'flex-start', cursor: 'default' }}>
+                              {/* Checkbox */}
+                              <div className={'checkbox' + (isChecked ? ' checked' : '')} style={{ marginTop: '2px' }}
+                                onClick={() => handleCheckClick(s, i)}>
+                                {isChecked && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                              </div>
+                              {/* Name + unit price */}
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: '13px', color: isChecked ? 'var(--text)' : 'var(--text-3)', fontWeight: isChecked ? '500' : '400', textDecoration: isChecked ? 'none' : 'line-through', marginBottom: '4px' }}>{item.name}</div>
+                                <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>₹{item.unitPrice} each</div>
+                                {isChecked && isOverRecommended && (
+                                  <div style={{ fontSize: '10px', color: '#F59E0B', fontWeight: '600', marginTop: '3px' }}>⚠️ Over book list qty ({recommended})</div>
+                                )}
+                                {isChecked && isUnderRecommended && qty > 0 && (
+                                  <div style={{ fontSize: '10px', color: '#3B82F6', fontWeight: '600', marginTop: '3px' }}>ℹ️ Book list recommends {recommended}</div>
+                                )}
+                                {isChecked && qty === 0 && (
+                                  <div style={{ fontSize: '10px', color: '#E24B4A', fontWeight: '600', marginTop: '3px' }}>Set qty to include</div>
+                                )}
+                              </div>
+                              {/* Qty control */}
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', width: '90px' }}>
+                                {isChecked ? (
+                                  <>
+                                    <div className="qty-ctrl">
+                                      <button className="qty-btn" disabled={qty <= 0} onClick={() => setQty(i, qty - 1)}>−</button>
+                                      <span className="qty-num" style={{ color: isOverRecommended ? '#F59E0B' : isUnderRecommended ? '#3B82F6' : 'var(--text)' }}>{qty}</span>
+                                      <button className="qty-btn" disabled={qty >= recommended * 2} onClick={() => setQty(i, qty + 1)}>+</button>
+                                    </div>
+                                    <div style={{ fontSize: '10px', color: 'var(--text-3)' }}>of {recommended} listed</div>
+                                  </>
+                                ) : (
+                                  <div style={{ fontSize: '11px', color: 'var(--text-3)', textAlign: 'center' }}>—</div>
+                                )}
+                              </div>
+                              {/* Total price */}
+                              <div style={{ width: '60px', textAlign: 'right' }}>
+                                <div style={{ fontSize: '13px', fontWeight: '700', color: isChecked && qty > 0 ? sec.color : 'var(--text-3)', fontFamily: 'Kalam, cursive' }}>
+                                  {isChecked && qty > 0 ? '₹' + itemTotal : '—'}
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+
+              {/* Recommended qty notice */}
+              <div style={{ background: '#FFFBEB', border: '1.5px solid #FDE68A', borderRadius: '12px', padding: '12px 16px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                <span style={{ fontSize: '16px', flexShrink: 0 }}>💡</span>
+                <div style={{ fontSize: '12px', color: '#92400E', lineHeight: 1.6 }}>
+                  Notebook quantities are pre-set to the official Shivalik book list. You can reduce or increase them. The price updates live. Click the checkbox to remove a type entirely.
+                </div>
+              </div>
             </div>
 
             {/* RIGHT: Order summary */}
@@ -612,8 +786,8 @@ export default function SchoolSetsPage() {
                 <div style={{ background: 'var(--card)', borderRadius: 'var(--r)', border: '2px solid #1D9E75', padding: '28px 24px', textAlign: 'center', boxShadow: 'var(--shadow-lg)' }}>
                   <div style={{ fontSize: '48px', marginBottom: '12px' }}>🎉</div>
                   <h3 className="k" style={{ fontSize: '22px', color: '#1D9E75', marginBottom: '8px' }}>Order Placed!</h3>
-                  <p style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.6, marginBottom: '20px' }}>Your kit order has been confirmed. We've opened WhatsApp to send the details to our team.</p>
-                  <button onClick={() => { setOrdered(false) }} style={{ background: 'var(--green-bg)', color: '#1D9E75', border: '1.5px solid var(--green-border)', borderRadius: '10px', padding: '10px 24px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                  <p style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.6, marginBottom: '20px' }}>Your kit order is confirmed. We've opened WhatsApp to send the details.</p>
+                  <button onClick={() => setOrdered(false)} style={{ background: 'var(--green-bg)', color: '#1D9E75', border: '1.5px solid var(--green-border)', borderRadius: '10px', padding: '10px 24px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
                     Order another class →
                   </button>
                 </div>
@@ -621,58 +795,54 @@ export default function SchoolSetsPage() {
                 <div style={{ background: 'var(--card)', borderRadius: 'var(--r)', border: '1.5px solid var(--border)', padding: '22px', boxShadow: 'var(--shadow-lg)' }}>
                   <h3 className="k" style={{ fontSize: '18px', color: 'var(--text)', marginBottom: '16px' }}>Order Summary</h3>
 
-                  {/* Selected count per section */}
+                  {/* Selected items summary */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-                    {(Object.keys(sectionLabels) as Section[]).map(s => {
+                    {(['ncert', 'pvt', 'stationery'] as Section[]).map(s => {
                       const sec = sectionLabels[s]
                       const checkedItems = checked[s] || []
                       const count = checkedItems.filter(Boolean).length
-                      const secTotal = kit[s].reduce((sum, item, i) => sum + (checkedItems[i] ? item.price : 0), 0)
+                      const secTotal = (kit[s] as any[]).reduce((sum: number, item: any, i: number) => sum + (checkedItems[i] ? item.price : 0), 0)
                       if (count === 0) return null
                       return (
                         <div key={s} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <span style={{ fontSize: '13px' }}>{sec.emoji}</span>
-                            <span style={{ fontSize: '12px', color: 'var(--text-2)' }}>{sec.label} <span style={{ color: 'var(--text-3)' }}>({count})</span></span>
-                          </div>
+                          <span style={{ fontSize: '12px', color: 'var(--text-2)' }}>{sec.emoji} {sec.label} <span style={{ color: 'var(--text-3)' }}>({count})</span></span>
                           <span style={{ fontSize: '13px', fontWeight: '600', color: sec.color }}>₹{secTotal.toLocaleString()}</span>
                         </div>
                       )
                     })}
+                    {/* Notebooks summary */}
+                    {(() => {
+                      const checkedItems = checked.notebooks || []
+                      const count = checkedItems.filter(Boolean).length
+                      const nbTotal = kit.notebooks.reduce((sum, item, i) => sum + (checkedItems[i] ? item.unitPrice * (nbQty[i] || 0) : 0), 0)
+                      const totalNbs = kit.notebooks.reduce((sum, _, i) => sum + (checkedItems[i] ? (nbQty[i] || 0) : 0), 0)
+                      if (count === 0) return null
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '12px', color: 'var(--text-2)' }}>📓 Notebooks <span style={{ color: 'var(--text-3)' }}>({totalNbs} pcs)</span></span>
+                          <span style={{ fontSize: '13px', fontWeight: '600', color: '#F59E0B' }}>₹{nbTotal.toLocaleString()}</span>
+                        </div>
+                      )
+                    })()}
                   </div>
 
                   <div style={{ borderTop: '1px solid var(--border)', paddingTop: '12px', marginBottom: '16px' }}>
-                    {/* Delivery mode */}
                     <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Delivery option</div>
                     <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                      <button className={'delivery-btn' + (deliveryMode === 'pickup' ? ' active' : '')} onClick={() => setDeliveryMode('pickup')}>
-                        🏪 Pickup
-                      </button>
-                      <button className={'delivery-btn' + (deliveryMode === 'delivery' ? ' active' : '')} onClick={() => setDeliveryMode('delivery')}>
-                        🚚 Delivery +₹99
-                      </button>
+                      <button className={'delivery-btn' + (deliveryMode === 'pickup' ? ' active' : '')} onClick={() => setDeliveryMode('pickup')}>🏪 Pickup</button>
+                      <button className={'delivery-btn' + (deliveryMode === 'delivery' ? ' active' : '')} onClick={() => setDeliveryMode('delivery')}>🚚 Delivery +₹99</button>
                     </div>
-
                     {deliveryMode === 'pickup' && (
                       <div style={{ fontSize: '12px', color: 'var(--text-3)', background: 'var(--bg)', borderRadius: '10px', padding: '10px 12px', marginBottom: '12px', lineHeight: 1.5 }}>
                         📍 Pickup from Bedi Book Store, Booth No. 48, Sec-40C, Chandigarh
                       </div>
                     )}
-
                     {deliveryMode === 'delivery' && (
-                      <textarea
-                        value={address}
-                        onChange={e => setAddress(e.target.value)}
-                        placeholder="Enter delivery address…"
-                        rows={2}
-                        style={{ marginBottom: '10px', resize: 'none' }}
-                      />
+                      <textarea value={address} onChange={e => setAddress(e.target.value)} placeholder="Enter delivery address…" rows={2} style={{ marginBottom: '10px', resize: 'none' }} />
                     )}
-
                     <input type="text" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Your WhatsApp number" style={{ marginBottom: '12px' }} />
                   </div>
 
-                  {/* Total */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                     <span style={{ fontSize: '14px', color: 'var(--text-2)' }}>Kit subtotal</span>
                     <span style={{ fontSize: '14px', fontWeight: '600' }}>₹{(total - (deliveryMode === 'delivery' ? 99 : 0)).toLocaleString()}</span>
@@ -699,7 +869,7 @@ export default function SchoolSetsPage() {
                   )}
 
                   <p style={{ fontSize: '11px', color: 'var(--text-3)', textAlign: 'center', marginTop: '10px', lineHeight: 1.5 }}>
-                    Secure payment via Razorpay · No returns policy · Exchange within 10 days with bill
+                    Secure payment via Razorpay · No returns · Exchange within 10 days with bill
                   </p>
                 </div>
               )}
