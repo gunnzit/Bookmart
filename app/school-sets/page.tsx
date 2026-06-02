@@ -346,6 +346,8 @@ export default function SchoolSetsPage() {
   const [ordering, setOrdering] = useState(false)
   const [ordered, setOrdered] = useState(false)
   const [warnModal, setWarnModal] = useState<{ section: Section; idx: number } | null>(null)
+  const [paymentMode, setPaymentMode] = useState<'full' | 'partial'>('full')
+  const [showCheckout, setShowCheckout] = useState(false)
 
   useEffect(() => {
     const kit = kits[selectedClass]
@@ -448,17 +450,30 @@ export default function SchoolSetsPage() {
     return total
   }
 
-  async function handleOrder() {
+  function handlePaymentOptionClick(mode: 'full' | 'partial') {
     if (!isSignedIn) { openSignIn(); return }
     if (deliveryMode === 'delivery' && !address.trim()) { alert('Please enter delivery address'); return }
     if (!phone.trim()) { alert('Please enter your WhatsApp number'); return }
+    setPaymentMode(mode)
+    setShowCheckout(true)
+  }
+
+  async function handleOrder() {
+    setShowCheckout(false)
     setOrdering(true)
     try {
-      const total = calcTotal()
+      const kitTotal = calcTotal()
+      const deliveryFee = deliveryMode === 'delivery' ? 99 : 0
+      const kitSubtotal = kitTotal - deliveryFee
+      const payNow = paymentMode === 'full'
+        ? kitTotal
+        : Math.ceil(kitSubtotal * 0.3) + deliveryFee
+      const payLater = paymentMode === 'full' ? 0 : kitSubtotal - Math.ceil(kitSubtotal * 0.3)
+
       const res = await fetch('/api/payment/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: total * 100, currency: 'INR', receipt: 'kit_class_' + selectedClass }),
+        body: JSON.stringify({ amount: payNow * 100, currency: 'INR', receipt: 'kit_class_' + selectedClass }),
       })
       const order = await res.json()
       if (order.error) { alert('Payment failed: ' + JSON.stringify(order.error)); setOrdering(false); return }
@@ -473,7 +488,16 @@ export default function SchoolSetsPage() {
         image: '/logo.png',
         order_id: order.id,
         handler: async (response: any) => {
-          const msg = '📦 NEW KIT ORDER\nClass ' + selectedClass + ' — ' + SCHOOL + '\nStudent: ' + (user?.fullName || '') + '\nPhone: ' + phone + '\nMode: ' + deliveryMode + (deliveryMode === 'delivery' ? '\nAddress: ' + address : '') + '\nItems:\n' + items.join('\n') + '\nTotal: ₹' + total + '\nPayment ID: ' + response.razorpay_payment_id
+          const msg = '📦 NEW KIT ORDER\nClass ' + selectedClass + ' — ' + SCHOOL
+            + '\nStudent: ' + (user?.fullName || '')
+            + '\nPhone: ' + phone
+            + '\nDelivery: ' + deliveryMode + (deliveryMode === 'delivery' ? '\nAddress: ' + address : '')
+            + '\nPayment: ' + (paymentMode === 'full' ? 'Full payment' : '30% upfront (₹' + Math.ceil(kitSubtotal * 0.3) + '), ₹' + payLater + ' at delivery')
+            + '\nPaid now: ₹' + payNow
+            + (payLater > 0 ? '\nDue at delivery: ₹' + payLater : '')
+            + '\nItems:\n' + items.join('\n')
+            + '\nKit total: ₹' + kitTotal
+            + '\nPayment ID: ' + response.razorpay_payment_id
           window.open('https://wa.me/919914735738?text=' + encodeURIComponent(msg), '_blank')
           setOrdered(true)
         },
@@ -544,6 +568,13 @@ export default function SchoolSetsPage() {
     .sticky-summary { position: sticky; top: 120px; }
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
     .modal-box { background: var(--white); border-radius: 20px; padding: 28px 24px; max-width: 380px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .checkout-modal { background: var(--white); border-radius: 24px; padding: 0; max-width: 420px; width: 100%; box-shadow: 0 24px 80px rgba(0,0,0,0.35); overflow: hidden; }
+    @keyframes modalPop { from { opacity: 0; transform: scale(0.94) translateY(16px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+    .modal-pop { animation: modalPop 0.25s cubic-bezier(0.34,1.56,0.64,1) both; }
+    .pay-opt-btn { width: 100%; border-radius: 14px; padding: 16px; cursor: pointer; display: flex; align-items: center; gap: 14px; transition: all 0.15s; border: 2px solid var(--border); background: var(--card); text-align: left; font-family: 'DM Sans', sans-serif; }
+    .pay-opt-btn:hover { transform: translateY(-2px); }
+    .pay-opt-btn.selected-full { border-color: #1D9E75; background: #E8F7F2; box-shadow: 0 4px 16px rgba(29,158,117,0.2); }
+    .pay-opt-btn.selected-partial { border-color: #3B82F6; background: #EFF6FF; box-shadow: 0 4px 16px rgba(59,130,246,0.2); }
     @keyframes slideDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
     .slide-down { animation: slideDown 0.2s ease; }
     @media (min-width: 900px) { .layout { display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start; } }
@@ -577,11 +608,87 @@ export default function SchoolSetsPage() {
           </div>
         </div>
       )}
+      {/* Checkout modal */}
+      {showCheckout && (() => {
+        const kitTotal = calcTotal()
+        const deliveryFee = deliveryMode === 'delivery' ? 99 : 0
+        const kitSubtotal = kitTotal - deliveryFee
+        const upfront = Math.ceil(kitSubtotal * 0.3) + deliveryFee
+        const atDelivery = kitSubtotal - Math.ceil(kitSubtotal * 0.3)
+        const payNow = paymentMode === 'full' ? kitTotal : upfront
+        return (
+          <div className="modal-overlay" onClick={() => setShowCheckout(false)}>
+            <div className="checkout-modal modal-pop" onClick={e => e.stopPropagation()}>
+              {/* Header */}
+              <div style={{ background: 'linear-gradient(135deg, #1B2A4A 0%, #1D9E75 100%)', padding: '24px 24px 20px', position: 'relative', overflow: 'hidden' }}>
+                <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(255,255,255,0.07)' }} />
+                <div style={{ fontSize: '36px', marginBottom: '8px' }}>🎒</div>
+                <h2 className="k" style={{ fontSize: '22px', color: '#fff', marginBottom: '4px' }}>Ready to checkout?</h2>
+                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>Class {selectedClass} Kit · {SCHOOL}</p>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '10px' }}>
+                  <span className="k" style={{ fontSize: '32px', color: '#fff' }}>₹{kitTotal.toLocaleString()}</span>
+                  <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>total kit value</span>
+                </div>
+              </div>
+
+              {/* Payment options */}
+              <div style={{ padding: '20px 24px' }}>
+                <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Choose payment option</div>
+
+                {/* Full payment */}
+                <button className={'pay-opt-btn' + (paymentMode === 'full' ? ' selected-full' : '')} onClick={() => setPaymentMode('full')} style={{ marginBottom: '10px' }}>
+                  <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: paymentMode === 'full' ? '#1D9E75' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0, transition: 'background 0.15s' }}>💳</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '14px', fontWeight: '700', color: paymentMode === 'full' ? '#1D9E75' : 'var(--text)', marginBottom: '3px' }}>Pay full amount</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>Pay ₹{kitTotal.toLocaleString()} now. Kit assembled immediately.</div>
+                  </div>
+                  <div className="k" style={{ fontSize: '20px', color: paymentMode === 'full' ? '#1D9E75' : 'var(--text-3)', flexShrink: 0 }}>₹{kitTotal.toLocaleString()}</div>
+                </button>
+
+                {/* Partial payment */}
+                <button className={'pay-opt-btn' + (paymentMode === 'partial' ? ' selected-partial' : '')} onClick={() => setPaymentMode('partial')} style={{ marginBottom: '16px', position: 'relative' }}>
+                  <div style={{ position: 'absolute', top: '-8px', right: '12px', background: 'linear-gradient(135deg, #3B82F6, #8B5CF6)', color: '#fff', fontSize: '10px', fontWeight: '800', padding: '3px 10px', borderRadius: '99px', letterSpacing: '0.5px' }}>POPULAR</div>
+                  <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: paymentMode === 'partial' ? '#3B82F6' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0, transition: 'background 0.15s' }}>🤝</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '14px', fontWeight: '700', color: paymentMode === 'partial' ? '#3B82F6' : 'var(--text)', marginBottom: '3px' }}>Pay 30% now</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-3)', lineHeight: 1.5 }}>Pay ₹{upfront.toLocaleString()} now to confirm. Pay ₹{atDelivery.toLocaleString()} at {deliveryMode === 'pickup' ? 'pickup' : 'delivery'}.</div>
+                  </div>
+                  <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                    <div className="k" style={{ fontSize: '18px', color: paymentMode === 'partial' ? '#3B82F6' : 'var(--text-3)' }}>₹{upfront.toLocaleString()}</div>
+                    <div style={{ fontSize: '10px', color: 'var(--text-3)' }}>now</div>
+                  </div>
+                </button>
+
+                {/* Summary line */}
+                <div style={{ background: paymentMode === 'full' ? '#E8F7F2' : '#EFF6FF', borderRadius: '12px', padding: '12px 14px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: '16px' }}>{paymentMode === 'full' ? '✅' : 'ℹ️'}</span>
+                  <div style={{ fontSize: '12px', color: paymentMode === 'full' ? '#065F46' : '#1E40AF', lineHeight: 1.5 }}>
+                    {paymentMode === 'full'
+                      ? 'You pay ₹' + kitTotal.toLocaleString() + ' now. Kit will be assembled right away.'
+                      : 'You pay ₹' + upfront.toLocaleString() + ' now to book your kit. Remaining ₹' + atDelivery.toLocaleString() + ' at ' + (deliveryMode === 'pickup' ? 'pickup' : 'delivery') + '.'}
+                  </div>
+                </div>
+
+                {/* Checkout button */}
+                <button onClick={handleOrder} disabled={ordering}
+                  style={{ width: '100%', background: paymentMode === 'full' ? 'linear-gradient(135deg,#1D9E75,#157A5A)' : 'linear-gradient(135deg,#3B82F6,#1D4ED8)', color: '#fff', border: 'none', borderRadius: '14px', padding: '16px', fontSize: '16px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', boxShadow: paymentMode === 'full' ? '0 6px 24px rgba(29,158,117,0.4)' : '0 6px 24px rgba(59,130,246,0.4)', transition: 'all 0.2s', marginBottom: '10px' }}>
+                  {ordering ? 'Opening payment…' : paymentMode === 'full' ? '✅ Pay ₹' + kitTotal.toLocaleString() + ' & Confirm' : '🤝 Pay ₹' + upfront.toLocaleString() + ' to Book Kit'}
+                </button>
+
+                <button onClick={() => setShowCheckout(false)}
+                  style={{ width: '100%', background: 'none', border: 'none', color: 'var(--text-3)', fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', padding: '8px' }}>
+                  ← Go back and edit
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+
+
 
       <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-
-        {/* Nav */}
-        <nav className="nav">
           <button onClick={() => router.push('/marketplace')} style={{ background: 'none', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '6px 10px', cursor: 'pointer', color: 'var(--text-2)', display: 'flex', alignItems: 'center' }}>
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
@@ -859,9 +966,31 @@ export default function SchoolSetsPage() {
                   </div>
 
                   {isSignedIn ? (
-                    <button className="order-btn" onClick={handleOrder} disabled={ordering || total === 0}>
-                      {ordering ? 'Processing…' : '🎒 Order Class ' + selectedClass + ' Kit'}
-                    </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {/* Full payment button */}
+                      <button onClick={() => handlePaymentOptionClick('full')} disabled={ordering || total === 0}
+                        style={{ width: '100%', background: 'linear-gradient(135deg, #1D9E75, #157A5A)', color: '#fff', border: 'none', borderRadius: '12px', padding: '14px 16px', fontSize: '14px', fontWeight: '700', cursor: total === 0 ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: total === 0 ? 0.5 : 1, boxShadow: '0 4px 16px rgba(29,158,117,0.3)', transition: 'all 0.15s' }}>
+                        <span>💳 Pay full amount</span>
+                        <span className="k" style={{ fontSize: '16px' }}>₹{total.toLocaleString()}</span>
+                      </button>
+                      {/* Partial payment button */}
+                      {(() => {
+                        const deliveryFee = deliveryMode === 'delivery' ? 99 : 0
+                        const kitSubtotal = total - deliveryFee
+                        const upfront = Math.ceil(kitSubtotal * 0.3) + deliveryFee
+                        const atDelivery = kitSubtotal - Math.ceil(kitSubtotal * 0.3)
+                        return (
+                          <button onClick={() => handlePaymentOptionClick('partial')} disabled={ordering || total === 0}
+                            style={{ width: '100%', background: 'linear-gradient(135deg, #EFF6FF, #DBEAFE)', color: '#1D4ED8', border: '2px solid #BFDBFE', borderRadius: '12px', padding: '14px 16px', fontSize: '14px', fontWeight: '700', cursor: total === 0 ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: total === 0 ? 0.5 : 1, transition: 'all 0.15s', position: 'relative' }}>
+                            <div style={{ textAlign: 'left' }}>
+                              <div>🤝 Pay 30% now</div>
+                              <div style={{ fontSize: '11px', color: '#3B82F6', fontWeight: '500', marginTop: '2px' }}>₹{atDelivery.toLocaleString()} at {deliveryMode === 'pickup' ? 'pickup' : 'delivery'}</div>
+                            </div>
+                            <span className="k" style={{ fontSize: '16px' }}>₹{upfront.toLocaleString()}</span>
+                          </button>
+                        )
+                      })()}
+                    </div>
                   ) : (
                     <SignInButton mode="modal">
                       <button className="order-btn">Sign in to order →</button>
@@ -877,7 +1006,6 @@ export default function SchoolSetsPage() {
 
           </div>
         </div>
-      </div>
     </>
   )
 }
