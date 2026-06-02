@@ -270,6 +270,10 @@ export default function LandingPage() {
               </form>
 
               <div className="fu fu3" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '24px' }}>
+                <button className="btn-ghost" onClick={() => router.push('/school-sets')}
+  style={{ background: 'linear-gradient(135deg,#EFF6FF,#F5F3FF)', border: '1.5px solid #BFDBFE', borderRadius: '10px', padding: '8px 14px', fontSize: '13px', fontWeight: '700', color: '#1D4ED8' }}>
+  🎒 School Sets
+</button>
                 <button className="btn-p" style={{ fontSize: '15px', padding: '12px 22px' }} onClick={() => router.push('/marketplace')}>Browse listings →</button>
                 {isSignedIn
                   ? <button className="btn-o" style={{ fontSize: '15px', padding: '11px 20px' }} onClick={() => router.push('/sell')}>Sell your books</button>

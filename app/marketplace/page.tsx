@@ -142,7 +142,7 @@ export default function Marketplace() {
         .listing-img { transition: transform 0.4s ease; }
         .card:hover .listing-img { transform: scale(1.07); }
         .sell-btn { transition: all 0.15s ease; }
-        .sell-btn:hover { transform: scale(1.04); box-shadow: 0 6px 20px rgba(29,158,117,0.35) !important; }
+        .sell-btn:hover { transform: scale(1.04); }
         .cat-chip { transition: all 0.15s ease; cursor: pointer; }
         .cat-chip:hover { transform: translateY(-1px); }
         .sort-opt:hover { background: var(--bg-img) !important; }
@@ -245,8 +245,12 @@ export default function Marketplace() {
           <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
             {isSignedIn ? (
               <>
+                <button onClick={() => router.push('/school-sets')}
+                  style={{ background: 'linear-gradient(135deg, #EFF6FF, #E8F7F2)', border: '1.5px solid #BFDBFE', borderRadius: '10px', padding: '7px 12px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', color: '#1D4ED8', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  🎒 School Sets
+                </button>
                 <button onClick={() => router.push('/requests')}
-                  style={{ background: 'var(--bg-input)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '8px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: 'var(--text-secondary)', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  style={{ background: 'var(--bg-input)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '7px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: 'var(--text-secondary)', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap', flexShrink: 0 }}>
                   📋 Requests
                 </button>
                 <span onClick={() => router.push('/profile')} style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#E1F5EE', color: '#0F6E56', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', border: '1.5px solid #B2E8D6', flexShrink: 0 }}>
@@ -267,7 +271,7 @@ export default function Marketplace() {
           </div>
         </nav>
 
-        {/* Hero banner — colorful gradient based on active category */}
+        {/* Hero banner — color shifts with active category */}
         <div className="hero-section" style={{ background: activeCat === 'All' ? 'linear-gradient(135deg, #1B2A4A 0%, #0F6E56 100%)' : 'linear-gradient(135deg, ' + activeCatStyle.dark + ' 0%, ' + activeCatStyle.color + ' 100%)', padding: '28px 24px 32px', position: 'relative', overflow: 'hidden', transition: 'background 0.4s ease' }}>
           <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '140px', height: '140px', background: 'rgba(255,255,255,0.06)', borderRadius: '50%' }} />
           <div style={{ position: 'absolute', bottom: '-40px', left: '40%', width: '100px', height: '100px', background: 'rgba(255,255,255,0.04)', borderRadius: '50%' }} />
@@ -282,21 +286,27 @@ export default function Marketplace() {
               </h1>
               <p className="hero-subtitle" style={{ fontSize: '13px', color: 'rgba(255,255,255,0.65)', lineHeight: 1.5 }}>Second-hand books & stationery from students in Chandigarh</p>
             </div>
-            {isSignedIn ? (
-              <button onClick={() => router.push('/sell')} style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: '12px', padding: '10px 20px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', flexShrink: 0, whiteSpace: 'nowrap', backdropFilter: 'blur(8px)' }}>
-                + Sell now
+            <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+              <button onClick={() => router.push('/school-sets')}
+                style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: '12px', padding: '10px 16px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', whiteSpace: 'nowrap', backdropFilter: 'blur(8px)' }}>
+                🎒 School Sets
               </button>
-            ) : (
-              <SignInButton mode="modal">
-                <button style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1.5px solid rgba(255,255,255,0.25)', borderRadius: '12px', padding: '10px 20px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', flexShrink: 0, whiteSpace: 'nowrap', backdropFilter: 'blur(8px)' }}>
-                  Sign in to sell
+              {isSignedIn ? (
+                <button onClick={() => router.push('/sell')} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '12px', padding: '10px 18px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', boxShadow: '0 4px 16px rgba(29,158,117,0.4)', whiteSpace: 'nowrap' }}>
+                  + Sell now
                 </button>
-              </SignInButton>
-            )}
+              ) : (
+                <SignInButton mode="modal">
+                  <button style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1.5px solid rgba(255,255,255,0.25)', borderRadius: '12px', padding: '10px 18px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap', backdropFilter: 'blur(8px)' }}>
+                    Sign in to sell
+                  </button>
+                </SignInButton>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Filters bar — colored active chip */}
+        {/* Filters bar */}
         <div className="filters-bar" style={{ background: 'var(--nav-bg)', borderBottom: '1.5px solid var(--border)', padding: '10px 16px', display: 'flex', gap: '8px', alignItems: 'center', overflowX: 'auto', WebkitOverflowScrolling: 'touch' as any, position: 'sticky', top: '56px', zIndex: 40 }}>
           <div style={{ display: 'flex', gap: '6px', flex: 1, overflowX: 'auto' }}>
             {cats.map(cat => {
@@ -330,7 +340,7 @@ export default function Marketplace() {
           <div style={{ width: '1px', height: '24px', background: 'var(--border)', flexShrink: 0 }} />
           <div ref={sortRef} style={{ position: 'relative', flexShrink: 0 }}>
             <button onClick={() => setShowSortMenu(!showSortMenu)}
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', border: '1.5px solid var(--border)', borderRadius: '99px', background: sortBy !== 'Newest' ? '#E1F5EE' : 'var(--bg-input)', color: sortBy !== 'Newest' ? '#0F6E56' : 'var(--text-secondary)', fontSize: '12px', fontWeight: '500', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', border: '1.5px solid var(--border)', borderRadius: '99px', background: sortBy !== 'Newest' ? '#E1F5EE' : 'var(--bg-input)', color: sortBy !== 'Newest' ? '#0F6E56' : 'var(--text-secondary)', fontSize: '12px', fontWeight: '500', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap' }}>
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 3h10M3 6h6M5 9h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
               {sortBy}
               <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style={{ transform: showSortMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}><path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
@@ -339,7 +349,7 @@ export default function Marketplace() {
               <div style={{ position: 'absolute', top: '36px', right: 0, background: 'var(--nav-bg)', border: '1.5px solid var(--border)', borderRadius: '14px', boxShadow: '0 8px 32px rgba(27,42,74,0.12)', zIndex: 100, overflow: 'hidden', minWidth: '160px' }}>
                 {sortOptions.map(opt => (
                   <div key={opt} className="sort-opt" onClick={() => { setSortBy(opt); setShowSortMenu(false) }}
-                    style={{ padding: '10px 16px', cursor: 'pointer', fontSize: '13px', color: sortBy === opt ? '#1D9E75' : 'var(--text-primary)', fontWeight: sortBy === opt ? '600' : '400', display: 'flex', alignItems: 'center', gap: '8px', transition: 'background 0.1s' }}>
+                    style={{ padding: '10px 16px', cursor: 'pointer', fontSize: '13px', color: sortBy === opt ? '#1D9E75' : 'var(--text-primary)', fontWeight: sortBy === opt ? '600' : '400', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     {sortBy === opt && <span style={{ color: '#1D9E75' }}>✓</span>}
                     {opt}
                   </div>
@@ -355,10 +365,27 @@ export default function Marketplace() {
           )}
         </div>
 
-        {/* Book Request Banner */}
+        {/* School Sets banner */}
         <div style={{ padding: '16px 16px 0', maxWidth: '1200px', margin: '0 auto' }}>
+          <div onClick={() => router.push('/school-sets')}
+            style={{ background: 'linear-gradient(135deg, #EFF6FF, #F5F3FF)', border: '1.5px solid #BFDBFE', borderRadius: '16px', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', gap: '12px', marginBottom: '10px', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 2px 12px rgba(59,130,246,0.08)' }}
+            onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-1px)'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 6px 24px rgba(59,130,246,0.15)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.transform = 'none'; (e.currentTarget as HTMLDivElement).style.boxShadow = '0 2px 12px rgba(59,130,246,0.08)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '28px', flexShrink: 0 }}>🎒</span>
+              <div>
+                <div style={{ fontSize: '13px', fontWeight: '700', color: '#1E40AF' }}>New: School Kits for Shivalik Public School</div>
+                <div className="request-banner-text" style={{ fontSize: '12px', color: '#3B82F6', marginTop: '2px' }}>Complete Class 1–10 book + stationery kits · Delivery available · Order now</div>
+              </div>
+            </div>
+            <div style={{ background: '#3B82F6', color: '#fff', borderRadius: '10px', padding: '8px 16px', fontSize: '12px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0, boxShadow: '0 3px 10px rgba(59,130,246,0.3)' }}>
+              Order kit →
+            </div>
+          </div>
+
+          {/* Book Request banner */}
           <div className="request-banner" onClick={() => router.push('/requests')}
-            style={{ background: 'linear-gradient(135deg, #E1F5EE, #EFF6FF)', border: '1.5px solid #C0E8D8', borderRadius: '16px', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', gap: '12px', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 2px 12px rgba(29,158,117,0.08)' }}>
+            style={{ background: 'linear-gradient(135deg, #E1F5EE, #D1FAE5)', border: '1.5px solid #A7F3D0', borderRadius: '16px', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', gap: '12px', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 2px 12px rgba(29,158,117,0.08)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ fontSize: '28px', flexShrink: 0 }}>🔍</span>
               <div>
@@ -415,49 +442,27 @@ export default function Marketplace() {
                 return (
                   <div key={l.id} className="card fade-up"
                     onClick={() => window.location.href = '/listing/' + l.id}
-                    style={{
-                      background: 'var(--bg-card)',
-                      borderRadius: '18px',
-                      border: isFeatured ? '2px solid #F59E0B' : '1.5px solid var(--border)',
-                      overflow: 'hidden',
-                      cursor: 'pointer',
-                      boxShadow: isFeatured ? '0 4px 20px rgba(245,158,11,0.2)' : 'var(--shadow-card)',
-                      animationDelay: `${Math.min(idx * 0.04, 0.4)}s`,
-                      position: 'relative',
-                    }}>
-
-                    {/* Category color strip at top */}
+                    style={{ background: 'var(--bg-card)', borderRadius: '18px', border: isFeatured ? '2px solid #F59E0B' : '1.5px solid var(--border)', overflow: 'hidden', cursor: 'pointer', boxShadow: isFeatured ? '0 4px 20px rgba(245,158,11,0.2)' : 'var(--shadow-card)', animationDelay: `${Math.min(idx * 0.04, 0.4)}s`, position: 'relative' }}>
                     <div style={{ height: '3px', background: c.color, width: '100%' }} />
-
                     <div className="listing-card-img" style={{ height: '137px', background: l.images?.[0] ? 'var(--bg-img)' : c.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '44px', position: 'relative', overflow: 'hidden' }}>
                       {l.images?.[0]
                         ? <img className="listing-img" src={l.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         : <span className="listing-img float" style={{ display: 'block', animationDelay: `${idx * 0.2}s`, filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.12))' }}>{l.emoji}</span>}
-
-                      {/* Condition badge */}
                       <span style={{ position: 'absolute', top: '8px', left: '8px', fontSize: '9px', background: cond.bg, color: cond.color, padding: '2px 8px', borderRadius: '99px', fontWeight: '700', backdropFilter: 'blur(4px)' }}>{l.condition}</span>
-
-                      {/* Discount badge */}
                       {discount >= 20 && !l.sold && (
                         <span style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '9px', background: 'linear-gradient(135deg, #FF6B35, #E24B4A)', color: '#fff', padding: '2px 7px', borderRadius: '99px', fontWeight: '700' }}>-{discount}%</span>
                       )}
-
-                      {/* Featured badge */}
                       {isFeatured && (
                         <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'linear-gradient(135deg, #F59E0B, #D97706)', color: '#fff', fontSize: '9px', fontWeight: '800', padding: '3px 8px', borderRadius: '99px', display: 'flex', alignItems: 'center', gap: '3px', boxShadow: '0 2px 8px rgba(245,158,11,0.5)', zIndex: 2 }}>
                           ⭐ FEATURED
                         </div>
                       )}
-
-                      {/* Sold overlay */}
                       {l.sold && (
                         <div style={{ position: 'absolute', inset: 0, background: 'rgba(27,42,74,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <span className="logo-text" style={{ color: '#fff', fontSize: '17px', letterSpacing: '3px' }}>SOLD</span>
                         </div>
                       )}
                     </div>
-
-                    {/* Card body */}
                     <div className="listing-card-body" style={{ padding: '11px 13px' }}>
                       <div className="listing-card-title" style={{ fontSize: '13px', fontWeight: '600', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: l.sold ? 'var(--text-muted)' : 'var(--text-primary)' }}>{l.title}</div>
                       <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '7px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.subtitle || l.seller?.name}</div>
@@ -485,9 +490,9 @@ export default function Marketplace() {
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
             Browse
           </button>
-          <button className="bottom-nav-btn" onClick={() => router.push('/requests')}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-            Requests
+          <button className="bottom-nav-btn" onClick={() => router.push('/school-sets')}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            Kits
           </button>
           <button className="bottom-nav-btn" onClick={() => requireAuth(() => { window.location.href = '/sell' })} style={{ color: '#1D9E75' }}>
             <div style={{ width: '40px', height: '40px', background: '#1D9E75', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '-4px', boxShadow: '0 4px 12px rgba(29,158,117,0.4)' }}>
