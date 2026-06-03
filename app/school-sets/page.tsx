@@ -5,8 +5,13 @@ import { useUser, SignInButton, useClerk } from '@clerk/nextjs'
 
 const SCHOOL = 'Shivalik Public School'
 
-// Notebook items have unitPrice + recommended quantity
-// Books and stationery have flat price only
+// Kit photos — replace null with '/kit-photos/class-1.jpg' etc after you take photos
+// Recommended: flat-lay photo of all books + stationery spread out
+const kitPhotos: Record<number, string | null> = {
+  1: null, 2: null, 3: null, 4: null, 5: null,
+  6: null, 7: null, 8: null, 9: null, 10: null,
+}
+
 const kits: Record<number, {
   ncert: { name: string; price: number }[]
   pvt: { name: string; price: number }[]
@@ -324,11 +329,108 @@ const kits: Record<number, {
 
 type Section = 'ncert' | 'pvt' | 'notebooks' | 'stationery'
 
-const sectionLabels: Record<Section, { label: string; emoji: string; color: string; bg: string; border: string }> = {
-  ncert:      { label: 'NCERT Books',    emoji: '📗', color: '#1D9E75', bg: '#E8F7F2', border: '#C0E8D8' },
-  pvt:        { label: 'Private Books',  emoji: '📘', color: '#3B82F6', bg: '#EFF6FF', border: '#BFDBFE' },
-  notebooks:  { label: 'Notebooks',      emoji: '📓', color: '#F59E0B', bg: '#FFFBEB', border: '#FDE68A' },
-  stationery: { label: 'Stationery',     emoji: '✏️', color: '#8B5CF6', bg: '#F5F3FF', border: '#DDD6FE' },
+const sectionLabels: Record<Section, { label: string; emoji: string; color: string; bg: string; border: string; illoColor: string }> = {
+  ncert:      { label: 'NCERT Books',    emoji: '📗', color: '#1D9E75', bg: '#E8F7F2', border: '#C0E8D8', illoColor: '#1D9E75' },
+  pvt:        { label: 'Private Books',  emoji: '📘', color: '#3B82F6', bg: '#EFF6FF', border: '#BFDBFE', illoColor: '#3B82F6' },
+  notebooks:  { label: 'Notebooks',      emoji: '📓', color: '#F59E0B', bg: '#FFFBEB', border: '#FDE68A', illoColor: '#F59E0B' },
+  stationery: { label: 'Stationery',     emoji: '✏️', color: '#8B5CF6', bg: '#F5F3FF', border: '#DDD6FE', illoColor: '#8B5CF6' },
+}
+
+// SVG illustrations for each section header
+function BooksIllo({ color }: { color: string }) {
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      <rect x="6" y="10" width="10" height="28" rx="2" fill={color} opacity="0.9"/>
+      <rect x="7" y="10" width="2" height="28" fill="white" opacity="0.2"/>
+      <rect x="18" y="14" width="10" height="24" rx="2" fill={color} opacity="0.7"/>
+      <rect x="19" y="14" width="2" height="24" fill="white" opacity="0.2"/>
+      <rect x="30" y="8" width="12" height="30" rx="2" fill={color} opacity="0.85"/>
+      <rect x="31" y="8" width="2" height="30" fill="white" opacity="0.2"/>
+      <line x1="8" y1="22" x2="14" y2="22" stroke="white" strokeWidth="1" opacity="0.3"/>
+      <line x1="8" y1="26" x2="14" y2="26" stroke="white" strokeWidth="1" opacity="0.3"/>
+      <line x1="32" y1="18" x2="40" y2="18" stroke="white" strokeWidth="1" opacity="0.3"/>
+      <line x1="32" y1="22" x2="40" y2="22" stroke="white" strokeWidth="1" opacity="0.3"/>
+    </svg>
+  )
+}
+
+function PvtBooksIllo({ color }: { color: string }) {
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      <rect x="8" y="8" width="32" height="24" rx="3" fill={color} opacity="0.15" stroke={color} strokeWidth="1.5"/>
+      <rect x="8" y="8" width="32" height="6" rx="2" fill={color} opacity="0.7"/>
+      <line x1="12" y1="20" x2="36" y2="20" stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.5"/>
+      <line x1="12" y1="24" x2="30" y2="24" stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.5"/>
+      <line x1="12" y1="28" x2="33" y2="28" stroke={color} strokeWidth="1.5" strokeLinecap="round" opacity="0.5"/>
+      <rect x="14" y="34" width="20" height="6" rx="2" fill={color} opacity="0.3"/>
+      <text x="24" y="39" textAnchor="middle" fontSize="6" fill={color} fontWeight="bold" opacity="0.8">PRIVATE</text>
+    </svg>
+  )
+}
+
+function NotebookIllo({ color }: { color: string }) {
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      <rect x="10" y="8" width="28" height="32" rx="3" fill={color} opacity="0.15" stroke={color} strokeWidth="1.5"/>
+      <rect x="10" y="8" width="5" height="32" rx="2" fill={color} opacity="0.5"/>
+      <circle cx="12.5" cy="16" r="1.5" fill="white"/>
+      <circle cx="12.5" cy="24" r="1.5" fill="white"/>
+      <circle cx="12.5" cy="32" r="1.5" fill="white"/>
+      <line x1="19" y1="16" x2="34" y2="16" stroke={color} strokeWidth="1" strokeLinecap="round" opacity="0.5"/>
+      <line x1="19" y1="20" x2="34" y2="20" stroke={color} strokeWidth="1" strokeLinecap="round" opacity="0.5"/>
+      <line x1="19" y1="24" x2="34" y2="24" stroke={color} strokeWidth="1" strokeLinecap="round" opacity="0.5"/>
+      <line x1="19" y1="28" x2="30" y2="28" stroke={color} strokeWidth="1" strokeLinecap="round" opacity="0.5"/>
+      <line x1="19" y1="32" x2="34" y2="32" stroke={color} strokeWidth="1" strokeLinecap="round" opacity="0.5"/>
+    </svg>
+  )
+}
+
+function StationeryIllo({ color }: { color: string }) {
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+      {/* Pencil */}
+      <rect x="10" y="12" width="6" height="24" rx="1" fill={color} opacity="0.8" transform="rotate(-15 13 24)"/>
+      <polygon points="10,36 16,36 13,42" fill={color} opacity="0.6" transform="rotate(-15 13 24)"/>
+      <rect x="10" y="12" width="6" height="5" rx="1" fill="white" opacity="0.4" transform="rotate(-15 13 24)"/>
+      {/* Ruler */}
+      <rect x="22" y="10" width="5" height="28" rx="1" fill={color} opacity="0.5" transform="rotate(10 24 24)"/>
+      <line x1="23" y1="14" x2="26" y2="14" stroke="white" strokeWidth="1" opacity="0.5" transform="rotate(10 24 24)"/>
+      <line x1="23" y1="18" x2="26" y2="18" stroke="white" strokeWidth="1" opacity="0.5" transform="rotate(10 24 24)"/>
+      <line x1="23" y1="22" x2="26" y2="22" stroke="white" strokeWidth="1" opacity="0.5" transform="rotate(10 24 24)"/>
+      {/* Eraser */}
+      <rect x="32" y="28" width="10" height="8" rx="2" fill={color} opacity="0.6"/>
+      <rect x="32" y="28" width="4" height="8" rx="2" fill={color} opacity="0.9"/>
+    </svg>
+  )
+}
+
+// Kit hero photo placeholder SVG
+function KitPhotoPlaceholder({ cls }: { cls: number }) {
+  const colors = ['#3B82F6', '#8B5CF6', '#1D9E75', '#F59E0B', '#EC4899', '#06B6D4', '#F97316', '#3B82F6', '#8B5CF6', '#1D9E75']
+  const c = colors[(cls - 1) % colors.length]
+  return (
+    <svg viewBox="0 0 400 220" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
+      <rect width="400" height="220" fill={c} opacity="0.08"/>
+      {/* Decorative books */}
+      <rect x="40" y="60" width="28" height="100" rx="4" fill={c} opacity="0.15"/>
+      <rect x="42" y="60" width="5" height="100" fill={c} opacity="0.3"/>
+      <rect x="75" y="80" width="28" height="80" rx="4" fill={c} opacity="0.12"/>
+      <rect x="77" y="80" width="5" height="80" fill={c} opacity="0.25"/>
+      <rect x="110" y="50" width="32" height="110" rx="4" fill={c} opacity="0.18"/>
+      <rect x="112" y="50" width="6" height="110" fill={c} opacity="0.35"/>
+      <rect x="250" y="65" width="28" height="95" rx="4" fill={c} opacity="0.15"/>
+      <rect x="252" y="65" width="5" height="95" fill={c} opacity="0.3"/>
+      <rect x="285" y="75" width="24" height="85" rx="4" fill={c} opacity="0.12"/>
+      <rect x="315" y="55" width="30" height="105" rx="4" fill={c} opacity="0.18"/>
+      {/* Center content */}
+      <rect x="155" y="75" width="90" height="70" rx="8" fill={c} opacity="0.1" stroke={c} strokeWidth="1.5" strokeDasharray="4 3"/>
+      <text x="200" y="105" textAnchor="middle" fontSize="24" fill={c} opacity="0.4">📸</text>
+      <text x="200" y="128" textAnchor="middle" fontSize="11" fill={c} opacity="0.5" fontFamily="sans-serif" fontWeight="600">Photo coming soon</text>
+      {/* Class badge */}
+      <rect x="160" y="170" width="80" height="28" rx="14" fill={c} opacity="0.15"/>
+      <text x="200" y="189" textAnchor="middle" fontSize="13" fill={c} opacity="0.7" fontFamily="sans-serif" fontWeight="700">Class {cls} Kit</text>
+    </svg>
+  )
 }
 
 export default function SchoolSetsPage() {
@@ -339,7 +441,7 @@ export default function SchoolSetsPage() {
   const [selectedClass, setSelectedClass] = useState<number>(1)
   const [openSections, setOpenSections] = useState<Record<Section, boolean>>({ ncert: true, pvt: true, notebooks: true, stationery: true })
   const [checked, setChecked] = useState<Record<Section, boolean[]>>({} as any)
-  const [nbQty, setNbQty] = useState<number[]>([]) // quantity per notebook item
+  const [nbQty, setNbQty] = useState<number[]>([])
   const [deliveryMode, setDeliveryMode] = useState<'pickup' | 'delivery'>('pickup')
   const [address, setAddress] = useState('')
   const [phone, setPhone] = useState('')
@@ -348,6 +450,7 @@ export default function SchoolSetsPage() {
   const [warnModal, setWarnModal] = useState<{ section: Section; idx: number } | null>(null)
   const [paymentMode, setPaymentMode] = useState<'full' | 'partial'>('full')
   const [showCheckout, setShowCheckout] = useState(false)
+  const [photoExpanded, setPhotoExpanded] = useState(false)
 
   useEffect(() => {
     const kit = kits[selectedClass]
@@ -359,6 +462,7 @@ export default function SchoolSetsPage() {
     })
     setNbQty(kit.notebooks.map(n => n.qty))
     setOrdered(false)
+    setPhotoExpanded(false)
   }, [selectedClass])
 
   const kit = kits[selectedClass]
@@ -367,13 +471,10 @@ export default function SchoolSetsPage() {
     setOpenSections(prev => ({ ...prev, [s]: !prev[s] }))
   }
 
-  // For books/stationery: clicking unchecked item → warn; clicking checked → just uncheck
   function handleCheckClick(s: Section, i: number) {
     if (checked[s]?.[i]) {
-      // Already checked → show warning before unchecking
       setWarnModal({ section: s, idx: i })
     } else {
-      // Currently unchecked → re-check directly, no warning
       setChecked(prev => {
         const arr = [...prev[s]]
         arr[i] = true
@@ -395,7 +496,6 @@ export default function SchoolSetsPage() {
 
   function toggleAll(s: Section, val: boolean) {
     if (!val) {
-      // Unchecking all — warn
       if (!window.confirm('This will remove all ' + sectionLabels[s].label + ' from your kit. These are listed in the official book list. Are you sure?')) return
     }
     setChecked(prev => ({ ...prev, [s]: prev[s].map(() => val) }))
@@ -404,7 +504,7 @@ export default function SchoolSetsPage() {
   function setQty(i: number, val: number) {
     if (val < 0) return
     const recommended = kit.notebooks[i].qty
-    if (val > recommended * 2) return // cap at 2x recommended
+    if (val > recommended * 2) return
     const newQty = [...nbQty]
     newQty[i] = val
     setNbQty(newQty)
@@ -419,7 +519,6 @@ export default function SchoolSetsPage() {
         if (checked[s]?.[i]) total += item.price
       })
     })
-    // Notebooks: unitPrice × qty
     kit.notebooks.forEach((item, i) => {
       if (checked.notebooks?.[i]) total += item.unitPrice * (nbQty[i] || 0)
     })
@@ -465,9 +564,7 @@ export default function SchoolSetsPage() {
       const kitTotal = calcTotal()
       const deliveryFee = deliveryMode === 'delivery' ? 99 : 0
       const kitSubtotal = kitTotal - deliveryFee
-      const payNow = paymentMode === 'full'
-        ? kitTotal
-        : Math.ceil(kitSubtotal * 0.3) + deliveryFee
+      const payNow = paymentMode === 'full' ? kitTotal : Math.ceil(kitSubtotal * 0.3) + deliveryFee
       const payLater = paymentMode === 'full' ? 0 : kitSubtotal - Math.ceil(kitSubtotal * 0.3)
 
       const res = await fetch('/api/payment/create-order', {
@@ -488,7 +585,6 @@ export default function SchoolSetsPage() {
         image: '/logo.png',
         order_id: order.id,
         handler: async (response: any) => {
-          // Save to database via verify route
           await fetch('/api/payment/verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -497,34 +593,22 @@ export default function SchoolSetsPage() {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
               kitData: {
-                school: SCHOOL,
-                class: selectedClass,
-                items,
-                kitSubtotal,
-                deliveryFee,
-                totalAmount: kitTotal,
-                paidNow: payNow,
-                payLater,
-                paymentMode,
-                deliveryMode,
+                school: SCHOOL, class: selectedClass, items,
+                kitSubtotal, deliveryFee, totalAmount: kitTotal,
+                paidNow: payNow, payLater, paymentMode, deliveryMode,
                 address: address || null,
                 buyerName: user?.fullName || '',
                 buyerEmail: user?.primaryEmailAddress?.emailAddress || '',
-                buyerPhone: phone,
-                buyerClerkId: user?.id || '',
+                buyerPhone: phone, buyerClerkId: user?.id || '',
               }
             }),
           })
-          // Also notify via WhatsApp
           const msg = '📦 NEW KIT ORDER\nClass ' + selectedClass + ' — ' + SCHOOL
-            + '\nStudent: ' + (user?.fullName || '')
-            + '\nPhone: ' + phone
+            + '\nStudent: ' + (user?.fullName || '') + '\nPhone: ' + phone
             + '\nDelivery: ' + deliveryMode + (deliveryMode === 'delivery' ? '\nAddress: ' + address : '')
-            + '\nPayment: ' + (paymentMode === 'full' ? 'Full payment' : '30% upfront (₹' + Math.ceil(kitSubtotal * 0.3) + '), ₹' + payLater + ' at delivery')
-            + '\nPaid now: ₹' + payNow
-            + (payLater > 0 ? '\nDue at delivery: ₹' + payLater : '')
-            + '\nItems:\n' + items.join('\n')
-            + '\nKit total: ₹' + kitTotal
+            + '\nPayment: ' + (paymentMode === 'full' ? 'Full' : '30% upfront ₹' + Math.ceil(kitSubtotal * 0.3) + ', ₹' + payLater + ' at delivery')
+            + '\nPaid: ₹' + payNow + (payLater > 0 ? '\nDue: ₹' + payLater : '')
+            + '\nItems:\n' + items.join('\n') + '\nTotal: ₹' + kitTotal
             + '\nPayment ID: ' + response.razorpay_payment_id
           window.open('https://wa.me/919914735738?text=' + encodeURIComponent(msg), '_blank')
           setOrdered(true)
@@ -541,13 +625,20 @@ export default function SchoolSetsPage() {
 
   const total = calcTotal()
   const bill = billTotal()
+  const hasPhoto = !!kitPhotos[selectedClass]
 
-  // Item name for warning modal
   function warnItemName() {
     if (!warnModal) return ''
     const { section, idx } = warnModal
     if (section === 'notebooks') return kit.notebooks[idx]?.name
     return (kit[section] as any[])[idx]?.name || ''
+  }
+
+  const sectionIllos: Record<Section, React.FC<{ color: string }>> = {
+    ncert: BooksIllo,
+    pvt: PvtBooksIllo,
+    notebooks: NotebookIllo,
+    stationery: StationeryIllo,
   }
 
   const css = `
@@ -603,8 +694,14 @@ export default function SchoolSetsPage() {
     .pay-opt-btn:hover { transform: translateY(-2px); }
     .pay-opt-btn.selected-full { border-color: #1D9E75; background: #E8F7F2; box-shadow: 0 4px 16px rgba(29,158,117,0.2); }
     .pay-opt-btn.selected-partial { border-color: #3B82F6; background: #EFF6FF; box-shadow: 0 4px 16px rgba(59,130,246,0.2); }
+    .photo-card { border-radius: 16px; overflow: hidden; border: 1.5px solid var(--border); box-shadow: var(--shadow); background: var(--card); margin-bottom: 16px; }
+    .photo-card img { width: 100%; height: 220px; object-fit: cover; display: block; }
+    .photo-thumb { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+    .photo-thumb:hover { transform: scale(1.02); box-shadow: var(--shadow-lg); }
     @keyframes slideDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
     .slide-down { animation: slideDown 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .fade-in { animation: fadeIn 0.3s ease; }
     @media (min-width: 900px) { .layout { display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start; } }
     @media (max-width: 640px) { .sticky-summary { position: static !important; } }
   `
@@ -621,21 +718,29 @@ export default function SchoolSetsPage() {
             <div style={{ fontSize: '36px', marginBottom: '12px', textAlign: 'center' }}>⚠️</div>
             <h3 className="k" style={{ fontSize: '18px', color: 'var(--text)', marginBottom: '10px', textAlign: 'center' }}>Remove from kit?</h3>
             <p style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.6, marginBottom: '20px', textAlign: 'center' }}>
-              <strong style={{ color: 'var(--text)' }}>{warnItemName()}</strong> is listed in the official Shivalik Public School book list. Are you sure you want to remove it?
+              <strong style={{ color: 'var(--text)' }}>{warnItemName()}</strong> is in the official Shivalik book list. Remove it?
             </p>
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => setWarnModal(null)}
-                style={{ flex: 1, background: 'var(--bg)', color: 'var(--text-2)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '11px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
-                Keep it
-              </button>
-              <button onClick={confirmUncheck}
-                style={{ flex: 1, background: '#FEF2F2', color: '#E24B4A', border: '1.5px solid #FCA5A5', borderRadius: '10px', padding: '11px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
-                Yes, remove
-              </button>
+              <button onClick={() => setWarnModal(null)} style={{ flex: 1, background: 'var(--bg)', color: 'var(--text-2)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '11px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Keep it</button>
+              <button onClick={confirmUncheck} style={{ flex: 1, background: '#FEF2F2', color: '#E24B4A', border: '1.5px solid #FCA5A5', borderRadius: '10px', padding: '11px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Yes, remove</button>
             </div>
           </div>
         </div>
       )}
+
+      {/* Photo lightbox */}
+      {photoExpanded && hasPhoto && (
+        <div className="modal-overlay" onClick={() => setPhotoExpanded(false)}>
+          <div style={{ maxWidth: '700px', width: '100%', borderRadius: '16px', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+            <img src={kitPhotos[selectedClass]!} alt={'Class ' + selectedClass + ' kit'} style={{ width: '100%', height: 'auto', display: 'block' }} />
+            <div style={{ background: 'rgba(0,0,0,0.7)', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: '13px', color: '#fff', fontWeight: '600' }}>Class {selectedClass} Kit — {SCHOOL}</span>
+              <button onClick={() => setPhotoExpanded(false)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '8px', padding: '6px 12px', color: '#fff', cursor: 'pointer', fontSize: '12px' }}>Close ×</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Checkout modal */}
       {showCheckout && (() => {
         const kitTotal = calcTotal()
@@ -643,11 +748,9 @@ export default function SchoolSetsPage() {
         const kitSubtotal = kitTotal - deliveryFee
         const upfront = Math.ceil(kitSubtotal * 0.3) + deliveryFee
         const atDelivery = kitSubtotal - Math.ceil(kitSubtotal * 0.3)
-        const payNow = paymentMode === 'full' ? kitTotal : upfront
         return (
           <div className="modal-overlay" onClick={() => setShowCheckout(false)}>
             <div className="checkout-modal modal-pop" onClick={e => e.stopPropagation()}>
-              {/* Header */}
               <div style={{ background: 'linear-gradient(135deg, #1B2A4A 0%, #1D9E75 100%)', padding: '24px 24px 20px', position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(255,255,255,0.07)' }} />
                 <div style={{ fontSize: '36px', marginBottom: '8px' }}>🎒</div>
@@ -658,12 +761,8 @@ export default function SchoolSetsPage() {
                   <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>total kit value</span>
                 </div>
               </div>
-
-              {/* Payment options */}
               <div style={{ padding: '20px 24px' }}>
                 <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Choose payment option</div>
-
-                {/* Full payment */}
                 <button className={'pay-opt-btn' + (paymentMode === 'full' ? ' selected-full' : '')} onClick={() => setPaymentMode('full')} style={{ marginBottom: '10px' }}>
                   <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: paymentMode === 'full' ? '#1D9E75' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0, transition: 'background 0.15s' }}>💳</div>
                   <div style={{ flex: 1 }}>
@@ -672,49 +771,34 @@ export default function SchoolSetsPage() {
                   </div>
                   <div className="k" style={{ fontSize: '20px', color: paymentMode === 'full' ? '#1D9E75' : 'var(--text-3)', flexShrink: 0 }}>₹{kitTotal.toLocaleString()}</div>
                 </button>
-
-                {/* Partial payment */}
                 <button className={'pay-opt-btn' + (paymentMode === 'partial' ? ' selected-partial' : '')} onClick={() => setPaymentMode('partial')} style={{ marginBottom: '16px', position: 'relative' }}>
-                  <div style={{ position: 'absolute', top: '-8px', right: '12px', background: 'linear-gradient(135deg, #3B82F6, #8B5CF6)', color: '#fff', fontSize: '10px', fontWeight: '800', padding: '3px 10px', borderRadius: '99px', letterSpacing: '0.5px' }}>POPULAR</div>
+                  <div style={{ position: 'absolute', top: '-8px', right: '12px', background: 'linear-gradient(135deg, #3B82F6, #8B5CF6)', color: '#fff', fontSize: '10px', fontWeight: '800', padding: '3px 10px', borderRadius: '99px' }}>POPULAR</div>
                   <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: paymentMode === 'partial' ? '#3B82F6' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0, transition: 'background 0.15s' }}>🤝</div>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontSize: '14px', fontWeight: '700', color: paymentMode === 'partial' ? '#3B82F6' : 'var(--text)', marginBottom: '3px' }}>Pay 30% now</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-3)', lineHeight: 1.5 }}>Pay ₹{upfront.toLocaleString()} now to confirm. Pay ₹{atDelivery.toLocaleString()} at {deliveryMode === 'pickup' ? 'pickup' : 'delivery'}.</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-3)', lineHeight: 1.5 }}>Pay ₹{upfront.toLocaleString()} now. ₹{atDelivery.toLocaleString()} at {deliveryMode === 'pickup' ? 'pickup' : 'delivery'}.</div>
                   </div>
                   <div style={{ flexShrink: 0, textAlign: 'right' }}>
                     <div className="k" style={{ fontSize: '18px', color: paymentMode === 'partial' ? '#3B82F6' : 'var(--text-3)' }}>₹{upfront.toLocaleString()}</div>
                     <div style={{ fontSize: '10px', color: 'var(--text-3)' }}>now</div>
                   </div>
                 </button>
-
-                {/* Summary line */}
                 <div style={{ background: paymentMode === 'full' ? '#E8F7F2' : '#EFF6FF', borderRadius: '12px', padding: '12px 14px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <span style={{ fontSize: '16px' }}>{paymentMode === 'full' ? '✅' : 'ℹ️'}</span>
                   <div style={{ fontSize: '12px', color: paymentMode === 'full' ? '#065F46' : '#1E40AF', lineHeight: 1.5 }}>
-                    {paymentMode === 'full'
-                      ? 'You pay ₹' + kitTotal.toLocaleString() + ' now. Kit will be assembled right away.'
-                      : 'You pay ₹' + upfront.toLocaleString() + ' now to book your kit. Remaining ₹' + atDelivery.toLocaleString() + ' at ' + (deliveryMode === 'pickup' ? 'pickup' : 'delivery') + '.'}
+                    {paymentMode === 'full' ? 'You pay ₹' + kitTotal.toLocaleString() + ' now. Kit assembled right away.' : 'Pay ₹' + upfront.toLocaleString() + ' now. ₹' + atDelivery.toLocaleString() + ' at ' + (deliveryMode === 'pickup' ? 'pickup' : 'delivery') + '.'}
                   </div>
                 </div>
-
-                {/* Checkout button */}
                 <button onClick={handleOrder} disabled={ordering}
                   style={{ width: '100%', background: paymentMode === 'full' ? 'linear-gradient(135deg,#1D9E75,#157A5A)' : 'linear-gradient(135deg,#3B82F6,#1D4ED8)', color: '#fff', border: 'none', borderRadius: '14px', padding: '16px', fontSize: '16px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', boxShadow: paymentMode === 'full' ? '0 6px 24px rgba(29,158,117,0.4)' : '0 6px 24px rgba(59,130,246,0.4)', transition: 'all 0.2s', marginBottom: '10px' }}>
                   {ordering ? 'Opening payment…' : paymentMode === 'full' ? '✅ Pay ₹' + kitTotal.toLocaleString() + ' & Confirm' : '🤝 Pay ₹' + upfront.toLocaleString() + ' to Book Kit'}
                 </button>
-
-                <button onClick={() => setShowCheckout(false)}
-                  style={{ width: '100%', background: 'none', border: 'none', color: 'var(--text-3)', fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', padding: '8px' }}>
-                  ← Go back and edit
-                </button>
+                <button onClick={() => setShowCheckout(false)} style={{ width: '100%', background: 'none', border: 'none', color: 'var(--text-3)', fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', padding: '8px' }}>← Go back and edit</button>
               </div>
             </div>
           </div>
         )
       })()}
-
-
-
 
       <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
 
@@ -727,7 +811,7 @@ export default function SchoolSetsPage() {
             <img src="/logo.png" alt="BuddyBooks" style={{ height: '28px' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
             <span className="k" style={{ fontSize: '18px', color: 'var(--text)' }}>BuddyBooks</span>
           </div>
-          <div style={{ marginLeft: 'auto', fontSize: '12px', color: 'var(--text-3)', fontWeight: '600' }}>🏫 {SCHOOL}</div>
+          <button onClick={() => router.push('/my-orders')} style={{ marginLeft: 'auto', background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '6px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: 'var(--text-2)', fontFamily: 'DM Sans, sans-serif' }}>📦 My Orders</button>
         </nav>
 
         {/* Hero */}
@@ -750,9 +834,7 @@ export default function SchoolSetsPage() {
             <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>Select Class</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '6px' }}>
               {[1,2,3,4,5,6,7,8,9,10].map(c => (
-                <button key={c} className={'class-btn' + (selectedClass === c ? ' active' : '')} onClick={() => setSelectedClass(c)}>
-                  {c}
-                </button>
+                <button key={c} className={'class-btn' + (selectedClass === c ? ' active' : '')} onClick={() => setSelectedClass(c)}>{c}</button>
               ))}
             </div>
           </div>
@@ -764,12 +846,42 @@ export default function SchoolSetsPage() {
             {/* LEFT: Kit customizer */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <h2 className="k" style={{ fontSize: '20px', color: 'var(--text)' }}>Class {selectedClass} Kit</h2>
-                <span style={{ fontSize: '12px', color: 'var(--text-3)' }}>Book list total: ₹{bill.toLocaleString()}</span>
+              {/* Kit photo — hero image or illustrated placeholder */}
+              <div className={'photo-card photo-thumb fade-in'} onClick={() => hasPhoto && setPhotoExpanded(true)}
+                style={{ cursor: hasPhoto ? 'zoom-in' : 'default', position: 'relative' }}>
+                {hasPhoto ? (
+                  <>
+                    <img src={kitPhotos[selectedClass]!} alt={'Class ' + selectedClass + ' complete kit'} style={{ width: '100%', height: '220px', objectFit: 'cover', display: 'block' }} />
+                    <div style={{ position: 'absolute', bottom: '12px', right: '12px', background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: '11px', padding: '4px 10px', borderRadius: '99px', backdropFilter: 'blur(4px)', fontWeight: '600' }}>🔍 Tap to enlarge</div>
+                  </>
+                ) : (
+                  <div style={{ height: '220px', position: 'relative' }}>
+                    <KitPhotoPlaceholder cls={selectedClass} />
+                    <div style={{ position: 'absolute', bottom: '12px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(0,0,0,0.4)', color: '#fff', fontSize: '11px', padding: '5px 14px', borderRadius: '99px', backdropFilter: 'blur(4px)', whiteSpace: 'nowrap', fontWeight: '600' }}>
+                      📸 Real photos coming soon
+                    </div>
+                  </div>
+                )}
+                {/* Kit info bar */}
+                <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border)', background: 'var(--card)' }}>
+                  <div>
+                    <div className="k" style={{ fontSize: '16px', color: 'var(--text)' }}>Class {selectedClass} Complete Kit</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '2px' }}>{SCHOOL} · Official book list</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div className="k" style={{ fontSize: '20px', color: '#1D9E75' }}>₹{bill.toLocaleString()}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>full kit value</div>
+                  </div>
+                </div>
               </div>
 
-              {/* NCERT, PVT, STATIONERY sections */}
+              {/* Section cards with illustrations */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '4px 0' }}>
+                <h2 className="k" style={{ fontSize: '18px', color: 'var(--text)' }}>Customise your kit</h2>
+                <span style={{ fontSize: '11px', color: 'var(--text-3)' }}>Uncheck items you already have</span>
+              </div>
+
+              {/* NCERT, PVT, STATIONERY */}
               {(['ncert', 'pvt', 'stationery'] as Section[]).map(s => {
                 const sec = sectionLabels[s]
                 const items = kit[s] as { name: string; price: number }[]
@@ -777,11 +889,12 @@ export default function SchoolSetsPage() {
                 const allChecked = checkedItems.every(Boolean)
                 const secTotal = items.reduce((sum, item, i) => sum + (checkedItems[i] ? item.price : 0), 0)
                 const isOpen = openSections[s]
+                const Illo = sectionIllos[s]
                 return (
                   <div key={s} style={{ background: 'var(--card)', borderRadius: 'var(--r)', border: '1.5px solid ' + sec.border, boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
                     <div className="section-header" style={{ background: sec.bg }} onClick={() => toggleSection(s)}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '20px' }}>{sec.emoji}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <Illo color={sec.illoColor} />
                         <div>
                           <div style={{ fontSize: '14px', fontWeight: '700', color: sec.color }}>{sec.label}</div>
                           <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '1px' }}>{items.length} items · ₹{secTotal.toLocaleString()} selected</div>
@@ -814,7 +927,7 @@ export default function SchoolSetsPage() {
                 )
               })}
 
-              {/* NOTEBOOKS section — with quantity controls */}
+              {/* NOTEBOOKS with qty */}
               {(() => {
                 const s: Section = 'notebooks'
                 const sec = sectionLabels[s]
@@ -822,11 +935,12 @@ export default function SchoolSetsPage() {
                 const isOpen = openSections[s]
                 const allChecked = checkedItems.every(Boolean)
                 const secTotal = kit.notebooks.reduce((sum, item, i) => sum + (checkedItems[i] ? item.unitPrice * (nbQty[i] || 0) : 0), 0)
+                const Illo = sectionIllos[s]
                 return (
                   <div style={{ background: 'var(--card)', borderRadius: 'var(--r)', border: '1.5px solid ' + sec.border, boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
                     <div className="section-header" style={{ background: sec.bg }} onClick={() => toggleSection(s)}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '20px' }}>{sec.emoji}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <Illo color={sec.illoColor} />
                         <div>
                           <div style={{ fontSize: '14px', fontWeight: '700', color: sec.color }}>{sec.label}</div>
                           <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '1px' }}>{kit.notebooks.length} types · ₹{secTotal.toLocaleString()} selected</div>
@@ -844,11 +958,10 @@ export default function SchoolSetsPage() {
                     </div>
                     {isOpen && (
                       <div className="slide-down" style={{ borderTop: '1px solid ' + sec.border }}>
-                        {/* Column header */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 18px', background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
                           <div style={{ width: '18px', flexShrink: 0 }} />
                           <div style={{ flex: 1, fontSize: '10px', fontWeight: '700', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Notebook type</div>
-                          <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '90px', textAlign: 'center' }}>Qty (recommended)</div>
+                          <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '90px', textAlign: 'center' }}>Qty</div>
                           <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '60px', textAlign: 'right' }}>Price</div>
                         </div>
                         {kit.notebooks.map((item, i) => {
@@ -856,45 +969,30 @@ export default function SchoolSetsPage() {
                           const qty = nbQty[i] || 0
                           const itemTotal = isChecked ? item.unitPrice * qty : 0
                           const recommended = item.qty
-                          const isOverRecommended = qty > recommended
-                          const isUnderRecommended = qty < recommended
                           return (
                             <div key={i} className="item-row" style={{ alignItems: 'flex-start', cursor: 'default' }}>
-                              {/* Checkbox */}
-                              <div className={'checkbox' + (isChecked ? ' checked' : '')} style={{ marginTop: '2px' }}
-                                onClick={() => handleCheckClick(s, i)}>
+                              <div className={'checkbox' + (isChecked ? ' checked' : '')} style={{ marginTop: '2px' }} onClick={() => handleCheckClick(s, i)}>
                                 {isChecked && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                               </div>
-                              {/* Name + unit price */}
                               <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: '13px', color: isChecked ? 'var(--text)' : 'var(--text-3)', fontWeight: isChecked ? '500' : '400', textDecoration: isChecked ? 'none' : 'line-through', marginBottom: '4px' }}>{item.name}</div>
+                                <div style={{ fontSize: '13px', color: isChecked ? 'var(--text)' : 'var(--text-3)', fontWeight: isChecked ? '500' : '400', textDecoration: isChecked ? 'none' : 'line-through', marginBottom: '3px' }}>{item.name}</div>
                                 <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>₹{item.unitPrice} each</div>
-                                {isChecked && isOverRecommended && (
-                                  <div style={{ fontSize: '10px', color: '#F59E0B', fontWeight: '600', marginTop: '3px' }}>⚠️ Over book list qty ({recommended})</div>
-                                )}
-                                {isChecked && isUnderRecommended && qty > 0 && (
-                                  <div style={{ fontSize: '10px', color: '#3B82F6', fontWeight: '600', marginTop: '3px' }}>ℹ️ Book list recommends {recommended}</div>
-                                )}
-                                {isChecked && qty === 0 && (
-                                  <div style={{ fontSize: '10px', color: '#E24B4A', fontWeight: '600', marginTop: '3px' }}>Set qty to include</div>
-                                )}
+                                {isChecked && qty > recommended && <div style={{ fontSize: '10px', color: '#F59E0B', fontWeight: '600', marginTop: '2px' }}>⚠️ Over recommended ({recommended})</div>}
+                                {isChecked && qty < recommended && qty > 0 && <div style={{ fontSize: '10px', color: '#3B82F6', fontWeight: '600', marginTop: '2px' }}>ℹ️ Recommended: {recommended}</div>}
+                                {isChecked && qty === 0 && <div style={{ fontSize: '10px', color: '#E24B4A', fontWeight: '600', marginTop: '2px' }}>Set qty to include</div>}
                               </div>
-                              {/* Qty control */}
                               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', width: '90px' }}>
                                 {isChecked ? (
                                   <>
                                     <div className="qty-ctrl">
                                       <button className="qty-btn" disabled={qty <= 0} onClick={() => setQty(i, qty - 1)}>−</button>
-                                      <span className="qty-num" style={{ color: isOverRecommended ? '#F59E0B' : isUnderRecommended ? '#3B82F6' : 'var(--text)' }}>{qty}</span>
+                                      <span className="qty-num" style={{ color: qty > recommended ? '#F59E0B' : qty < recommended ? '#3B82F6' : 'var(--text)' }}>{qty}</span>
                                       <button className="qty-btn" disabled={qty >= recommended * 2} onClick={() => setQty(i, qty + 1)}>+</button>
                                     </div>
                                     <div style={{ fontSize: '10px', color: 'var(--text-3)' }}>of {recommended} listed</div>
                                   </>
-                                ) : (
-                                  <div style={{ fontSize: '11px', color: 'var(--text-3)', textAlign: 'center' }}>—</div>
-                                )}
+                                ) : <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>—</div>}
                               </div>
-                              {/* Total price */}
                               <div style={{ width: '60px', textAlign: 'right' }}>
                                 <div style={{ fontSize: '13px', fontWeight: '700', color: isChecked && qty > 0 ? sec.color : 'var(--text-3)', fontFamily: 'Kalam, cursive' }}>
                                   {isChecked && qty > 0 ? '₹' + itemTotal : '—'}
@@ -909,11 +1007,10 @@ export default function SchoolSetsPage() {
                 )
               })()}
 
-              {/* Recommended qty notice */}
               <div style={{ background: '#FFFBEB', border: '1.5px solid #FDE68A', borderRadius: '12px', padding: '12px 16px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
                 <span style={{ fontSize: '16px', flexShrink: 0 }}>💡</span>
                 <div style={{ fontSize: '12px', color: '#92400E', lineHeight: 1.6 }}>
-                  Notebook quantities are pre-set to the official Shivalik book list. You can reduce or increase them. The price updates live. Click the checkbox to remove a type entirely.
+                  Quantities are pre-set from the official book list. Adjust as needed — price updates live.
                 </div>
               </div>
             </div>
@@ -925,15 +1022,14 @@ export default function SchoolSetsPage() {
                   <div style={{ fontSize: '48px', marginBottom: '12px' }}>🎉</div>
                   <h3 className="k" style={{ fontSize: '22px', color: '#1D9E75', marginBottom: '8px' }}>Order Placed!</h3>
                   <p style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.6, marginBottom: '20px' }}>Your kit order is confirmed. We've opened WhatsApp to send the details.</p>
-                  <button onClick={() => setOrdered(false)} style={{ background: 'var(--green-bg)', color: '#1D9E75', border: '1.5px solid var(--green-border)', borderRadius: '10px', padding: '10px 24px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
-                    Order another class →
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button onClick={() => router.push('/my-orders')} style={{ flex: 1, background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Track order →</button>
+                    <button onClick={() => setOrdered(false)} style={{ flex: 1, background: 'var(--green-bg)', color: '#1D9E75', border: '1.5px solid var(--green-border)', borderRadius: '10px', padding: '10px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Order another</button>
+                  </div>
                 </div>
               ) : (
                 <div style={{ background: 'var(--card)', borderRadius: 'var(--r)', border: '1.5px solid var(--border)', padding: '22px', boxShadow: 'var(--shadow-lg)' }}>
                   <h3 className="k" style={{ fontSize: '18px', color: 'var(--text)', marginBottom: '16px' }}>Order Summary</h3>
-
-                  {/* Selected items summary */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
                     {(['ncert', 'pvt', 'stationery'] as Section[]).map(s => {
                       const sec = sectionLabels[s]
@@ -948,13 +1044,11 @@ export default function SchoolSetsPage() {
                         </div>
                       )
                     })}
-                    {/* Notebooks summary */}
                     {(() => {
                       const checkedItems = checked.notebooks || []
-                      const count = checkedItems.filter(Boolean).length
                       const nbTotal = kit.notebooks.reduce((sum, item, i) => sum + (checkedItems[i] ? item.unitPrice * (nbQty[i] || 0) : 0), 0)
                       const totalNbs = kit.notebooks.reduce((sum, _, i) => sum + (checkedItems[i] ? (nbQty[i] || 0) : 0), 0)
-                      if (count === 0) return null
+                      if (!checkedItems.some(Boolean)) return null
                       return (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                           <span style={{ fontSize: '12px', color: 'var(--text-2)' }}>📓 Notebooks <span style={{ color: 'var(--text-3)' }}>({totalNbs} pcs)</span></span>
@@ -972,7 +1066,7 @@ export default function SchoolSetsPage() {
                     </div>
                     {deliveryMode === 'pickup' && (
                       <div style={{ fontSize: '12px', color: 'var(--text-3)', background: 'var(--bg)', borderRadius: '10px', padding: '10px 12px', marginBottom: '12px', lineHeight: 1.5 }}>
-                        📍 Pickup from Bedi Book Store, Booth No. 48, Sec-40C, Chandigarh
+                        📍 Bedi Book Store, Booth No. 48, Sec-40C, Chandigarh
                       </div>
                     )}
                     {deliveryMode === 'delivery' && (
@@ -998,13 +1092,11 @@ export default function SchoolSetsPage() {
 
                   {isSignedIn ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {/* Full payment button */}
                       <button onClick={() => handlePaymentOptionClick('full')} disabled={ordering || total === 0}
                         style={{ width: '100%', background: 'linear-gradient(135deg, #1D9E75, #157A5A)', color: '#fff', border: 'none', borderRadius: '12px', padding: '14px 16px', fontSize: '14px', fontWeight: '700', cursor: total === 0 ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: total === 0 ? 0.5 : 1, boxShadow: '0 4px 16px rgba(29,158,117,0.3)', transition: 'all 0.15s' }}>
                         <span>💳 Pay full amount</span>
                         <span className="k" style={{ fontSize: '16px' }}>₹{total.toLocaleString()}</span>
                       </button>
-                      {/* Partial payment button */}
                       {(() => {
                         const deliveryFee = deliveryMode === 'delivery' ? 99 : 0
                         const kitSubtotal = total - deliveryFee
@@ -1012,7 +1104,7 @@ export default function SchoolSetsPage() {
                         const atDelivery = kitSubtotal - Math.ceil(kitSubtotal * 0.3)
                         return (
                           <button onClick={() => handlePaymentOptionClick('partial')} disabled={ordering || total === 0}
-                            style={{ width: '100%', background: 'linear-gradient(135deg, #EFF6FF, #DBEAFE)', color: '#1D4ED8', border: '2px solid #BFDBFE', borderRadius: '12px', padding: '14px 16px', fontSize: '14px', fontWeight: '700', cursor: total === 0 ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: total === 0 ? 0.5 : 1, transition: 'all 0.15s', position: 'relative' }}>
+                            style={{ width: '100%', background: 'linear-gradient(135deg, #EFF6FF, #DBEAFE)', color: '#1D4ED8', border: '2px solid #BFDBFE', borderRadius: '12px', padding: '14px 16px', fontSize: '14px', fontWeight: '700', cursor: total === 0 ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: total === 0 ? 0.5 : 1, transition: 'all 0.15s' }}>
                             <div style={{ textAlign: 'left' }}>
                               <div>🤝 Pay 30% now</div>
                               <div style={{ fontSize: '11px', color: '#3B82F6', fontWeight: '500', marginTop: '2px' }}>₹{atDelivery.toLocaleString()} at {deliveryMode === 'pickup' ? 'pickup' : 'delivery'}</div>
