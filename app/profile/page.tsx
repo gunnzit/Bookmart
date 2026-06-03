@@ -142,6 +142,10 @@ export default function ProfilePage() {
             <span className="kalam" style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>My Profile</span>
           </div>
           <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+            <button onClick={() => router.push('/my-orders')}
+              style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '7px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.15s' }}>
+              📦 My Orders
+            </button>
             <button onClick={() => router.push('/wishlist')}
               style={{ background: 'var(--bg-card)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '7px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.15s' }}>
               ❤️ Wishlist
@@ -170,8 +174,6 @@ export default function ProfilePage() {
                   {phone && <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)', marginTop: '3px' }}>📱 +91 {phone}</div>}
                 </div>
               </div>
-
-              {/* Stats row */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
                 {[
                   { label: 'Listed', value: listings.length, icon: '📚' },
@@ -186,7 +188,6 @@ export default function ProfilePage() {
                   </div>
                 ))}
               </div>
-
               {soldListings.length > 0 && (
                 <div style={{ marginTop: '12px', background: 'rgba(255,255,255,0.08)', borderRadius: '10px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
                   <span style={{ fontSize: '16px' }}>💰</span>
@@ -309,7 +310,6 @@ export default function ProfilePage() {
                     ) : (
                       <div className="listing-row" style={{ display: 'flex', gap: '12px', padding: '14px', alignItems: 'center', cursor: 'pointer' }}
                         onClick={() => window.location.href = '/listing/' + l.id}>
-                        {/* Thumbnail */}
                         <div style={{ width: '58px', height: '58px', background: 'var(--img-bg)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
                           {l.images?.[0] ? <img src={l.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : l.emoji}
                           {l.sold && (
@@ -318,8 +318,6 @@ export default function ProfilePage() {
                             </div>
                           )}
                         </div>
-
-                        {/* Info */}
                         <div style={{ flex: 1, minWidth: 0 }} onClick={e => e.stopPropagation()}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
                             <div style={{ fontSize: '13px', fontWeight: '600', color: l.sold ? 'var(--text-muted)' : 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.title}</div>
@@ -331,14 +329,12 @@ export default function ProfilePage() {
                             <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '3px' }}>👁️ {l.views || 0} views</span>
                           </div>
                         </div>
-
-                        {/* Actions */}
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
                           <button className="action-btn" onClick={() => toggleSold(l.id, l.sold)}
                             style={{ background: l.sold ? 'var(--relist-bg)' : '#E1F5EE', color: l.sold ? 'var(--relist-color)' : '#0F6E56' }}>
                             {l.sold ? '🔄 Relist' : '✅ Sold'}
                           </button>
-                          <button className="action-btn" onClick={() => { startEdit(l); }} style={{ background: '#EFF6FF', color: '#1D4ED8' }}>✏️ Edit</button>
+                          <button className="action-btn" onClick={() => { startEdit(l) }} style={{ background: '#EFF6FF', color: '#1D4ED8' }}>✏️ Edit</button>
                           <button className="action-btn" onClick={() => handleDelete(l.id)} style={{ background: '#FEF2F2', color: '#E24B4A' }}>🗑️ Delete</button>
                         </div>
                       </div>
