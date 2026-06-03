@@ -237,6 +237,38 @@ export default function LandingPage() {
       .cta-grid { grid-template-columns: repeat(3, 1fr) !important; }
       .kits-grid { grid-template-columns: repeat(5, 1fr) !important; }
     }
+    @media (max-width: 639px) {
+      .nav-desktop-links { display: none !important; }
+      .nav-second-row { display: flex !important; }
+    }
+    @media (min-width: 640px) {
+      .nav-mobile-cta { display: none !important; }
+    }
+    .nav-second-row {
+      display: none;
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 7px 12px;
+      gap: 8px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      position: sticky;
+      top: 56px;
+      z-index: 99;
+    }
+    .nav-second-row::-webkit-scrollbar { display: none; }
+    .nav-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 6px 13px; border-radius: 99px;
+      border: 1.5px solid var(--border); background: var(--white);
+      color: var(--text-2); font-size: 12px; font-weight: 600;
+      cursor: pointer; white-space: nowrap; flex-shrink: 0;
+      font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+    }
+    .nav-pill:active { opacity: 0.7; }
+    .nav-pill.green { background: #E8F7F2; color: #1D9E75; border-color: #C0E8D8; }
+    .nav-pill.blue { background: linear-gradient(135deg,#EFF6FF,#F5F3FF); color: #1D4ED8; border-color: #BFDBFE; }
     @media (min-width: 900px) { .test-grid { grid-template-columns: repeat(4, 1fr) !important; } }
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; }
@@ -253,7 +285,7 @@ export default function LandingPage() {
             <img src="/logo.png" alt="BuddyBooks" style={{ height: '30px', width: 'auto' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
             <span className="k" style={{ fontSize: '19px', color: 'var(--text)', fontWeight: '700' }}>BuddyBooks</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div className="nav-desktop-links" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <button className="btn-ghost" onClick={() => router.push('/marketplace')}>Browse</button>
             <button className="btn-kits" onClick={() => router.push('/school-sets')}>🎒 School Sets</button>
             <button className="btn-ghost" onClick={() => router.push('/requests')}>📋 Requests</button>
@@ -262,7 +294,23 @@ export default function LandingPage() {
               : <SignInButton mode="modal"><button className="btn-p">Get started</button></SignInButton>
             }
           </div>
+          {/* Mobile — show only sell/sign in button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} className="nav-mobile-cta">
+            {isSignedIn
+              ? <button className="btn-p" style={{ padding: '8px 16px', fontSize: '13px' }} onClick={() => router.push('/sell')}>+ Sell</button>
+              : <SignInButton mode="modal"><button className="btn-p" style={{ padding: '8px 16px', fontSize: '13px' }}>Get started</button></SignInButton>
+            }
+          </div>
         </nav>
+
+        {/* Mobile second nav row — scrollable pills */}
+        <div className="nav-second-row">
+          <button className="nav-pill" onClick={() => router.push('/marketplace')}>🛒 Browse</button>
+          <button className="nav-pill blue" onClick={() => router.push('/school-sets')}>🎒 School Sets</button>
+          <button className="nav-pill" onClick={() => router.push('/requests')}>📋 Requests</button>
+          {isSignedIn && <button className="nav-pill" onClick={() => router.push('/my-orders')}>📦 My Orders</button>}
+          <button className="nav-pill green" onClick={() => router.push('/contact')}>📍 Contact</button>
+        </div>
 
         {/* Ticker */}
         <div className="ticker-wrap">

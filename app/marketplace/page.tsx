@@ -159,6 +159,31 @@ export default function Marketplace() {
         .suggestion-item:hover { background: var(--bg-img) !important; }
         @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
         .float { animation: float 3s ease-in-out infinite; }
+        .nav-second-row {
+          display: none;
+          background: var(--nav-bg);
+          border-bottom: 1px solid var(--border);
+          padding: 7px 12px;
+          gap: 8px;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+          position: sticky;
+          top: 56px;
+          z-index: 49;
+        }
+        .nav-second-row::-webkit-scrollbar { display: none; }
+        .nav-pill {
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 6px 12px; border-radius: 99px;
+          border: 1.5px solid var(--border); background: var(--bg-input);
+          color: var(--text-secondary); font-size: 12px; font-weight: 600;
+          cursor: pointer; white-space: nowrap; flex-shrink: 0;
+          font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+        }
+        .nav-pill:active { opacity: 0.7; }
+        .nav-pill.green { background: #E8F7F2; color: #1D9E75; border-color: #C0E8D8; }
+        .nav-pill.blue { background: linear-gradient(135deg,#EFF6FF,#E8F7F2); color: #1D4ED8; border-color: #BFDBFE; }
         @media (max-width: 480px) {
           .listings-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
           .nav-search { max-width: 100% !important; }
@@ -176,8 +201,11 @@ export default function Marketplace() {
           .hero-section { padding: 20px 16px 24px !important; }
           .hero-title { font-size: 22px !important; }
           .hero-subtitle { display: none !important; }
-          .filters-bar { padding: 10px 12px !important; }
+          .filters-bar { padding: 10px 12px !important; top: 96px !important; }
           .request-banner-text { display: none !important; }
+          .nav-orders-btn { display: none !important; }
+          .nav-desktop-only { display: none !important; }
+          .nav-second-row { display: flex !important; }
         }
         @media (min-width: 481px) and (max-width: 768px) {
           .listings-grid { grid-template-columns: repeat(3, 1fr) !important; }
@@ -246,16 +274,18 @@ export default function Marketplace() {
             {isSignedIn ? (
               <>
                 <button onClick={() => router.push('/school-sets')}
+                  className="nav-desktop-only"
                   style={{ background: 'linear-gradient(135deg, #EFF6FF, #E8F7F2)', border: '1.5px solid #BFDBFE', borderRadius: '10px', padding: '7px 12px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', color: '#1D4ED8', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap', flexShrink: 0 }}>
                   🎒 School Sets
                 </button>
-                <button onClick={() => router.push('/requests')}
-                  style={{ background: 'var(--bg-input)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '7px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: 'var(--text-secondary)', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                  📋 Requests
-                </button>
-                <button onClick={() => router.push('/my-orders')}
+                <button className="nav-orders-btn nav-desktop-only" onClick={() => router.push('/my-orders')}
                   style={{ background: 'var(--bg-input)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '7px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: 'var(--text-secondary)', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap', flexShrink: 0 }}>
                   📦 My Orders
+                </button>
+                <button onClick={() => router.push('/requests')}
+                  className="nav-desktop-only"
+                  style={{ background: 'var(--bg-input)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '7px 12px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: 'var(--text-secondary)', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                  📋 Requests
                 </button>
                 <span onClick={() => router.push('/profile')} style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#E1F5EE', color: '#0F6E56', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', border: '1.5px solid #B2E8D6', flexShrink: 0 }}>
                   {user?.firstName?.charAt(0).toUpperCase()}
@@ -275,7 +305,14 @@ export default function Marketplace() {
           </div>
         </nav>
 
-        {/* Hero banner — color shifts with active category */}
+        {/* Mobile second nav row — scrollable pill buttons */}
+        <div className="nav-second-row">
+          <button className="nav-pill blue" onClick={() => router.push('/school-sets')}>🎒 School Sets</button>
+          <button className="nav-pill" onClick={() => router.push('/my-orders')}>📦 My Orders</button>
+          <button className="nav-pill" onClick={() => router.push('/requests')}>📋 Requests</button>
+          <button className="nav-pill" onClick={() => router.push('/wishlist')}>❤️ Saved</button>
+          <button className="nav-pill green" onClick={() => router.push('/contact')}>📍 Contact</button>
+        </div>
         <div className="hero-section" style={{ background: activeCat === 'All' ? 'linear-gradient(135deg, #1B2A4A 0%, #0F6E56 100%)' : 'linear-gradient(135deg, ' + activeCatStyle.dark + ' 0%, ' + activeCatStyle.color + ' 100%)', padding: '28px 24px 32px', position: 'relative', overflow: 'hidden', transition: 'background 0.4s ease' }}>
           <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '140px', height: '140px', background: 'rgba(255,255,255,0.06)', borderRadius: '50%' }} />
           <div style={{ position: 'absolute', bottom: '-40px', left: '40%', width: '100px', height: '100px', background: 'rgba(255,255,255,0.04)', borderRadius: '50%' }} />
@@ -317,25 +354,7 @@ export default function Marketplace() {
               const c = catColors[cat]
               const isActive = activeCat === cat
               return (
-                <button key={cat} className="cat-chip" onClick={() => setActiveCat(cat)} style={{
-                  padding: '6px 14px',
-                  border: '1.5px solid ' + (isActive ? c.color : 'var(--border)'),
-                  borderRadius: '99px',
-                  background: isActive ? c.bg : 'var(--bg-input)',
-                  color: isActive ? c.dark : 'var(--text-secondary)',
-                  fontWeight: isActive ? '700' : '400',
-                  whiteSpace: 'nowrap',
-                  textTransform: 'capitalize',
-                  fontFamily: 'DM Sans, sans-serif',
-                  fontSize: '12px',
-                  cursor: 'pointer',
-                  flexShrink: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  transition: 'all 0.15s',
-                  boxShadow: isActive ? '0 2px 8px ' + c.color + '33' : 'none',
-                }}>
+                <button key={cat} className="cat-chip" onClick={() => setActiveCat(cat)} style={{ padding: '6px 14px', border: '1.5px solid ' + (isActive ? c.color : 'var(--border)'), borderRadius: '99px', background: isActive ? c.bg : 'var(--bg-input)', color: isActive ? c.dark : 'var(--text-secondary)', fontWeight: isActive ? '700' : '400', whiteSpace: 'nowrap', textTransform: 'capitalize', fontFamily: 'DM Sans, sans-serif', fontSize: '12px', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '4px', transition: 'all 0.15s', boxShadow: isActive ? '0 2px 8px ' + c.color + '33' : 'none' }}>
                   <span>{catEmoji[cat]}</span> {cat}
                 </button>
               )
@@ -369,7 +388,7 @@ export default function Marketplace() {
           )}
         </div>
 
-        {/* School Sets banner */}
+        {/* Banners */}
         <div style={{ padding: '16px 16px 0', maxWidth: '1200px', margin: '0 auto' }}>
           <div onClick={() => router.push('/school-sets')}
             style={{ background: 'linear-gradient(135deg, #EFF6FF, #F5F3FF)', border: '1.5px solid #BFDBFE', borderRadius: '16px', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', gap: '12px', marginBottom: '10px', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 2px 12px rgba(59,130,246,0.08)' }}
@@ -382,12 +401,9 @@ export default function Marketplace() {
                 <div className="request-banner-text" style={{ fontSize: '12px', color: '#3B82F6', marginTop: '2px' }}>Complete Class 1–10 book + stationery kits · Delivery available · Order now</div>
               </div>
             </div>
-            <div style={{ background: '#3B82F6', color: '#fff', borderRadius: '10px', padding: '8px 16px', fontSize: '12px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0, boxShadow: '0 3px 10px rgba(59,130,246,0.3)' }}>
-              Order kit →
-            </div>
+            <div style={{ background: '#3B82F6', color: '#fff', borderRadius: '10px', padding: '8px 16px', fontSize: '12px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0, boxShadow: '0 3px 10px rgba(59,130,246,0.3)' }}>Order kit →</div>
           </div>
 
-          {/* Book Request banner */}
           <div className="request-banner" onClick={() => router.push('/requests')}
             style={{ background: 'linear-gradient(135deg, #E1F5EE, #D1FAE5)', border: '1.5px solid #A7F3D0', borderRadius: '16px', padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', gap: '12px', transition: 'transform 0.2s, box-shadow 0.2s', boxShadow: '0 2px 12px rgba(29,158,117,0.08)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -397,9 +413,7 @@ export default function Marketplace() {
                 <div className="request-banner-text" style={{ fontSize: '12px', color: '#047857', marginTop: '2px' }}>Post a book request — sellers in your area will contact you on WhatsApp</div>
               </div>
             </div>
-            <div style={{ background: '#1D9E75', color: '#fff', borderRadius: '10px', padding: '8px 16px', fontSize: '12px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0, boxShadow: '0 3px 10px rgba(29,158,117,0.3)' }}>
-              Request a book →
-            </div>
+            <div style={{ background: '#1D9E75', color: '#fff', borderRadius: '10px', padding: '8px 16px', fontSize: '12px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0, boxShadow: '0 3px 10px rgba(29,158,117,0.3)' }}>Request a book →</div>
           </div>
         </div>
 
@@ -430,10 +444,8 @@ export default function Marketplace() {
               <div className="logo-text" style={{ fontSize: '20px', color: 'var(--text-primary)', marginBottom: '8px' }}>Nothing found</div>
               <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>Try a different search, category or sort</div>
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                <button onClick={() => { setSearch(''); setActiveCat('All'); setSortBy('Newest') }}
-                  style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px 24px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>Reset filters</button>
-                <button onClick={() => router.push('/requests')}
-                  style={{ background: 'var(--bg-card)', color: '#1D9E75', border: '1.5px solid #1D9E75', borderRadius: '10px', padding: '10px 24px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>Request this book →</button>
+                <button onClick={() => { setSearch(''); setActiveCat('All'); setSortBy('Newest') }} style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px 24px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>Reset filters</button>
+                <button onClick={() => router.push('/requests')} style={{ background: 'var(--bg-card)', color: '#1D9E75', border: '1.5px solid #1D9E75', borderRadius: '10px', padding: '10px 24px', cursor: 'pointer', fontSize: '13px', fontWeight: '600' }}>Request this book →</button>
               </div>
             </div>
           ) : (
@@ -457,9 +469,7 @@ export default function Marketplace() {
                         <span style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '9px', background: 'linear-gradient(135deg, #FF6B35, #E24B4A)', color: '#fff', padding: '2px 7px', borderRadius: '99px', fontWeight: '700' }}>-{discount}%</span>
                       )}
                       {isFeatured && (
-                        <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'linear-gradient(135deg, #F59E0B, #D97706)', color: '#fff', fontSize: '9px', fontWeight: '800', padding: '3px 8px', borderRadius: '99px', display: 'flex', alignItems: 'center', gap: '3px', boxShadow: '0 2px 8px rgba(245,158,11,0.5)', zIndex: 2 }}>
-                          ⭐ FEATURED
-                        </div>
+                        <div style={{ position: 'absolute', bottom: '8px', left: '8px', background: 'linear-gradient(135deg, #F59E0B, #D97706)', color: '#fff', fontSize: '9px', fontWeight: '800', padding: '3px 8px', borderRadius: '99px', display: 'flex', alignItems: 'center', gap: '3px', boxShadow: '0 2px 8px rgba(245,158,11,0.5)', zIndex: 2 }}>⭐ FEATURED</div>
                       )}
                       {l.sold && (
                         <div style={{ position: 'absolute', inset: 0, background: 'rgba(27,42,74,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -504,9 +514,9 @@ export default function Marketplace() {
             </div>
             Sell
           </button>
-          <button className="bottom-nav-btn" onClick={() => requireAuth(() => router.push('/wishlist'))}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-            Saved
+          <button className="bottom-nav-btn" onClick={() => requireAuth(() => router.push('/my-orders'))}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8"/></svg>
+            Orders
           </button>
           <button className="bottom-nav-btn" onClick={() => requireAuth(() => router.push('/profile'))}>
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
