@@ -528,7 +528,7 @@ export default function SchoolSetsPage() {
       if (brand === 'buddy') return regType === 'slim' ? 68 : 88   // 20% off ₹85 and ₹110
       else return regType === 'slim' ? 85 : 105                     // Classmate
     }
-    return brand === 'buddy' ? 62 : 55  // Buddy notebook ₹62, Classmate ₹55
+    return brand === 'buddy' ? 50 : 55  // Buddy ₹50 (20% off ₹62 MRP), Classmate ₹55
   }
 
   function nbBrandLabel(i: number) {
@@ -592,7 +592,7 @@ export default function SchoolSetsPage() {
     let total = flatSections.reduce((sum, s) => sum + (kit[s] as any[]).reduce((a: number, b: any) => a + b.price, 0), 0)
     // Use default buddy prices for bill total
     kit.notebooks.forEach((n) => {
-      const price = isRegister(n.name) ? 68 : 62 // buddy register slim / buddy notebook
+      const price = isRegister(n.name) ? 68 : 50 // buddy register slim / buddy notebook
       total += price * n.qty
     })
     return total
@@ -1068,15 +1068,15 @@ export default function SchoolSetsPage() {
                                       const tempBrand = b
                                       const optPrice = isReg
                                         ? (tempBrand === 'buddy' ? (regType === 'slim' ? 68 : 88) : (regType === 'slim' ? 85 : 105))
-                                        : (tempBrand === 'buddy' ? 62 : 55)
+                                        : (tempBrand === 'buddy' ? 50 : 55)
                                       return (
                                         <button key={b} onClick={() => { const arr = [...nbBrand]; arr[i] = b; setNbBrand(arr) }}
                                           style={{ flex: 1, padding: '7px 8px', borderRadius: '10px', border: isActive ? '2px solid ' + (b === 'buddy' ? '#1D9E75' : '#3B82F6') : '1.5px solid var(--border)', background: isActive ? (b === 'buddy' ? '#E8F7F2' : '#EFF6FF') : 'var(--bg)', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.15s', textAlign: 'center' }}>
                                           <div style={{ fontSize: '10px', fontWeight: '800', color: isActive ? (b === 'buddy' ? '#1D9E75' : '#3B82F6') : 'var(--text-3)', marginBottom: '2px', textTransform: 'uppercase' }}>{b === 'buddy' ? '⭐ BUDDY' : 'CLASSMATE'}</div>
                                           <div style={{ fontSize: '12px', fontWeight: '700', color: isActive ? (b === 'buddy' ? '#1D9E75' : '#3B82F6') : 'var(--text-2)' }}>₹{optPrice}</div>
                                           {b === 'buddy' && isReg && <div style={{ fontSize: '9px', color: '#1D9E75', fontWeight: '600' }}>20% OFF</div>}
-                                          {b === 'buddy' && !isReg && <div style={{ fontSize: '9px', color: '#1D9E75', fontWeight: '600' }}>Our brand</div>}
-                                          {b === 'classmate' && <div style={{ fontSize: '9px', color: 'var(--text-3)' }}>MRP ₹{isReg ? (regType === 'slim' ? 85 : 105) : 55}</div>}
+                                          {b === 'buddy' && !isReg && <div style={{ fontSize: '9px', color: '#1D9E75', fontWeight: '600' }}>20% off ₹62</div>}
+                                          {b === 'classmate' && <div style={{ fontSize: '9px', color: 'var(--text-3)' }}>MRP ₹{isReg ? (regType === 'slim' ? 85 : 105) : 62}</div>}
                                         </button>
                                       )
                                     })}
