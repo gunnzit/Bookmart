@@ -488,6 +488,34 @@ export default function SchoolSetsPage() {
         image: '/logo.png',
         order_id: order.id,
         handler: async (response: any) => {
+          // Save to database via verify route
+          await fetch('/api/payment/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              kitData: {
+                school: SCHOOL,
+                class: selectedClass,
+                items,
+                kitSubtotal,
+                deliveryFee,
+                totalAmount: kitTotal,
+                paidNow: payNow,
+                payLater,
+                paymentMode,
+                deliveryMode,
+                address: address || null,
+                buyerName: user?.fullName || '',
+                buyerEmail: user?.primaryEmailAddress?.emailAddress || '',
+                buyerPhone: phone,
+                buyerClerkId: user?.id || '',
+              }
+            }),
+          })
+          // Also notify via WhatsApp
           const msg = '📦 NEW KIT ORDER\nClass ' + selectedClass + ' — ' + SCHOOL
             + '\nStudent: ' + (user?.fullName || '')
             + '\nPhone: ' + phone
