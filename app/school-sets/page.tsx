@@ -442,6 +442,8 @@ export default function SchoolSetsPage() {
   const [openSections, setOpenSections] = useState<Record<Section, boolean>>({ ncert: true, pvt: true, notebooks: true, stationery: true })
   const [checked, setChecked] = useState<Record<Section, boolean[]>>({} as any)
   const [nbQty, setNbQty] = useState<number[]>([])
+  const [nbBrand, setNbBrand] = useState<('buddy' | 'classmate')[]>([]) // brand per notebook item
+  const [nbRegType, setNbRegType] = useState<('slim' | 'thick')[]>([])  // register variant per item
   const [deliveryMode, setDeliveryMode] = useState<'pickup' | 'delivery'>('pickup')
   const [address, setAddress] = useState('')
   const [phone, setPhone] = useState('')
@@ -461,6 +463,8 @@ export default function SchoolSetsPage() {
       stationery: kit.stationery.map(() => true),
     })
     setNbQty(kit.notebooks.map(n => n.qty))
+    setNbBrand(kit.notebooks.map(() => 'buddy'))
+    setNbRegType(kit.notebooks.map(() => 'slim'))
     setOrdered(false)
     setPhotoExpanded(false)
   }, [selectedClass])
@@ -501,6 +505,45 @@ export default function SchoolSetsPage() {
     setChecked(prev => ({ ...prev, [s]: prev[s].map(() => val) }))
   }
 
+  // ── Notebook pricing ─────────────────────────────────────────────────────
+  // Is this item a "register" type? (Class 9/10 have registers)
+  function isRegister(name: string) {
+    return name.toLowerCase().includes('register')
+  }
+
+  // Classmate prices
+  // Regular notebook: ₹55
+  // Register slim (196 pages): ₹85
+  // Register thick (240 pages): ₹105
+  // Buddy prices (20% off MRP)
+  // Regular notebook MRP ₹62 → Buddy price ₹62 (no discount on regular — sold at MRP)
+  // Wait — per user: Buddy notebooks = ₹62 flat (our own brand at ₹62)
+  // Register slim MRP ₹85 → Buddy price ₹68 (20% off ₹85)
+  // Register thick MRP ₹110 → Buddy price ₹88 (20% off ₹110)
+  function nbUnitPrice(i: number) {
+    const name = kit.notebooks[i]?.name || ''
+    const brand = nbBrand[i] || 'buddy'
+    const regType = nbRegType[i] || 'slim'
+    if (isRegister(name)) {
+      if (brand === 'buddy') return regType === 'slim' ? 68 : 88   // 20% off ₹85 and ₹110
+      else return regType === 'slim' ? 85 : 105                     // Classmate
+    }
+    return brand === 'buddy' ? 62 : 55  // Buddy notebook ₹62, Classmate ₹55
+  }
+
+  function nbBrandLabel(i: number) {
+    const name = kit.notebooks[i]?.name || ''
+    const brand = nbBrand[i] || 'buddy'
+    const regType = nbRegType[i] || 'slim'
+    if (isRegister(name)) {
+      const pages = brand === 'buddy' ? (regType === 'slim' ? 196 : 240) : (regType === 'slim' ? 196 : 240)
+      const mrp = brand === 'buddy' ? (regType === 'slim' ? 85 : 110) : (regType === 'slim' ? 85 : 105)
+      return { pages, mrp }
+    }
+    return { pages: null, mrp: brand === 'buddy' ? 62 : 55 }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   function setQty(i: number, val: number) {
     if (val < 0) return
     const recommended = kit.notebooks[i].qty
@@ -520,7 +563,7 @@ export default function SchoolSetsPage() {
       })
     })
     kit.notebooks.forEach((item, i) => {
-      if (checked.notebooks?.[i]) total += item.unitPrice * (nbQty[i] || 0)
+      if (checked.notebooks?.[i]) total += nbUnitPrice(i) * (nbQty[i] || 0)
     })
     if (deliveryMode === 'delivery') total += 99
     return total
@@ -536,7 +579,9 @@ export default function SchoolSetsPage() {
     })
     kit.notebooks.forEach((item, i) => {
       if (checked.notebooks?.[i] && (nbQty[i] || 0) > 0) {
-        items.push(item.name + ' x' + nbQty[i] + ' ₹' + (item.unitPrice * nbQty[i]))
+        const brand = nbBrand[i] === 'buddy' ? 'Buddy' : 'Classmate'
+        const regType = isRegister(item.name) ? (nbRegType[i] === 'slim' ? ' (196pg)' : nbBrand[i] === 'buddy' ? ' (210pg)' : ' (240pg)') : ''
+        items.push(item.name + ' [' + brand + regType + '] x' + nbQty[i] + ' ₹' + (nbUnitPrice(i) * nbQty[i]))
       }
     })
     return items
@@ -545,7 +590,11 @@ export default function SchoolSetsPage() {
   function billTotal() {
     const flatSections: Section[] = ['ncert', 'pvt', 'stationery']
     let total = flatSections.reduce((sum, s) => sum + (kit[s] as any[]).reduce((a: number, b: any) => a + b.price, 0), 0)
-    kit.notebooks.forEach(n => { total += n.unitPrice * n.qty })
+    // Use default buddy prices for bill total
+    kit.notebooks.forEach((n) => {
+      const price = isRegister(n.name) ? 68 : 62 // buddy register slim / buddy notebook
+      total += price * n.qty
+    })
     return total
   }
 
@@ -927,14 +976,14 @@ export default function SchoolSetsPage() {
                 )
               })}
 
-              {/* NOTEBOOKS with qty */}
+              {/* NOTEBOOKS with qty + brand selector */}
               {(() => {
                 const s: Section = 'notebooks'
                 const sec = sectionLabels[s]
                 const checkedItems = checked[s] || []
                 const isOpen = openSections[s]
                 const allChecked = checkedItems.every(Boolean)
-                const secTotal = kit.notebooks.reduce((sum, item, i) => sum + (checkedItems[i] ? item.unitPrice * (nbQty[i] || 0) : 0), 0)
+                const secTotal = kit.notebooks.reduce((sum, item, i) => sum + (checkedItems[i] ? nbUnitPrice(i) * (nbQty[i] || 0) : 0), 0)
                 const Illo = sectionIllos[s]
                 return (
                   <div style={{ background: 'var(--card)', borderRadius: 'var(--r)', border: '1.5px solid ' + sec.border, boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
@@ -956,48 +1005,112 @@ export default function SchoolSetsPage() {
                         </svg>
                       </div>
                     </div>
+
                     {isOpen && (
                       <div className="slide-down" style={{ borderTop: '1px solid ' + sec.border }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '8px 18px', background: 'var(--bg)', borderBottom: '1px solid var(--border)' }}>
-                          <div style={{ width: '18px', flexShrink: 0 }} />
-                          <div style={{ flex: 1, fontSize: '10px', fontWeight: '700', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Notebook type</div>
-                          <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '90px', textAlign: 'center' }}>Qty</div>
-                          <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', width: '60px', textAlign: 'right' }}>Price</div>
+
+                        {/* Brand info banner */}
+                        <div style={{ background: 'linear-gradient(135deg, #FFFBEB, #FFF7ED)', borderBottom: '1px solid #FDE68A', padding: '10px 18px', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ background: '#1D9E75', color: '#fff', fontSize: '10px', fontWeight: '800', padding: '3px 10px', borderRadius: '99px' }}>BUDDY</div>
+                            <span style={{ fontSize: '11px', color: '#92400E', fontWeight: '600' }}>Our brand · 20% OFF MRP</span>
+                          </div>
+                          <div style={{ width: '1px', height: '16px', background: '#FDE68A' }} />
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ background: '#3B82F6', color: '#fff', fontSize: '10px', fontWeight: '800', padding: '3px 10px', borderRadius: '99px' }}>CLASSMATE</div>
+                            <span style={{ fontSize: '11px', color: '#92400E' }}>Brand notebook · MRP price</span>
+                          </div>
                         </div>
+
                         {kit.notebooks.map((item, i) => {
                           const isChecked = checkedItems[i]
                           const qty = nbQty[i] || 0
-                          const itemTotal = isChecked ? item.unitPrice * qty : 0
                           const recommended = item.qty
+                          const brand = nbBrand[i] || 'buddy'
+                          const regType = nbRegType[i] || 'slim'
+                          const unitPrice = nbUnitPrice(i)
+                          const itemTotal = isChecked ? unitPrice * qty : 0
+                          const isReg = isRegister(item.name)
+                          const { pages, mrp } = nbBrandLabel(i)
+
                           return (
-                            <div key={i} className="item-row" style={{ alignItems: 'flex-start', cursor: 'default' }}>
-                              <div className={'checkbox' + (isChecked ? ' checked' : '')} style={{ marginTop: '2px' }} onClick={() => handleCheckClick(s, i)}>
-                                {isChecked && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                            <div key={i} style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
+                              {/* Top row: checkbox + name + price */}
+                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: isChecked ? '12px' : '0' }}>
+                                <div className={'checkbox' + (isChecked ? ' checked' : '')} style={{ marginTop: '2px', flexShrink: 0 }}
+                                  onClick={() => handleCheckClick(s, i)}>
+                                  {isChecked && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                </div>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ fontSize: '13px', color: isChecked ? 'var(--text)' : 'var(--text-3)', fontWeight: isChecked ? '600' : '400', textDecoration: isChecked ? 'none' : 'line-through' }}>{item.name}</div>
+                                  <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '2px' }}>
+                                    {isReg ? 'Register · ' + (pages ? pages + ' pages' : '') : 'Notebook'}
+                                    {' · ₹' + unitPrice + ' each'}
+                                    {brand === 'buddy' && <span style={{ color: '#1D9E75', fontWeight: '700', marginLeft: '4px' }}>20% off</span>}
+                                  </div>
+                                </div>
+                                <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                  <div className="k" style={{ fontSize: '14px', color: isChecked && qty > 0 ? sec.color : 'var(--text-3)' }}>
+                                    {isChecked && qty > 0 ? '₹' + itemTotal : '—'}
+                                  </div>
+                                  {isChecked && qty > 0 && <div style={{ fontSize: '10px', color: 'var(--text-3)' }}>{qty} pcs</div>}
+                                </div>
                               </div>
-                              <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: '13px', color: isChecked ? 'var(--text)' : 'var(--text-3)', fontWeight: isChecked ? '500' : '400', textDecoration: isChecked ? 'none' : 'line-through', marginBottom: '3px' }}>{item.name}</div>
-                                <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>₹{item.unitPrice} each</div>
-                                {isChecked && qty > recommended && <div style={{ fontSize: '10px', color: '#F59E0B', fontWeight: '600', marginTop: '2px' }}>⚠️ Over recommended ({recommended})</div>}
-                                {isChecked && qty < recommended && qty > 0 && <div style={{ fontSize: '10px', color: '#3B82F6', fontWeight: '600', marginTop: '2px' }}>ℹ️ Recommended: {recommended}</div>}
-                                {isChecked && qty === 0 && <div style={{ fontSize: '10px', color: '#E24B4A', fontWeight: '600', marginTop: '2px' }}>Set qty to include</div>}
-                              </div>
-                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', width: '90px' }}>
-                                {isChecked ? (
-                                  <>
+
+                              {isChecked && (
+                                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+
+                                  {/* Brand toggle */}
+                                  <div style={{ display: 'flex', gap: '6px', flex: 1, minWidth: '180px' }}>
+                                    {(['buddy', 'classmate'] as const).map(b => {
+                                      const isActive = brand === b
+                                      // compute price for this brand option
+                                      const tempBrand = b
+                                      const optPrice = isReg
+                                        ? (tempBrand === 'buddy' ? (regType === 'slim' ? 68 : 88) : (regType === 'slim' ? 85 : 105))
+                                        : (tempBrand === 'buddy' ? 44 : 55)
+                                      return (
+                                        <button key={b} onClick={() => { const arr = [...nbBrand]; arr[i] = b; setNbBrand(arr) }}
+                                          style={{ flex: 1, padding: '7px 8px', borderRadius: '10px', border: isActive ? '2px solid ' + (b === 'buddy' ? '#1D9E75' : '#3B82F6') : '1.5px solid var(--border)', background: isActive ? (b === 'buddy' ? '#E8F7F2' : '#EFF6FF') : 'var(--bg)', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.15s', textAlign: 'center' }}>
+                                          <div style={{ fontSize: '10px', fontWeight: '800', color: isActive ? (b === 'buddy' ? '#1D9E75' : '#3B82F6') : 'var(--text-3)', marginBottom: '2px', textTransform: 'uppercase' }}>{b === 'buddy' ? '⭐ BUDDY' : 'CLASSMATE'}</div>
+                                          <div style={{ fontSize: '12px', fontWeight: '700', color: isActive ? (b === 'buddy' ? '#1D9E75' : '#3B82F6') : 'var(--text-2)' }}>₹{optPrice}</div>
+                                          {b === 'buddy' && isReg && <div style={{ fontSize: '9px', color: '#1D9E75', fontWeight: '600' }}>20% OFF</div>}
+                                          {b === 'buddy' && !isReg && <div style={{ fontSize: '9px', color: '#1D9E75', fontWeight: '600' }}>Our brand</div>}
+                                          {b === 'classmate' && <div style={{ fontSize: '9px', color: 'var(--text-3)' }}>MRP ₹{isReg ? (regType === 'slim' ? 85 : 105) : 55}</div>}
+                                        </button>
+                                      )
+                                    })}
+                                  </div>
+
+                                  {/* Register type picker — only for registers */}
+                                  {isReg && (
+                                    <div style={{ display: 'flex', gap: '6px', flex: 1, minWidth: '160px' }}>
+                                      {(['slim', 'thick'] as const).map(rt => {
+                                        const isRtActive = regType === rt
+                                        const rtPages = rt === 'slim' ? 196 : (brand === 'buddy' ? 210 : 240)
+                                        const rtMrp = rt === 'slim' ? (brand === 'buddy' ? 68 : 85) : (brand === 'buddy' ? 88 : 105)
+                                        return (
+                                          <button key={rt} onClick={() => { const arr = [...nbRegType]; arr[i] = rt; setNbRegType(arr) }}
+                                            style={{ flex: 1, padding: '7px 8px', borderRadius: '10px', border: isRtActive ? '2px solid #F59E0B' : '1.5px solid var(--border)', background: isRtActive ? '#FFFBEB' : 'var(--bg)', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.15s', textAlign: 'center' }}>
+                                            <div style={{ fontSize: '10px', fontWeight: '700', color: isRtActive ? '#D97706' : 'var(--text-3)', marginBottom: '2px' }}>{rtPages} pages</div>
+                                            <div style={{ fontSize: '12px', fontWeight: '700', color: isRtActive ? '#D97706' : 'var(--text-2)' }}>₹{rtMrp}</div>
+                                          </button>
+                                        )
+                                      })}
+                                    </div>
+                                  )}
+
+                                  {/* Qty control */}
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
                                     <div className="qty-ctrl">
                                       <button className="qty-btn" disabled={qty <= 0} onClick={() => setQty(i, qty - 1)}>−</button>
                                       <span className="qty-num" style={{ color: qty > recommended ? '#F59E0B' : qty < recommended ? '#3B82F6' : 'var(--text)' }}>{qty}</span>
                                       <button className="qty-btn" disabled={qty >= recommended * 2} onClick={() => setQty(i, qty + 1)}>+</button>
                                     </div>
                                     <div style={{ fontSize: '10px', color: 'var(--text-3)' }}>of {recommended} listed</div>
-                                  </>
-                                ) : <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>—</div>}
-                              </div>
-                              <div style={{ width: '60px', textAlign: 'right' }}>
-                                <div style={{ fontSize: '13px', fontWeight: '700', color: isChecked && qty > 0 ? sec.color : 'var(--text-3)', fontFamily: 'Kalam, cursive' }}>
-                                  {isChecked && qty > 0 ? '₹' + itemTotal : '—'}
+                                  </div>
                                 </div>
-                              </div>
+                              )}
                             </div>
                           )
                         })}
@@ -1046,7 +1159,7 @@ export default function SchoolSetsPage() {
                     })}
                     {(() => {
                       const checkedItems = checked.notebooks || []
-                      const nbTotal = kit.notebooks.reduce((sum, item, i) => sum + (checkedItems[i] ? item.unitPrice * (nbQty[i] || 0) : 0), 0)
+                      const nbTotal = kit.notebooks.reduce((sum, item, i) => sum + (checkedItems[i] ? nbUnitPrice(i) * (nbQty[i] || 0) : 0), 0)
                       const totalNbs = kit.notebooks.reduce((sum, _, i) => sum + (checkedItems[i] ? (nbQty[i] || 0) : 0), 0)
                       if (!checkedItems.some(Boolean)) return null
                       return (
