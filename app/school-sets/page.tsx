@@ -1068,7 +1068,7 @@ export default function SchoolSetsPage() {
                                       const tempBrand = b
                                       const optPrice = isReg
                                         ? (tempBrand === 'buddy' ? (regType === 'slim' ? 68 : 88) : (regType === 'slim' ? 85 : 105))
-                                        : (tempBrand === 'buddy' ? 44 : 55)
+                                        : (tempBrand === 'buddy' ? 62 : 55)
                                       return (
                                         <button key={b} onClick={() => { const arr = [...nbBrand]; arr[i] = b; setNbBrand(arr) }}
                                           style={{ flex: 1, padding: '7px 8px', borderRadius: '10px', border: isActive ? '2px solid ' + (b === 'buddy' ? '#1D9E75' : '#3B82F6') : '1.5px solid var(--border)', background: isActive ? (b === 'buddy' ? '#E8F7F2' : '#EFF6FF') : 'var(--bg)', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.15s', textAlign: 'center' }}>
