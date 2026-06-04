@@ -47,7 +47,7 @@ export default function LandingPage() {
   const { isSignedIn } = useUser()
   const [search, setSearch] = useState('')
   const [openFaq, setOpenFaq] = useState<number | null>(null)
-  const { ref: parentRef, inView: parentInView } = useInView()
+  const { ref: parentRef, inView: parentInView } = useInView(0.05)
   const { ref: howRef, inView: howInView } = useInView()
   const { ref: testRef, inView: testInView } = useInView()
   const { ref: faqRef, inView: faqInView } = useInView()
@@ -117,6 +117,7 @@ export default function LandingPage() {
       .split-grid { grid-template-columns: 1fr 1fr !important; }
       .how-steps { grid-template-columns: 1fr 1fr 1fr !important; }
       .test-grid { grid-template-columns: 1fr 1fr 1fr !important; }
+      .parent-grid { grid-template-columns: repeat(3, 1fr) !important; }
     }
     .nav-second-row {
       display: none; background: var(--white); border-bottom: 1px solid var(--border);
@@ -304,8 +305,8 @@ export default function LandingPage() {
               </p>
             </div>
 
-            {/* 3 parent concerns addressed */}
-            <div className={'reveal' + (parentInView ? ' in' : '') + ' r3'} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '40px' }}>
+            {/* 6 parent concern cards — 2 cols mobile, 3 cols desktop */}
+            <div className={'parent-grid reveal' + (parentInView ? ' in' : '') + ' r3'} style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '40px' }}>
               {[
                 {
                   icon: '📋', color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE',
@@ -339,10 +340,10 @@ export default function LandingPage() {
                 },
               ].map((c, i) => (
                 <div key={c.title} className={'reveal' + (parentInView ? ' in' : '') + ' r' + ((i % 4) + 1)}
-                  style={{ background: c.bg, border: '1.5px solid ' + c.border, borderRadius: '16px', padding: '20px', boxShadow: 'var(--shadow)' }}>
-                  <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', marginBottom: '12px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>{c.icon}</div>
-                  <div style={{ fontSize: '14px', fontWeight: '700', color: c.color, marginBottom: '6px' }}>{c.title}</div>
-                  <div style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.65 }}>{c.body}</div>
+                  style={{ background: c.bg, border: '1.5px solid ' + c.border, borderRadius: '14px', padding: 'clamp(14px,3vw,20px)', boxShadow: 'var(--shadow)' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', marginBottom: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>{c.icon}</div>
+                  <div style={{ fontSize: 'clamp(12px,2.5vw,14px)', fontWeight: '700', color: c.color, marginBottom: '5px' }}>{c.title}</div>
+                  <div style={{ fontSize: 'clamp(11px,2vw,13px)', color: 'var(--text-2)', lineHeight: 1.55 }}>{c.body}</div>
                 </div>
               ))}
             </div>
