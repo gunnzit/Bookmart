@@ -8,9 +8,8 @@ const ADMIN_WA = '919914735738'
 
 const steps = ['Summary', 'Details', 'Delivery', 'Payment']
 
-export default function CheckoutPage() {
+function CheckoutInner() {
   const router = useRouter()
-  const params = useSearchParams()
   const { isSignedIn, user } = useUser()
 
   const [step, setStep] = useState(0)
@@ -389,5 +388,13 @@ export default function CheckoutPage() {
 
       </div>
     </>
+  )
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'DM Sans, sans-serif', color: '#666' }}>Loading checkout…</div>}>
+      <CheckoutInner />
+    </Suspense>
   )
 }
