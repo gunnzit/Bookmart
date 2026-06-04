@@ -294,13 +294,13 @@ export default function LandingPage() {
 
             {/* Header */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '44px' }}>
-              <div className={'reveal' + (parentInView ? ' in' : '')} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#EFF6FF', color: '#1D4ED8', fontSize: '11px', fontWeight: '700', padding: '5px 14px', borderRadius: '99px', marginBottom: '12px', border: '1px solid #BFDBFE', letterSpacing: '1px', textTransform: 'uppercase' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#EFF6FF', color: '#1D4ED8', fontSize: '11px', fontWeight: '700', padding: '5px 14px', borderRadius: '99px', marginBottom: '12px', border: '1px solid #BFDBFE', letterSpacing: '1px', textTransform: 'uppercase' }}>
                 🏫 For Parents · Shivalik Public School
               </div>
-              <h2 className={'k reveal' + (parentInView ? ' in' : '') + ' r2'} style={{ fontSize: 'clamp(24px,4vw,38px)', color: 'var(--text)', lineHeight: 1.2, marginBottom: '12px' }}>
+              <h2 className="k" style={{ fontSize: 'clamp(24px,4vw,38px)', color: 'var(--text)', lineHeight: 1.2, marginBottom: '12px' }}>
                 Get your child's books sorted<br />in 3 minutes. From home.
               </h2>
-              <p className={'reveal' + (parentInView ? ' in' : '') + ' r3'} style={{ fontSize: '15px', color: 'var(--text-2)', lineHeight: 1.75, maxWidth: '520px' }}>
+              <p style={{ fontSize: '15px', color: 'var(--text-2)', lineHeight: 1.75, maxWidth: '520px' }}>
                 No more hunting across markets. Every book on the official Shivalik book list, assembled and delivered — or ready for pickup at our Sector-40C store.
               </p>
             </div>
