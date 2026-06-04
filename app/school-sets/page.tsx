@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useUser, SignInButton, useClerk } from '@clerk/nextjs'
+import { useUser, SignInButton } from '@clerk/nextjs'
 
 const SCHOOL = 'Shivalik Public School'
 
@@ -444,14 +444,7 @@ export default function SchoolSetsPage() {
   const [nbQty, setNbQty] = useState<number[]>([])
   const [nbBrand, setNbBrand] = useState<('buddy' | 'classmate')[]>([]) // brand per notebook item
   const [nbRegType, setNbRegType] = useState<('slim' | 'thick')[]>([])  // register variant per item
-  const [deliveryMode, setDeliveryMode] = useState<'pickup' | 'delivery'>('pickup')
-  const [address, setAddress] = useState('')
-  const [phone, setPhone] = useState('')
-  const [ordering, setOrdering] = useState(false)
-  const [ordered, setOrdered] = useState(false)
   const [warnModal, setWarnModal] = useState<{ section: Section; idx: number } | null>(null)
-  const [paymentMode, setPaymentMode] = useState<'full' | 'partial'>('full')
-  const [showCheckout, setShowCheckout] = useState(false)
   const [photoExpanded, setPhotoExpanded] = useState(false)
 
   useEffect(() => {
@@ -465,7 +458,6 @@ export default function SchoolSetsPage() {
     setNbQty(kit.notebooks.map(n => n.qty))
     setNbBrand(kit.notebooks.map(() => 'buddy'))
     setNbRegType(kit.notebooks.map(() => 'slim'))
-    setOrdered(false)
     setPhotoExpanded(false)
   }, [selectedClass])
 
@@ -565,7 +557,6 @@ export default function SchoolSetsPage() {
     kit.notebooks.forEach((item, i) => {
       if (checked.notebooks?.[i]) total += nbUnitPrice(i) * (nbQty[i] || 0)
     })
-    if (deliveryMode === 'delivery') total += 99
     return total
   }
 
@@ -598,82 +589,17 @@ export default function SchoolSetsPage() {
     return total
   }
 
-  function handlePaymentOptionClick(mode: 'full' | 'partial') {
-    if (!isSignedIn) { openSignIn(); return }
-    if (deliveryMode === 'delivery' && !address.trim()) { alert('Please enter delivery address'); return }
-    if (!phone.trim()) { alert('Please enter your WhatsApp number'); return }
-    setPaymentMode(mode)
-    setShowCheckout(true)
-  }
-
-  async function handleOrder() {
-    setShowCheckout(false)
-    setOrdering(true)
-    try {
-      const kitTotal = calcTotal()
-      const deliveryFee = deliveryMode === 'delivery' ? 99 : 0
-      const kitSubtotal = kitTotal - deliveryFee
-      const payNow = paymentMode === 'full' ? kitTotal : Math.ceil(kitSubtotal * 0.3) + deliveryFee
-      const payLater = paymentMode === 'full' ? 0 : kitSubtotal - Math.ceil(kitSubtotal * 0.3)
-
-      const res = await fetch('/api/payment/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: payNow * 100, currency: 'INR', receipt: 'kit_class_' + selectedClass }),
-      })
-      const order = await res.json()
-      if (order.error) { alert('Payment failed: ' + JSON.stringify(order.error)); setOrdering(false); return }
-
-      const items = getSelectedItems()
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: order.amount,
-        currency: 'INR',
-        name: 'BuddyBooks',
-        description: 'School Kit — Class ' + selectedClass + ' (' + SCHOOL + ')',
-        image: '/logo.png',
-        order_id: order.id,
-        handler: async (response: any) => {
-          await fetch('/api/payment/verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              kitData: {
-                school: SCHOOL, class: selectedClass, items,
-                kitSubtotal, deliveryFee, totalAmount: kitTotal,
-                paidNow: payNow, payLater, paymentMode, deliveryMode,
-                address: address || null,
-                buyerName: user?.fullName || '',
-                buyerEmail: user?.primaryEmailAddress?.emailAddress || '',
-                buyerPhone: phone, buyerClerkId: user?.id || '',
-              }
-            }),
-          })
-          const msg = '📦 NEW KIT ORDER\nClass ' + selectedClass + ' — ' + SCHOOL
-            + '\nStudent: ' + (user?.fullName || '') + '\nPhone: ' + phone
-            + '\nDelivery: ' + deliveryMode + (deliveryMode === 'delivery' ? '\nAddress: ' + address : '')
-            + '\nPayment: ' + (paymentMode === 'full' ? 'Full' : '30% upfront ₹' + Math.ceil(kitSubtotal * 0.3) + ', ₹' + payLater + ' at delivery')
-            + '\nPaid: ₹' + payNow + (payLater > 0 ? '\nDue: ₹' + payLater : '')
-            + '\nItems:\n' + items.join('\n') + '\nTotal: ₹' + kitTotal
-            + '\nPayment ID: ' + response.razorpay_payment_id
-          window.open('https://wa.me/919914735738?text=' + encodeURIComponent(msg), '_blank')
-          setOrdered(true)
-        },
-        prefill: { name: user?.fullName, email: user?.primaryEmailAddress?.emailAddress, contact: phone },
-        theme: { color: '#1D9E75' },
-        modal: { ondismiss: () => setOrdering(false) },
-      }
-      const rzp = new (window as any).Razorpay(options)
-      rzp.open()
-    } catch { alert('Something went wrong. Try again.') }
-    setOrdering(false)
-  }
-
-  const total = calcTotal()
+  const kitSubtotal = calcTotal()
   const bill = billTotal()
+  function handleProceedToCheckout() {
+    const items = getSelectedItems()
+    sessionStorage.setItem('buddybooks_kit_order', JSON.stringify({ selectedClass, items, kitSubtotal }))
+    router.push('/checkout')
+  }
+
+  const selectedItemCount = (['ncert', 'pvt', 'stationery', 'notebooks'] as Section[])
+    .reduce((sum, s) => sum + (checked[s] || []).filter(Boolean).length, 0)
+
   const hasPhoto = !!kitPhotos[selectedClass]
 
   function warnItemName() {
@@ -751,8 +677,12 @@ export default function SchoolSetsPage() {
     .slide-down { animation: slideDown 0.2s ease; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     .fade-in { animation: fadeIn 0.3s ease; }
-    @media (min-width: 900px) { .layout { display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start; } }
+    @media (min-width: 900px) { .layout { display: block; } }
     @media (max-width: 640px) { .sticky-summary { position: static !important; } }
+    .checkout-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); border-top: 1.5px solid var(--border); padding: 14px 20px; z-index: 90; box-shadow: 0 -4px 20px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 16px; }
+    .photo-placeholder { background: var(--bg); border: 1.5px dashed var(--border); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; cursor: pointer; transition: all 0.15s; }
+    .photo-placeholder:hover { border-color: var(--green); background: var(--green-bg); }
+    .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; padding: 12px 18px; background: var(--bg); border-top: 1px solid var(--border); }
   `
 
   return (
@@ -789,65 +719,6 @@ export default function SchoolSetsPage() {
           </div>
         </div>
       )}
-
-      {/* Checkout modal */}
-      {showCheckout && (() => {
-        const kitTotal = calcTotal()
-        const deliveryFee = deliveryMode === 'delivery' ? 99 : 0
-        const kitSubtotal = kitTotal - deliveryFee
-        const upfront = Math.ceil(kitSubtotal * 0.3) + deliveryFee
-        const atDelivery = kitSubtotal - Math.ceil(kitSubtotal * 0.3)
-        return (
-          <div className="modal-overlay" onClick={() => setShowCheckout(false)}>
-            <div className="checkout-modal modal-pop" onClick={e => e.stopPropagation()}>
-              <div style={{ background: 'linear-gradient(135deg, #1B2A4A 0%, #1D9E75 100%)', padding: '24px 24px 20px', position: 'relative', overflow: 'hidden' }}>
-                <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(255,255,255,0.07)' }} />
-                <div style={{ fontSize: '36px', marginBottom: '8px' }}>🎒</div>
-                <h2 className="k" style={{ fontSize: '22px', color: '#fff', marginBottom: '4px' }}>Ready to checkout?</h2>
-                <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>Class {selectedClass} Kit · {SCHOOL}</p>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginTop: '10px' }}>
-                  <span className="k" style={{ fontSize: '32px', color: '#fff' }}>₹{kitTotal.toLocaleString()}</span>
-                  <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>total kit value</span>
-                </div>
-              </div>
-              <div style={{ padding: '20px 24px' }}>
-                <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>Choose payment option</div>
-                <button className={'pay-opt-btn' + (paymentMode === 'full' ? ' selected-full' : '')} onClick={() => setPaymentMode('full')} style={{ marginBottom: '10px' }}>
-                  <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: paymentMode === 'full' ? '#1D9E75' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0, transition: 'background 0.15s' }}>💳</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '14px', fontWeight: '700', color: paymentMode === 'full' ? '#1D9E75' : 'var(--text)', marginBottom: '3px' }}>Pay full amount</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>Pay ₹{kitTotal.toLocaleString()} now. Kit assembled immediately.</div>
-                  </div>
-                  <div className="k" style={{ fontSize: '20px', color: paymentMode === 'full' ? '#1D9E75' : 'var(--text-3)', flexShrink: 0 }}>₹{kitTotal.toLocaleString()}</div>
-                </button>
-                <button className={'pay-opt-btn' + (paymentMode === 'partial' ? ' selected-partial' : '')} onClick={() => setPaymentMode('partial')} style={{ marginBottom: '16px', position: 'relative' }}>
-                  <div style={{ position: 'absolute', top: '-8px', right: '12px', background: 'linear-gradient(135deg, #3B82F6, #8B5CF6)', color: '#fff', fontSize: '10px', fontWeight: '800', padding: '3px 10px', borderRadius: '99px' }}>POPULAR</div>
-                  <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: paymentMode === 'partial' ? '#3B82F6' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0, transition: 'background 0.15s' }}>🤝</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '14px', fontWeight: '700', color: paymentMode === 'partial' ? '#3B82F6' : 'var(--text)', marginBottom: '3px' }}>Pay 30% now</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-3)', lineHeight: 1.5 }}>Pay ₹{upfront.toLocaleString()} now. ₹{atDelivery.toLocaleString()} at {deliveryMode === 'pickup' ? 'pickup' : 'delivery'}.</div>
-                  </div>
-                  <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                    <div className="k" style={{ fontSize: '18px', color: paymentMode === 'partial' ? '#3B82F6' : 'var(--text-3)' }}>₹{upfront.toLocaleString()}</div>
-                    <div style={{ fontSize: '10px', color: 'var(--text-3)' }}>now</div>
-                  </div>
-                </button>
-                <div style={{ background: paymentMode === 'full' ? '#E8F7F2' : '#EFF6FF', borderRadius: '12px', padding: '12px 14px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '16px' }}>{paymentMode === 'full' ? '✅' : 'ℹ️'}</span>
-                  <div style={{ fontSize: '12px', color: paymentMode === 'full' ? '#065F46' : '#1E40AF', lineHeight: 1.5 }}>
-                    {paymentMode === 'full' ? 'You pay ₹' + kitTotal.toLocaleString() + ' now. Kit assembled right away.' : 'Pay ₹' + upfront.toLocaleString() + ' now. ₹' + atDelivery.toLocaleString() + ' at ' + (deliveryMode === 'pickup' ? 'pickup' : 'delivery') + '.'}
-                  </div>
-                </div>
-                <button onClick={handleOrder} disabled={ordering}
-                  style={{ width: '100%', background: paymentMode === 'full' ? 'linear-gradient(135deg,#1D9E75,#157A5A)' : 'linear-gradient(135deg,#3B82F6,#1D4ED8)', color: '#fff', border: 'none', borderRadius: '14px', padding: '16px', fontSize: '16px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', boxShadow: paymentMode === 'full' ? '0 6px 24px rgba(29,158,117,0.4)' : '0 6px 24px rgba(59,130,246,0.4)', transition: 'all 0.2s', marginBottom: '10px' }}>
-                  {ordering ? 'Opening payment…' : paymentMode === 'full' ? '✅ Pay ₹' + kitTotal.toLocaleString() + ' & Confirm' : '🤝 Pay ₹' + upfront.toLocaleString() + ' to Book Kit'}
-                </button>
-                <button onClick={() => setShowCheckout(false)} style={{ width: '100%', background: 'none', border: 'none', color: 'var(--text-3)', fontSize: '13px', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', padding: '8px' }}>← Go back and edit</button>
-              </div>
-            </div>
-          </div>
-        )
-      })()}
 
       <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
 
@@ -1128,120 +999,75 @@ export default function SchoolSetsPage() {
               </div>
             </div>
 
-            {/* RIGHT: Order summary */}
-            <div className="sticky-summary">
-              {ordered ? (
-                <div style={{ background: 'var(--card)', borderRadius: 'var(--r)', border: '2px solid #1D9E75', padding: '28px 24px', textAlign: 'center', boxShadow: 'var(--shadow-lg)' }}>
-                  <div style={{ fontSize: '48px', marginBottom: '12px' }}>🎉</div>
-                  <h3 className="k" style={{ fontSize: '22px', color: '#1D9E75', marginBottom: '8px' }}>Order Placed!</h3>
-                  <p style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.6, marginBottom: '20px' }}>Your kit order is confirmed. We've opened WhatsApp to send the details.</p>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button onClick={() => router.push('/my-orders')} style={{ flex: 1, background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '10px', padding: '10px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Track order →</button>
-                    <button onClick={() => setOrdered(false)} style={{ flex: 1, background: 'var(--green-bg)', color: '#1D9E75', border: '1.5px solid var(--green-border)', borderRadius: '10px', padding: '10px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Order another</button>
-                  </div>
-                </div>
-              ) : (
-                <div style={{ background: 'var(--card)', borderRadius: 'var(--r)', border: '1.5px solid var(--border)', padding: '22px', boxShadow: 'var(--shadow-lg)' }}>
-                  <h3 className="k" style={{ fontSize: '18px', color: 'var(--text)', marginBottom: '16px' }}>Order Summary</h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-                    {(['ncert', 'pvt', 'stationery'] as Section[]).map(s => {
-                      const sec = sectionLabels[s]
-                      const checkedItems = checked[s] || []
-                      const count = checkedItems.filter(Boolean).length
-                      const secTotal = (kit[s] as any[]).reduce((sum: number, item: any, i: number) => sum + (checkedItems[i] ? item.price : 0), 0)
-                      if (count === 0) return null
-                      return (
-                        <div key={s} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: '12px', color: 'var(--text-2)' }}>{sec.emoji} {sec.label} <span style={{ color: 'var(--text-3)' }}>({count})</span></span>
-                          <span style={{ fontSize: '13px', fontWeight: '600', color: sec.color }}>₹{secTotal.toLocaleString()}</span>
-                        </div>
-                      )
-                    })}
-                    {(() => {
-                      const checkedItems = checked.notebooks || []
-                      const nbTotal = kit.notebooks.reduce((sum, item, i) => sum + (checkedItems[i] ? nbUnitPrice(i) * (nbQty[i] || 0) : 0), 0)
-                      const totalNbs = kit.notebooks.reduce((sum, _, i) => sum + (checkedItems[i] ? (nbQty[i] || 0) : 0), 0)
-                      if (!checkedItems.some(Boolean)) return null
-                      return (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <span style={{ fontSize: '12px', color: 'var(--text-2)' }}>📓 Notebooks <span style={{ color: 'var(--text-3)' }}>({totalNbs} pcs)</span></span>
-                          <span style={{ fontSize: '13px', fontWeight: '600', color: '#F59E0B' }}>₹{nbTotal.toLocaleString()}</span>
-                        </div>
-                      )
-                    })()}
-                  </div>
-
-                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '12px', marginBottom: '16px' }}>
-                    <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '8px' }}>Delivery option</div>
-                    <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-                      <button className={'delivery-btn' + (deliveryMode === 'pickup' ? ' active' : '')} onClick={() => setDeliveryMode('pickup')}>🏪 Pickup</button>
-                      <button className={'delivery-btn' + (deliveryMode === 'delivery' ? ' active' : '')} onClick={() => setDeliveryMode('delivery')}>🚚 Delivery +₹99</button>
-                    </div>
-                    {deliveryMode === 'pickup' && (
-                      <div style={{ fontSize: '12px', color: 'var(--text-3)', background: 'var(--bg)', borderRadius: '10px', padding: '10px 12px', marginBottom: '12px', lineHeight: 1.5 }}>
-                        📍 Bedi Book Store, Booth No. 48, Sec-40C, Chandigarh
+              {/* Photo placeholder grid per section */}
+              {(['ncert', 'pvt', 'stationery'] as Section[]).map(s => {
+                const sec = sectionLabels[s]
+                const items = kit[s] as { name: string; price: number }[]
+                const isOpen = openSections[s]
+                if (!isOpen) return null
+                return (
+                  <div key={s + '_photos'} className="photo-grid">
+                    {items.map((item, i) => (
+                      <div key={i} className="photo-placeholder" style={{ height: '80px' }} title={'Add photo: ' + item.name}>
+                        <span style={{ fontSize: '22px' }}>{sec.emoji}</span>
+                        <span style={{ fontSize: '9px', color: 'var(--text-3)', fontWeight: '600', textAlign: 'center', padding: '0 4px', lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>{item.name}</span>
+                        <span style={{ fontSize: '8px', color: 'var(--text-3)' }}>📸 Photo</span>
                       </div>
-                    )}
-                    {deliveryMode === 'delivery' && (
-                      <textarea value={address} onChange={e => setAddress(e.target.value)} placeholder="Enter delivery address…" rows={2} style={{ marginBottom: '10px', resize: 'none' }} />
-                    )}
-                    <input type="text" value={phone} onChange={e => setPhone(e.target.value)} placeholder="Your WhatsApp number" style={{ marginBottom: '12px' }} />
+                    ))}
                   </div>
+                )
+              })}
 
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                    <span style={{ fontSize: '14px', color: 'var(--text-2)' }}>Kit subtotal</span>
-                    <span style={{ fontSize: '14px', fontWeight: '600' }}>₹{(total - (deliveryMode === 'delivery' ? 99 : 0)).toLocaleString()}</span>
-                  </div>
-                  {deliveryMode === 'delivery' && (
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                      <span style={{ fontSize: '13px', color: 'var(--text-3)' }}>Delivery</span>
-                      <span style={{ fontSize: '13px', color: 'var(--text-3)' }}>₹99</span>
+              {/* Notebooks photo placeholders */}
+              {openSections.notebooks && (
+                <div className="photo-grid">
+                  {kit.notebooks.map((item, i) => (
+                    <div key={i} className="photo-placeholder" style={{ height: '80px' }} title={'Add photo: ' + item.name}>
+                      <span style={{ fontSize: '22px' }}>📓</span>
+                      <span style={{ fontSize: '9px', color: 'var(--text-3)', fontWeight: '600', textAlign: 'center', padding: '0 4px', lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>{item.name}</span>
+                      <span style={{ fontSize: '8px', color: 'var(--text-3)' }}>📸 Photo</span>
                     </div>
-                  )}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1.5px solid var(--border)', paddingTop: '10px', marginBottom: '16px' }}>
-                    <span className="k" style={{ fontSize: '18px', color: 'var(--text)' }}>Total</span>
-                    <span className="k" style={{ fontSize: '28px', color: '#1D9E75' }}>₹{total.toLocaleString()}</span>
-                  </div>
-
-                  {isSignedIn ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <button onClick={() => handlePaymentOptionClick('full')} disabled={ordering || total === 0}
-                        style={{ width: '100%', background: 'linear-gradient(135deg, #1D9E75, #157A5A)', color: '#fff', border: 'none', borderRadius: '12px', padding: '14px 16px', fontSize: '14px', fontWeight: '700', cursor: total === 0 ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: total === 0 ? 0.5 : 1, boxShadow: '0 4px 16px rgba(29,158,117,0.3)', transition: 'all 0.15s' }}>
-                        <span>💳 Pay full amount</span>
-                        <span className="k" style={{ fontSize: '16px' }}>₹{total.toLocaleString()}</span>
-                      </button>
-                      {(() => {
-                        const deliveryFee = deliveryMode === 'delivery' ? 99 : 0
-                        const kitSubtotal = total - deliveryFee
-                        const upfront = Math.ceil(kitSubtotal * 0.3) + deliveryFee
-                        const atDelivery = kitSubtotal - Math.ceil(kitSubtotal * 0.3)
-                        return (
-                          <button onClick={() => handlePaymentOptionClick('partial')} disabled={ordering || total === 0}
-                            style={{ width: '100%', background: 'linear-gradient(135deg, #EFF6FF, #DBEAFE)', color: '#1D4ED8', border: '2px solid #BFDBFE', borderRadius: '12px', padding: '14px 16px', fontSize: '14px', fontWeight: '700', cursor: total === 0 ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'space-between', opacity: total === 0 ? 0.5 : 1, transition: 'all 0.15s' }}>
-                            <div style={{ textAlign: 'left' }}>
-                              <div>🤝 Pay 30% now</div>
-                              <div style={{ fontSize: '11px', color: '#3B82F6', fontWeight: '500', marginTop: '2px' }}>₹{atDelivery.toLocaleString()} at {deliveryMode === 'pickup' ? 'pickup' : 'delivery'}</div>
-                            </div>
-                            <span className="k" style={{ fontSize: '16px' }}>₹{upfront.toLocaleString()}</span>
-                          </button>
-                        )
-                      })()}
-                    </div>
-                  ) : (
-                    <SignInButton mode="modal">
-                      <button className="order-btn">Sign in to order →</button>
-                    </SignInButton>
-                  )}
-
-                  <p style={{ fontSize: '11px', color: 'var(--text-3)', textAlign: 'center', marginTop: '10px', lineHeight: 1.5 }}>
-                    Secure payment via Razorpay · No returns · Exchange within 10 days with bill
-                  </p>
+                  ))}
                 </div>
               )}
+
+              {/* Tip */}
+              <div style={{ background: '#FFFBEB', border: '1.5px solid #FDE68A', borderRadius: '12px', padding: '12px 16px', display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '80px' }}>
+                <span style={{ fontSize: '16px', flexShrink: 0 }}>💡</span>
+                <div style={{ fontSize: '12px', color: '#92400E', lineHeight: 1.6 }}>
+                  Quantities pre-set from the official book list. Adjust as needed — price updates live. Photo placeholders above will show real product photos once uploaded.
+                </div>
+              </div>
             </div>
 
           </div>
         </div>
+      </div>
+
+      {/* Sticky checkout bar */}
+      <div className="checkout-bar">
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Kit subtotal</div>
+          <div className="k" style={{ fontSize: '22px', color: '#1D9E75' }}>₹{kitSubtotal.toLocaleString()}</div>
+        </div>
+        <div style={{ fontSize: '12px', color: 'var(--text-3)', textAlign: 'right', marginRight: '4px' }}>
+          <div>Class {selectedClass}</div>
+          <div>{selectedItemCount} items</div>
+        </div>
+        {isSignedIn ? (
+          <button
+            onClick={handleProceedToCheckout}
+            disabled={kitSubtotal === 0}
+            style={{ background: 'linear-gradient(135deg, #1D9E75, #157A5A)', color: '#fff', border: 'none', borderRadius: '12px', padding: '13px 24px', fontSize: '15px', fontWeight: '700', cursor: kitSubtotal === 0 ? 'not-allowed' : 'pointer', fontFamily: 'Kalam, cursive', boxShadow: '0 4px 16px rgba(29,158,117,0.35)', whiteSpace: 'nowrap', flexShrink: 0, opacity: kitSubtotal === 0 ? 0.5 : 1 }}>
+            Proceed to checkout →
+          </button>
+        ) : (
+          <SignInButton mode="modal">
+            <button style={{ background: 'linear-gradient(135deg, #1D9E75, #157A5A)', color: '#fff', border: 'none', borderRadius: '12px', padding: '13px 24px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', boxShadow: '0 4px 16px rgba(29,158,117,0.35)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+              Sign in to order →
+            </button>
+          </SignInButton>
+        )}
       </div>
     </>
   )
