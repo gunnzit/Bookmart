@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useUser, SignInButton } from '@clerk/nextjs'
+import { useUser, SignInButton, useClerk } from '@clerk/nextjs'
 
 const SCHOOL = 'Shivalik Public School'
 
