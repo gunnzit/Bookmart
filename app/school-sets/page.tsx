@@ -1039,10 +1039,8 @@ export default function SchoolSetsPage() {
                 </div>
               </div>
             </div>
-
           </div>
         </div>
-      </div>
 
       {/* Sticky checkout bar */}
       <div className="checkout-bar">
