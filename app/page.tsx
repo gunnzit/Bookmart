@@ -47,6 +47,7 @@ export default function LandingPage() {
   const { isSignedIn } = useUser()
   const [search, setSearch] = useState('')
   const [openFaq, setOpenFaq] = useState<number | null>(null)
+  const [activeHero, setActiveHero] = useState<'marketplace' | 'kits'>('marketplace')
   const { ref: parentRef, inView: parentInView } = useInView(0.05)
   const { ref: howRef, inView: howInView } = useInView()
   const { ref: testRef, inView: testInView } = useInView()
@@ -111,13 +112,16 @@ export default function LandingPage() {
     @media (max-width: 639px) {
       .nav-desktop-links { display: none !important; }
       .nav-second-row { display: flex !important; }
+      .hero-stats { display: none !important; }
     }
     @media (min-width: 640px) {
       .nav-mobile-cta { display: none !important; }
-      .split-grid { grid-template-columns: 1fr 1fr !important; }
+      .split-grid { grid-template-columns: 1fr 1fr !important; min-height: calc(100vh - 90px); max-height: 900px; }
       .how-steps { grid-template-columns: 1fr 1fr 1fr !important; }
       .test-grid { grid-template-columns: 1fr 1fr 1fr !important; }
       .parent-grid { grid-template-columns: repeat(3, 1fr) !important; }
+      .hero-tabs { display: none !important; }
+      .hero-panel { display: flex !important; }
     }
     .nav-second-row {
       display: none; background: var(--white); border-bottom: 1px solid var(--border);
@@ -181,52 +185,74 @@ export default function LandingPage() {
         </div>
 
         {/* ═══════════════════════════════════════════════════════════════════
-            HALF + HALF HERO
+            HERO — Tab switcher on mobile, split on desktop
         ═══════════════════════════════════════════════════════════════════ */}
-        <div className="split-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', minHeight: 'calc(100vh - 90px)', maxHeight: '900px' }}>
+
+        {/* Mobile tab switcher — hidden on desktop */}
+        <div className="hero-tabs" style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '10px 16px', display: 'flex', gap: '8px', position: 'sticky', top: '96px', zIndex: 38 }}>
+          <button onClick={() => setActiveHero('marketplace')}
+            style={{ flex: 1, padding: '10px', borderRadius: '12px', border: 'none', fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s',
+              background: activeHero === 'marketplace' ? 'linear-gradient(135deg, #1B2A4A, #0F6E56)' : 'var(--subtle)',
+              color: activeHero === 'marketplace' ? '#fff' : 'var(--text-2)',
+              boxShadow: activeHero === 'marketplace' ? '0 4px 12px rgba(29,158,117,0.3)' : 'none' }}>
+            🛒 Buy Books
+          </button>
+          <button onClick={() => setActiveHero('kits')}
+            style={{ flex: 1, padding: '10px', borderRadius: '12px', border: 'none', fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s',
+              background: activeHero === 'kits' ? 'linear-gradient(135deg, #1B2A4A, #1D4ED8)' : 'var(--subtle)',
+              color: activeHero === 'kits' ? '#fff' : 'var(--text-2)',
+              boxShadow: activeHero === 'kits' ? '0 4px 12px rgba(59,130,246,0.3)' : 'none' }}>
+            🎒 School Kits
+          </button>
+        </div>
+
+        {/* Hero panels */}
+        <div className="split-grid" style={{ display: 'grid', gridTemplateColumns: '1fr' }}>
+          <style>{`
+            @media(min-width:640px){
+              .split-grid{grid-template-columns:1fr 1fr!important;min-height:calc(100vh - 90px);max-height:900px;}
+              .hero-tabs{display:none!important;}
+              .hero-panel{display:flex!important;}
+            }
+            @media(max-width:639px){
+              .hero-panel-marketplace{display:${`var(--mp-display)`};}
+              .hero-panel-kits{display:${`var(--kits-display)`};}
+            }
+          `}</style>
 
           {/* LEFT — Marketplace */}
-          <div style={{ background: 'linear-gradient(160deg, #1B2A4A 0%, #0F6E56 100%)', padding: 'clamp(36px,6vw,64px) clamp(20px,5vw,60px)', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
-            {/* BG blobs */}
+          <div className="hero-panel hero-panel-marketplace"
+            style={{ background: 'linear-gradient(160deg, #1B2A4A 0%, #0F6E56 100%)', padding: 'clamp(28px,5vw,64px) clamp(20px,5vw,60px)', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden',
+              display: activeHero === 'marketplace' ? 'flex' : 'none' }}>
             <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '220px', height: '220px', borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
-            <div style={{ position: 'absolute', bottom: '-40px', left: '-40px', width: '160px', height: '160px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)' }} />
-
             <div style={{ position: 'relative', zIndex: 1 }}>
               <div className="fu" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px', padding: '4px 14px', marginBottom: '16px' }}>
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ADE80', display: 'inline-block' }} />
                 <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.9)', fontWeight: '700' }}>Second-hand marketplace</span>
               </div>
-
-              <h1 className="k fu fu1" style={{ fontSize: 'clamp(28px,5vw,46px)', color: '#fff', lineHeight: 1.15, marginBottom: '12px' }}>
+              <h1 className="k fu fu1" style={{ fontSize: 'clamp(26px,5vw,46px)', color: '#fff', lineHeight: 1.15, marginBottom: '12px' }}>
                 Buy books cheap.<br />Sell the ones you're done with.
               </h1>
               <p className="fu fu2" style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.75, marginBottom: '24px', maxWidth: '420px' }}>
                 Browse hundreds of listings from students nearby. Save up to 60% on NCERT, JEE prep, novels, stationery and more. 100% free, no commission.
               </p>
-
-              {/* Search */}
               <form className="fu fu3" onSubmit={handleSearch} style={{ marginBottom: '20px', maxWidth: '420px' }}>
                 <div className="search-bar">
                   <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search NCERT, JEE books, novels…" />
                   <button type="submit">Search →</button>
                 </div>
               </form>
-
               <div className="fu fu3" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <button onClick={() => router.push('/marketplace')}
                   style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '10px', padding: '11px 22px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', boxShadow: '0 4px 16px rgba(29,158,117,0.4)' }}>
                   Browse listings →
                 </button>
                 {isSignedIn
-                  ? <button onClick={() => router.push('/sell')} style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: '10px', padding: '10px 20px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', backdropFilter: 'blur(8px)' }}>
-                      + Sell your books
-                    </button>
+                  ? <button onClick={() => router.push('/sell')} style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: '10px', padding: '10px 20px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', backdropFilter: 'blur(8px)' }}>+ Sell your books</button>
                   : <SignInButton mode="modal"><button style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: '10px', padding: '10px 20px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', backdropFilter: 'blur(8px)' }}>+ Sell your books</button></SignInButton>
                 }
               </div>
-
-              {/* Stats row */}
-              <div className="fu fu4" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginTop: '28px' }}>
+              <div className="fu fu4 hero-stats" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginTop: '28px' }}>
                 {[{ n: '500+', l: 'listings' }, { n: '₹250', l: 'avg saving' }, { n: 'Free', l: 'always' }].map(s => (
                   <div key={s.l} style={{ textAlign: 'center' }}>
                     <div className="k" style={{ fontSize: '20px', color: '#4ADE80', fontWeight: '700' }}>{s.n}</div>
@@ -238,24 +264,21 @@ export default function LandingPage() {
           </div>
 
           {/* RIGHT — School Kits */}
-          <div style={{ background: 'linear-gradient(160deg, #1B2A4A 0%, #1D4ED8 100%)', padding: 'clamp(36px,6vw,64px) clamp(20px,5vw,60px)', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}>
+          <div className="hero-panel hero-panel-kits"
+            style={{ background: 'linear-gradient(160deg, #1B2A4A 0%, #1D4ED8 100%)', padding: 'clamp(28px,5vw,64px) clamp(20px,5vw,60px)', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden',
+              display: activeHero === 'kits' ? 'flex' : 'none' }}>
             <div style={{ position: 'absolute', top: '-40px', left: '-40px', width: '180px', height: '180px', borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
-            <div style={{ position: 'absolute', bottom: '-60px', right: '-40px', width: '200px', height: '200px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)' }} />
-
             <div style={{ position: 'relative', zIndex: 1 }}>
               <div className="fu" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px', padding: '4px 14px', marginBottom: '16px' }}>
                 <span style={{ fontSize: '12px' }}>🆕</span>
                 <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.9)', fontWeight: '700' }}>Shivalik Public School</span>
               </div>
-
-              <h1 className="k fu fu1" style={{ fontSize: 'clamp(28px,5vw,46px)', color: '#fff', lineHeight: 1.15, marginBottom: '12px' }}>
+              <h1 className="k fu fu1" style={{ fontSize: 'clamp(26px,5vw,46px)', color: '#fff', lineHeight: 1.15, marginBottom: '12px' }}>
                 Order your full school kit.
               </h1>
               <p className="fu fu2" style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.75, marginBottom: '20px', maxWidth: '420px' }}>
                 Complete book + stationery kits for Class 1–10. Every item from the official book list. Customise, pay securely, and get it delivered.
               </p>
-
-              {/* Class grid */}
               <div className="fu fu3" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginBottom: '20px', maxWidth: '380px' }}>
                 {classKits.map(k => (
                   <button key={k.cls} onClick={() => router.push('/school-sets')} className="kit-chip">
@@ -264,7 +287,6 @@ export default function LandingPage() {
                   </button>
                 ))}
               </div>
-
               <div className="fu fu4" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <button onClick={() => router.push('/school-sets')}
                   style={{ background: '#fff', color: '#1D4ED8', border: 'none', borderRadius: '10px', padding: '11px 22px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', boxShadow: '0 4px 16px rgba(255,255,255,0.2)' }}>
@@ -275,9 +297,7 @@ export default function LandingPage() {
                   📦 Track order
                 </button>
               </div>
-
-              {/* Kit trust badges */}
-              <div className="fu fu5" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '28px' }}>
+              <div className="fu fu5 hero-stats" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '28px' }}>
                 {['✅ Official book list', '💳 Pay 30% upfront', '🚚 Home delivery'].map(b => (
                   <span key={b} style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.08)', padding: '4px 12px', borderRadius: '99px', border: '1px solid rgba(255,255,255,0.15)' }}>{b}</span>
                 ))}
