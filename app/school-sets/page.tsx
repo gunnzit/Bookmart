@@ -446,6 +446,13 @@ export default function SchoolSetsPage() {
   const [nbRegType, setNbRegType] = useState<('slim' | 'thick')[]>([])  // register variant per item
   const [warnModal, setWarnModal] = useState<{ section: Section; idx: number } | null>(null)
   const [photoExpanded, setPhotoExpanded] = useState(false)
+  const [cart, setCart] = useState<{ selectedClass: number; items: string[]; kitSubtotal: number }[]>([])
+
+  // Load cart from sessionStorage on mount
+  useEffect(() => {
+    const raw = sessionStorage.getItem('buddybooks_cart')
+    if (raw) { try { setCart(JSON.parse(raw)) } catch {} }
+  }, [])
 
   useEffect(() => {
     const kit = kits[selectedClass]
@@ -591,14 +598,56 @@ export default function SchoolSetsPage() {
 
   const kitSubtotal = calcTotal()
   const bill = billTotal()
+
+  // Market price = what they'd pay buying everything separately at full MRP (no Buddy discount)
+  function marketTotal() {
+    const flatSections: Section[] = ['ncert', 'pvt', 'stationery']
+    let total = 0
+    flatSections.forEach(s => {
+      kit[s].forEach((item: any, i: number) => {
+        if (checked[s]?.[i]) total += item.price
+      })
+    })
+    // Notebooks at Classmate/MRP price (₹55 notebook, register MRP ₹85/₹105)
+    kit.notebooks.forEach((item, i) => {
+      if (checked.notebooks?.[i]) {
+        const mrp = isRegister(item.name) ? (nbRegType[i] === 'slim' ? 85 : 105) : 55
+        total += mrp * (nbQty[i] || 0)
+      }
+    })
+    return total
+  }
+  const market = marketTotal()
+  const youSave = market - kitSubtotal
+
+  function currentKit() {
+    return { selectedClass, items: getSelectedItems(), kitSubtotal }
+  }
+
+  function handleAddAnotherKit() {
+    const newCart = [...cart, currentKit()]
+    setCart(newCart)
+    sessionStorage.setItem('buddybooks_cart', JSON.stringify(newCart))
+    // Move to a different class for the next child
+    const usedClasses = newCart.map(k => k.selectedClass)
+    const nextClass = [1,2,3,4,5,6,7,8,9,10].find(c => !usedClasses.includes(c)) || 1
+    setSelectedClass(nextClass)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   function handleProceedToCheckout() {
-    const items = getSelectedItems()
-    sessionStorage.setItem('buddybooks_kit_order', JSON.stringify({ selectedClass, items, kitSubtotal }))
+    // Bundle current kit + any saved kits
+    const allKits = [...cart, currentKit()]
+    sessionStorage.setItem('buddybooks_kit_order', JSON.stringify(allKits))
+    sessionStorage.removeItem('buddybooks_cart')
     router.push('/checkout')
   }
 
-  const selectedItemCount = (['ncert', 'pvt', 'stationery', 'notebooks'] as Section[])
-    .reduce((sum, s) => sum + (checked[s] || []).filter(Boolean).length, 0)
+  // Total across all kits in cart + current
+  const cartTotal = cart.reduce((sum, k) => sum + k.kitSubtotal, 0) + kitSubtotal
+  const totalKits = cart.length + 1
+  const siblingDiscount = totalKits >= 2 ? Math.round(cartTotal * 0.05) : 0
+  const cartAfterDiscount = cartTotal - siblingDiscount
 
   const hasPhoto = !!kitPhotos[selectedClass]
 
@@ -794,6 +843,34 @@ export default function SchoolSetsPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Savings comparison box */}
+              {youSave > 0 && (
+                <div style={{ background: 'linear-gradient(135deg, #E8F7F2, #EFF6FF)', border: '1.5px solid #C0E8D8', borderRadius: '16px', padding: '16px 18px', margin: '4px 0' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '11px', color: 'var(--text-3)', marginBottom: '2px' }}>Buying separately</div>
+                        <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-3)', textDecoration: 'line-through' }}>₹{market.toLocaleString()}</div>
+                      </div>
+                      <div style={{ fontSize: '18px', color: 'var(--text-3)' }}>→</div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '11px', color: '#1D9E75', fontWeight: '600', marginBottom: '2px' }}>BuddyBooks kit</div>
+                        <div className="k" style={{ fontSize: '20px', color: '#1D9E75', fontWeight: '700' }}>₹{kitSubtotal.toLocaleString()}</div>
+                      </div>
+                    </div>
+                    <div style={{ background: '#1D9E75', borderRadius: '12px', padding: '8px 16px', textAlign: 'center' }}>
+                      <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>You save</div>
+                      <div className="k" style={{ fontSize: '20px', color: '#fff', fontWeight: '700' }}>₹{youSave.toLocaleString()}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(29,158,117,0.15)' }}>
+                    <span style={{ fontSize: '12px', color: '#0F6E56', display: 'flex', alignItems: 'center', gap: '5px' }}>⏱️ Saves ~3 hours of market hunting</span>
+                    <span style={{ fontSize: '12px', color: '#0F6E56', display: 'flex', alignItems: 'center', gap: '5px' }}>✅ Every book on the official list</span>
+                    <span style={{ fontSize: '12px', color: '#0F6E56', display: 'flex', alignItems: 'center', gap: '5px' }}>📦 Assembled & ready</span>
+                  </div>
+                </div>
+              )}
 
               {/* Section cards with illustrations */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '4px 0' }}>
@@ -1042,23 +1119,48 @@ export default function SchoolSetsPage() {
           </div>
         </div>
 
+      {/* Sibling discount hint banner — shows when cart has kits */}
+      {cart.length > 0 && (
+        <div style={{ position: 'fixed', bottom: '72px', left: 0, right: 0, background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', padding: '8px 20px', zIndex: 91, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '12px', color: '#fff', fontWeight: '600' }}>
+          🎉 {totalKits} kits in your order · 5% sibling discount applied (−₹{siblingDiscount.toLocaleString()})
+        </div>
+      )}
+
       {/* Sticky checkout bar */}
       <div className="checkout-bar">
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Kit subtotal</div>
-          <div className="k" style={{ fontSize: '22px', color: '#1D9E75' }}>₹{kitSubtotal.toLocaleString()}</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {cart.length > 0 ? (
+            <>
+              <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{totalKits} kits total</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                {siblingDiscount > 0 && <span style={{ fontSize: '13px', color: 'var(--text-3)', textDecoration: 'line-through' }}>₹{cartTotal.toLocaleString()}</span>}
+                <span className="k" style={{ fontSize: '22px', color: '#1D9E75' }}>₹{cartAfterDiscount.toLocaleString()}</span>
+              </div>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Kit subtotal</div>
+              <div className="k" style={{ fontSize: '22px', color: '#1D9E75' }}>₹{kitSubtotal.toLocaleString()}</div>
+            </>
+          )}
         </div>
-        <div style={{ fontSize: '12px', color: 'var(--text-3)', textAlign: 'right', marginRight: '4px' }}>
-          <div>Class {selectedClass}</div>
-          <div>{selectedItemCount} items</div>
-        </div>
+
         {isSignedIn ? (
-          <button
-            onClick={handleProceedToCheckout}
-            disabled={kitSubtotal === 0}
-            style={{ background: 'linear-gradient(135deg, #1D9E75, #157A5A)', color: '#fff', border: 'none', borderRadius: '12px', padding: '13px 24px', fontSize: '15px', fontWeight: '700', cursor: kitSubtotal === 0 ? 'not-allowed' : 'pointer', fontFamily: 'Kalam, cursive', boxShadow: '0 4px 16px rgba(29,158,117,0.35)', whiteSpace: 'nowrap', flexShrink: 0, opacity: kitSubtotal === 0 ? 0.5 : 1 }}>
-            Proceed to checkout →
-          </button>
+          <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+            <button
+              onClick={handleAddAnotherKit}
+              disabled={kitSubtotal === 0}
+              title="Add another child's kit and save 5%"
+              style={{ background: '#F5F3FF', color: '#7C3AED', border: '1.5px solid #DDD6FE', borderRadius: '12px', padding: '13px 16px', fontSize: '13px', fontWeight: '700', cursor: kitSubtotal === 0 ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap', opacity: kitSubtotal === 0 ? 0.5 : 1 }}>
+              + Add child
+            </button>
+            <button
+              onClick={handleProceedToCheckout}
+              disabled={kitSubtotal === 0 && cart.length === 0}
+              style={{ background: 'linear-gradient(135deg, #1D9E75, #157A5A)', color: '#fff', border: 'none', borderRadius: '12px', padding: '13px 20px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', boxShadow: '0 4px 16px rgba(29,158,117,0.35)', whiteSpace: 'nowrap' }}>
+              Checkout →
+            </button>
+          </div>
         ) : (
           <SignInButton mode="modal">
             <button style={{ background: 'linear-gradient(135deg, #1D9E75, #157A5A)', color: '#fff', border: 'none', borderRadius: '12px', padding: '13px 24px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', boxShadow: '0 4px 16px rgba(29,158,117,0.35)', whiteSpace: 'nowrap', flexShrink: 0 }}>

@@ -21,24 +21,33 @@ function CheckoutInner() {
   const [phone, setPhone] = useState('')
   const [name, setName] = useState('')
 
-  // Kit data passed via sessionStorage (set by school-sets page)
-  const [kitData, setKitData] = useState<any>(null)
+  // Kits passed via sessionStorage (array — supports multiple children)
+  const [kits, setKits] = useState<any[] | null>(null)
 
   useEffect(() => {
     const raw = sessionStorage.getItem('buddybooks_kit_order')
     if (!raw) { router.push('/school-sets'); return }
-    setKitData(JSON.parse(raw))
+    const parsed = JSON.parse(raw)
+    // Support both old single-object format and new array format
+    setKits(Array.isArray(parsed) ? parsed : [parsed])
     if (user?.fullName) setName(user.fullName)
   }, [user])
 
-  if (!kitData) return null
+  if (!kits || kits.length === 0) return null
 
-  const { selectedClass, items, kitSubtotal } = kitData
+  // Combine all kits
+  const allItems = kits.flatMap((k: any) => k.items)
+  const kitsSubtotal = kits.reduce((sum: number, k: any) => sum + k.kitSubtotal, 0)
+  const isMultiKit = kits.length >= 2
+  const siblingDiscount = isMultiKit ? Math.round(kitsSubtotal * 0.05) : 0
+  const kitSubtotal = kitsSubtotal - siblingDiscount  // after sibling discount
+
   const deliveryFee = deliveryMode === 'delivery' ? 99 : 0
   const total = kitSubtotal + deliveryFee
   const upfront = Math.ceil(kitSubtotal * 0.3) + deliveryFee
   const payLater = kitSubtotal - Math.ceil(kitSubtotal * 0.3)
   const payNow = paymentMode === 'full' ? total : upfront
+  const classLabel = kits.map((k: any) => k.selectedClass).join(', ')
 
   async function handleOrder() {
     setOrdering(true)
@@ -46,7 +55,7 @@ function CheckoutInner() {
       const res = await fetch('/api/payment/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: payNow * 100, currency: 'INR', receipt: 'kit_class_' + selectedClass }),
+        body: JSON.stringify({ amount: payNow * 100, currency: 'INR', receipt: 'kit_class_' + classLabel.replace(/, /g, '_') }),
       })
       const order = await res.json()
       if (order.error) { alert('Payment error: ' + JSON.stringify(order.error)); setOrdering(false); return }
@@ -56,7 +65,7 @@ function CheckoutInner() {
         amount: order.amount,
         currency: 'INR',
         name: 'BuddyBooks',
-        description: 'School Kit — Class ' + selectedClass + ' (' + SCHOOL + ')',
+        description: 'School Kit — Class ' + classLabel + ' (' + SCHOOL + ')',
         image: '/logo.png',
         order_id: order.id,
         handler: async (response: any) => {
@@ -68,8 +77,9 @@ function CheckoutInner() {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
               kitData: {
-                school: SCHOOL, class: selectedClass, items,
+                school: SCHOOL, class: classLabel, items: allItems,
                 kitSubtotal, deliveryFee, totalAmount: total,
+                siblingDiscount, numKits: kits.length,
                 paidNow: payNow, payLater: paymentMode === 'full' ? 0 : payLater,
                 paymentMode, deliveryMode,
                 address: address || null,
@@ -78,11 +88,12 @@ function CheckoutInner() {
               }
             }),
           })
-          const msg = '📦 NEW KIT ORDER\nClass ' + selectedClass + ' — ' + SCHOOL
+          const msg = '📦 NEW KIT ORDER\n' + (isMultiKit ? kits.length + ' KITS — Classes ' + classLabel : 'Class ' + classLabel) + ' — ' + SCHOOL
             + '\nName: ' + name + '\nPhone: ' + phone
             + '\nDelivery: ' + deliveryMode + (deliveryMode === 'delivery' ? '\nAddress: ' + address : '')
+            + (siblingDiscount > 0 ? '\nSibling discount: −₹' + siblingDiscount : '')
             + '\nPayment: ' + (paymentMode === 'full' ? 'Full ₹' + total : '30% upfront ₹' + upfront + ', ₹' + payLater + ' at delivery')
-            + '\nItems:\n' + items.join('\n')
+            + '\nItems:\n' + allItems.join('\n')
             + '\nPayment ID: ' + response.razorpay_payment_id
           window.open('https://wa.me/' + ADMIN_WA + '?text=' + encodeURIComponent(msg), '_blank')
           sessionStorage.removeItem('buddybooks_kit_order')
@@ -138,7 +149,7 @@ function CheckoutInner() {
           <div style={{ fontSize: '56px', marginBottom: '16px' }}>🎉</div>
           <h2 className="k" style={{ fontSize: '26px', color: '#1D9E75', marginBottom: '8px' }}>Order Confirmed!</h2>
           <p style={{ fontSize: '14px', color: 'var(--text-2)', lineHeight: 1.7, marginBottom: '24px' }}>
-            Your Class {selectedClass} kit is confirmed. We've opened WhatsApp to send the details to the store.
+            Your Class {classLabel} kit is confirmed. We've opened WhatsApp to send the details to the store.
           </p>
           <div style={{ display: 'flex', gap: '10px' }}>
             <button onClick={() => router.push('/my-orders')} style={{ flex: 1, background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '12px', padding: '13px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive' }}>
@@ -164,7 +175,7 @@ function CheckoutInner() {
           style={{ background: 'none', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '6px 10px', cursor: 'pointer', color: 'var(--text-2)', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
         </button>
-        <span className="k" style={{ fontSize: '17px', color: 'var(--text)' }}>Checkout · Class {selectedClass}</span>
+        <span className="k" style={{ fontSize: '17px', color: 'var(--text)' }}>Checkout · Class {classLabel}</span>
         <div style={{ marginLeft: 'auto', fontSize: '12px', color: 'var(--text-3)', fontWeight: '600' }}>🏫 {SCHOOL}</div>
       </nav>
 
@@ -202,22 +213,31 @@ function CheckoutInner() {
             <div style={{ background: 'linear-gradient(135deg, #1B2A4A, #1D9E75)', borderRadius: '16px', padding: '16px 20px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0 }}>🎒</div>
               <div style={{ flex: 1 }}>
-                <div className="k" style={{ fontSize: '18px', color: '#fff' }}>Class {selectedClass} School Kit</div>
-                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)', marginTop: '2px' }}>{SCHOOL} · {items.length} items</div>
+                <div className="k" style={{ fontSize: '18px', color: '#fff' }}>{isMultiKit ? kits.length + " Kits · Classes " + classLabel : "Class " + classLabel + " School Kit"}</div>
+                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)', marginTop: '2px' }}>{SCHOOL} · {allItems.length} items</div>
               </div>
               <div className="k" style={{ fontSize: '24px', color: '#fff' }}>₹{kitSubtotal.toLocaleString()}</div>
             </div>
 
-            {/* Items list */}
+            {/* Items list — grouped by kit */}
             <div style={{ background: 'var(--card)', borderRadius: 'var(--r)', border: '1.5px solid var(--border)', overflow: 'hidden', marginBottom: '16px', boxShadow: 'var(--shadow)' }}>
               <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontSize: '12px', fontWeight: '700', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                Items in your kit
+                {isMultiKit ? 'Items in your kits' : 'Items in your kit'}
               </div>
-              <div style={{ maxHeight: '280px', overflowY: 'auto' }}>
-                {items.map((item: string, i: number) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: i < items.length - 1 ? '1px solid var(--border)' : 'none', gap: '8px' }}>
-                    <div style={{ fontSize: '13px', color: 'var(--text-2)', flex: 1 }}>{item.split(' ₹')[0]}</div>
-                    <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text)', flexShrink: 0 }}>₹{item.split(' ₹')[1]}</div>
+              <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
+                {kits.map((kit: any, ki: number) => (
+                  <div key={ki}>
+                    {isMultiKit && (
+                      <div style={{ padding: '8px 16px', background: 'var(--bg)', fontSize: '12px', fontWeight: '700', color: '#1D9E75', borderBottom: '1px solid var(--border)' }}>
+                        🎒 Class {kit.selectedClass} · ₹{kit.kitSubtotal.toLocaleString()}
+                      </div>
+                    )}
+                    {kit.items.map((item: string, i: number) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderBottom: '1px solid var(--border)', gap: '8px' }}>
+                        <div style={{ fontSize: '13px', color: 'var(--text-2)', flex: 1 }}>{item.split(' ₹')[0]}</div>
+                        <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text)', flexShrink: 0 }}>₹{item.split(' ₹')[1]}</div>
+                      </div>
+                    ))}
                   </div>
                 ))}
               </div>
@@ -226,9 +246,15 @@ function CheckoutInner() {
             {/* Price summary */}
             <div style={{ background: 'var(--card)', borderRadius: 'var(--r)', border: '1.5px solid var(--border)', padding: '16px', marginBottom: '20px', boxShadow: 'var(--shadow)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '14px', color: 'var(--text-2)' }}>Kit subtotal</span>
-                <span style={{ fontSize: '14px', fontWeight: '600' }}>₹{kitSubtotal.toLocaleString()}</span>
+                <span style={{ fontSize: '14px', color: 'var(--text-2)' }}>{isMultiKit ? kits.length + ' kits subtotal' : 'Kit subtotal'}</span>
+                <span style={{ fontSize: '14px', fontWeight: '600' }}>₹{kitsSubtotal.toLocaleString()}</span>
               </div>
+              {siblingDiscount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '14px', color: '#8B5CF6', fontWeight: '600' }}>🎉 Sibling discount (5%)</span>
+                  <span style={{ fontSize: '14px', fontWeight: '700', color: '#8B5CF6' }}>−₹{siblingDiscount.toLocaleString()}</span>
+                </div>
+              )}
               <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid var(--border)' }}>
                 <span className="k" style={{ fontSize: '18px' }}>Total</span>
                 <span className="k" style={{ fontSize: '24px', color: '#1D9E75' }}>₹{kitSubtotal.toLocaleString()}</span>
@@ -366,7 +392,7 @@ function CheckoutInner() {
             <div style={{ background: 'var(--card)', borderRadius: '12px', border: '1px solid var(--border)', padding: '14px 16px', marginBottom: '20px', fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.8 }}>
               <div>👤 {name} · 📱 +91 {phone}</div>
               <div>{deliveryMode === 'pickup' ? '🏪 Pickup — Sector-40C, Chandigarh' : '🚚 Delivery — ' + address}</div>
-              <div>📦 Class {selectedClass} Kit · {items.length} items</div>
+              <div>📦 Class {classLabel} · {allItems.length} items</div>
             </div>
 
             {isSignedIn ? (
