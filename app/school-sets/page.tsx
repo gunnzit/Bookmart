@@ -702,16 +702,21 @@ export default function SchoolSetsPage() {
     .item-row:last-child { border-bottom: none; }
     .item-row:hover { background: var(--bg); }
     .prod-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 14px; }
-    .prod-card { background: var(--card); border: 1.5px solid var(--border); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; transition: all 0.15s; position: relative; }
+    .prod-card { background: var(--card); border: 1.5px solid var(--border); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; transition: border-color 0.2s, box-shadow 0.2s; position: relative; }
     .prod-card.selected { border-color: #1D9E75; box-shadow: 0 0 0 1px #1D9E75; }
+    .prod-card.selected .prod-photo { background: #F0FDF8; }
     .prod-photo { width: 100%; aspect-ratio: 1/1; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; position: relative; border-bottom: 1px solid var(--border); }
     .prod-body { padding: 10px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
     .prod-name { font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; min-height: 32px; }
     .prod-foot { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: auto; }
     .prod-price { font-size: 14px; font-weight: 700; color: var(--text); font-family: 'Kalam', cursive; }
-    .add-btn { border: 1.5px solid #1D9E75; background: #E8F7F2; color: #1D9E75; border-radius: 9px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.12s; white-space: nowrap; }
-    .add-btn:hover { background: #1D9E75; color: #fff; }
-    .add-btn.added { background: #1D9E75; color: #fff; }
+    .add-btn { border: 1.5px solid #1D9E75; background: #E8F7F2; color: #1D9E75; border-radius: 9px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: transform 0.12s cubic-bezier(0.34,1.56,0.64,1), background 0.15s, color 0.15s, box-shadow 0.15s; white-space: nowrap; }
+    .add-btn:hover { background: #1D9E75; color: #fff; transform: translateY(-1px); box-shadow: 0 3px 10px rgba(29,158,117,0.3); }
+    .add-btn:active { transform: scale(0.88); }
+    .add-btn.added { background: #1D9E75; color: #fff; animation: addedPop 0.34s cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes addedPop { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 70% { transform: scale(0.94); } 100% { transform: scale(1); } }
+    .check-badge { position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; border-radius: 50%; background: #1D9E75; display: flex; align-items: center; justify-content: center; animation: badgePop 0.34s cubic-bezier(0.34,1.56,0.64,1); }
+    @keyframes badgePop { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.3); opacity: 1; } 100% { transform: scale(1); } }
     @media (min-width: 700px) { .prod-grid { grid-template-columns: repeat(3, 1fr); } }
     .checkbox { width: 18px; height: 18px; border-radius: 5px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; cursor: pointer; }
     .checkbox.checked { background: var(--green); border-color: var(--green); }
@@ -943,7 +948,7 @@ export default function SchoolSetsPage() {
                                   </>
                                 )}
                                 {isAdded && (
-                                  <div style={{ position: 'absolute', top: '6px', right: '6px', width: '20px', height: '20px', borderRadius: '50%', background: '#1D9E75', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <div className="check-badge">
                                     <svg width="11" height="11" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
                                   </div>
                                 )}
