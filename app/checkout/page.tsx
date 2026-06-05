@@ -78,35 +78,61 @@ function CheckoutInner() {
         image: '/logo.png',
         order_id: order.id,
         handler: async (response: any) => {
-          await fetch('/api/payment/verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              kitData: {
-                school: SCHOOL, class: classLabel, items: allItems,
-                kitSubtotal, deliveryFee, totalAmount: total,
-                siblingDiscount, numKits,
-                paidNow: payNow, payLater: paymentMode === 'full' ? 0 : payLater,
-                paymentMode, deliveryMode,
-                address: address || null,
-                buyerName: name, buyerEmail: user?.primaryEmailAddress?.emailAddress || '',
-                buyerPhone: phone, buyerClerkId: user?.id || '',
-              }
-            }),
-          })
-          const msg = '📦 NEW KIT ORDER\n' + (isMultiKit ? numKits + ' KITS — Classes ' + classLabel : 'Class ' + classLabel) + ' — ' + SCHOOL
-            + '\nName: ' + name + '\nPhone: ' + phone
-            + '\nDelivery: ' + deliveryMode + (deliveryMode === 'delivery' ? '\nAddress: ' + address : '')
-            + (siblingDiscount > 0 ? '\nSibling discount: −₹' + siblingDiscount : '')
-            + '\nPayment: ' + (paymentMode === 'full' ? 'Full ₹' + total : '30% upfront ₹' + upfront + ', ₹' + payLater + ' at delivery')
-            + '\nItems:\n' + allItems.join('\n')
-            + '\nPayment ID: ' + response.razorpay_payment_id
-          window.open('https://wa.me/' + ADMIN_WA + '?text=' + encodeURIComponent(msg), '_blank')
-          sessionStorage.removeItem('buddybooks_kit_order')
-          setOrdered(true)
+          try {
+            const verifyRes = await fetch('/api/payment/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                kitData: {
+                  school: SCHOOL, class: classLabel, items: allItems,
+                  kitSubtotal, deliveryFee, totalAmount: total,
+                  siblingDiscount, numKits,
+                  paidNow: payNow, payLater: paymentMode === 'full' ? 0 : payLater,
+                  paymentMode, deliveryMode,
+                  address: address || null,
+                  buyerName: name, buyerEmail: user?.primaryEmailAddress?.emailAddress || '',
+                  buyerPhone: phone, buyerClerkId: user?.id || '',
+                }
+              }),
+            })
+            const result = await verifyRes.json().catch(() => ({}))
+ 
+            // Payment already succeeded at Razorpay. If verify did NOT confirm,
+            // do not fake success — give the customer their Payment ID to follow up.
+            if (!verifyRes.ok || !result.success) {
+              alert(
+                '⚠️ Your payment went through, but we could not auto-confirm the order.\n\n'
+                + 'Please send this Payment ID to the store on WhatsApp and we will confirm it manually:\n'
+                + response.razorpay_payment_id
+                + (result?.error ? '\n\n(' + result.error + ')' : '')
+              )
+              setOrdering(false)
+              return
+            }
+ 
+            // Verified + saved — now it's safe to notify the store and show success.
+            const msg = '📦 NEW KIT ORDER\n' + (isMultiKit ? numKits + ' KITS — Classes ' + classLabel : 'Class ' + classLabel) + ' — ' + SCHOOL
+              + '\nName: ' + name + '\nPhone: ' + phone
+              + '\nDelivery: ' + deliveryMode + (deliveryMode === 'delivery' ? '\nAddress: ' + address : '')
+              + (siblingDiscount > 0 ? '\nSibling discount: −₹' + siblingDiscount : '')
+              + '\nPayment: ' + (paymentMode === 'full' ? 'Full ₹' + total : '30% upfront ₹' + upfront + ', ₹' + payLater + ' at delivery')
+              + '\nItems:\n' + allItems.join('\n')
+              + '\nPayment ID: ' + response.razorpay_payment_id
+            window.open('https://wa.me/' + ADMIN_WA + '?text=' + encodeURIComponent(msg), '_blank')
+            sessionStorage.removeItem('buddybooks_kit_order')
+            setOrdered(true)
+          } catch {
+            // Network/server unreachable AFTER payment — same customer-protective message.
+            alert(
+              '⚠️ Your payment went through, but we could not reach the server to confirm.\n\n'
+              + 'Please send this Payment ID to the store and we will confirm manually:\n'
+              + response.razorpay_payment_id
+            )
+            setOrdering(false)
+          }
         },
         prefill: { name, email: user?.primaryEmailAddress?.emailAddress, contact: phone },
         theme: { color: '#00B86B' },

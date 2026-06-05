@@ -21,8 +21,7 @@ export default function MyOrdersPage() {
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !user) return
-    fetch('/api/kit-orders?clerkId=' + user.id)
-      .then(r => r.json())
+    fetch('/api/kit-orders')      .then(r => r.json())
       .then(data => { if (Array.isArray(data)) setOrders(data); setLoading(false) })
       .catch(() => setLoading(false))
   }, [isLoaded, isSignedIn, user])

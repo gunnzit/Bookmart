@@ -1,11 +1,20 @@
 import { PrismaClient } from '@prisma/client'
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
+import Razorpay from 'razorpay'
 import { validateKitOrder } from '@/lib/kit-prices'
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 const prisma = globalForPrisma.prisma ?? new PrismaClient()
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID!,
+  key_secret: process.env.RAZORPAY_KEY_SECRET!,
+})
+
+// Valid featured-tier amounts in paise — keep in sync with create-order TIERS.
+const VALID_TIER_AMOUNTS = new Set([1900, 2900, 4900])
 
 export async function POST(request: Request) {
   try {
@@ -29,11 +38,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
     }
 
-    // ── Kit order payment ────────────────────────────────────────────────
+    // ── Kit order payment (Fix #1) ───────────────────────────────────────
     if (kitData) {
-      // 2) Re-validate the price server-side BEFORE writing anything.
-      //    Even if create-order was somehow bypassed, a tampered amount or
-      //    item price is caught here.
       const check = validateKitOrder({
         items: kitData.items,
         numKits: kitData.numKits,
@@ -48,8 +54,6 @@ export async function POST(request: Request) {
         )
       }
 
-      // 3) Confirm the amount the customer claims they paid matches the server price.
-      //    (kitData.paidNow is in rupees; expectedPayNowPaise is in paise.)
       if (Math.round(Number(kitData.paidNow) * 100) !== check.expectedPayNowPaise) {
         return NextResponse.json(
           { error: 'Payment amount mismatch — order not recorded.' },
@@ -57,11 +61,9 @@ export async function POST(request: Request) {
         )
       }
 
-      // 4) Compute the authoritative amounts to STORE (never the browser's numbers).
       const b = check.breakdown
       const afterDiscount = check.itemsSubtotal - b.siblingDiscount
 
-      // Find or create user by clerkId, then email
       let user = await prisma.user.findUnique({ where: { clerkId: kitData.buyerClerkId } })
       if (!user) {
         user = await prisma.user.findFirst({ where: { email: kitData.buyerEmail } })
@@ -82,7 +84,6 @@ export async function POST(request: Request) {
           school: kitData.school,
           class: kitData.class,
           items: kitData.items,
-          // ↓ all money fields are SERVER-computed, not from the browser
           kitSubtotal: afterDiscount,
           deliveryFee: b.deliveryFee,
           totalAmount: b.total,
@@ -104,8 +105,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, type: 'kit' })
     }
 
-    // ── Featured listing payment ─────────────────────────────────────────
+    // ── Featured listing payment (Fix #3) ────────────────────────────────
+    // A valid signature only proves "some payment happened". It does NOT prove
+    // the payment was for THIS listing. So we read the listingId back from the
+    // Razorpay ORDER NOTES (set server-side by create-order) and require it to
+    // match. A replayed signature from a different order carries a different
+    // (or missing) note and is rejected.
     if (listingId) {
+      let order: any
+      try {
+        order = await razorpay.orders.fetch(razorpay_order_id)
+      } catch {
+        return NextResponse.json({ error: 'Could not verify order' }, { status: 400 })
+      }
+
+      const paidForListing = order?.notes?.listingId
+      const orderAmount = Number(order?.amount)
+
+      if (paidForListing !== listingId) {
+        return NextResponse.json(
+          { error: 'Payment does not correspond to this listing.' },
+          { status: 400 }
+        )
+      }
+      if (!VALID_TIER_AMOUNTS.has(orderAmount)) {
+        return NextResponse.json(
+          { error: 'Invalid featured amount.' },
+          { status: 400 }
+        )
+      }
+
       await prisma.listing.update({
         where: { id: listingId },
         data: { featured: true },
