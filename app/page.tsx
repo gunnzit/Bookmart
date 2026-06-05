@@ -3,8 +3,6 @@ import { useRouter } from 'next/navigation'
 import { useUser, SignInButton } from '@clerk/nextjs'
 import { useEffect, useRef, useState } from 'react'
 
-// ─── Data ────────────────────────────────────────────────────────────────────
-
 const classKits = [
   { cls: 1, price: 2035 }, { cls: 2, price: 1810 }, { cls: 3, price: 4166 },
   { cls: 4, price: 4397 }, { cls: 5, price: 4640 }, { cls: 6, price: 4686 },
@@ -12,21 +10,30 @@ const classKits = [
   { cls: 10, price: 3918 },
 ]
 
+const cats = [
+  { emoji: '📗', name: 'Textbooks', c: '#2D7FF9', bg: '#E3F0FF' },
+  { emoji: '📘', name: 'Novels', c: '#7C5CFC', bg: '#EFEAFF' },
+  { emoji: '📓', name: 'Notebooks', c: '#FFC83D', bg: '#FFF6DD' },
+  { emoji: '🎨', name: 'Art', c: '#FF3D81', bg: '#FFE5EF' },
+  { emoji: '✏️', name: 'Stationery', c: '#00B86B', bg: '#DFFFEF' },
+  { emoji: '📙', name: 'JEE/NEET', c: '#FF6B2C', bg: '#FFEDE2' },
+]
+
 const testimonials = [
-  { name: 'Priya S.', role: 'Class 12, DPS Chandigarh', text: 'Sold all my Class 11 books in 2 days! Got ₹800 back. So easy to use.', avatar: 'P', color: '#EC4899', bg: '#FDF2F8', border: '#FBCFE8', stars: 5 },
-  { name: 'Arjun M.', role: 'B.Tech, Mohali', text: 'Found NCERT Physics for ₹180 instead of ₹320. The seller was nearby and we met the same day!', avatar: 'A', color: '#3B82F6', bg: '#EFF6FF', border: '#BFDBFE', stars: 5 },
-  { name: 'Sneha K.', role: 'JEE Aspirant, Panchkula', text: 'Got all my Arihant books at half price. Saved over ₹1,200 in one go. Total lifesaver.', avatar: 'S', color: '#8B5CF6', bg: '#F5F3FF', border: '#DDD6FE', stars: 5 },
-  { name: 'Rahul T.', role: 'Class 10 parent, Sector 22', text: 'Ordered the Class 10 school kit for my son. Everything arrived perfectly packed in 2 days!', avatar: 'R', color: '#F97316', bg: '#FFF7ED', border: '#FED7AA', stars: 5 },
-  { name: 'Divya N.', role: 'Class 8, Shivalik School', text: 'The school kit had every single book on the list. Saved us the trip to the market completely.', avatar: 'D', color: '#1D9E75', bg: '#E8F7F2', border: '#C0E8D8', stars: 5 },
-  { name: 'Karan B.', role: 'Commerce Student, Chandigarh', text: 'Listed 6 books and got WhatsApp messages within an hour. Super fast!', avatar: 'K', color: '#F59E0B', bg: '#FFFBEB', border: '#FDE68A', stars: 5 },
+  { name: 'Priya S.', role: 'Class 12 · DPS', text: 'Sold all my Class 11 books in 2 days! Got ₹800 back 🤑', avatar: 'P', c: '#FF3D81', tag: '📚 Sold' },
+  { name: 'Arjun M.', role: 'B.Tech · Mohali', text: 'NCERT Physics for ₹180 instead of ₹320. Met same day!', avatar: 'A', c: '#2D7FF9', tag: '🛒 Bought' },
+  { name: 'Sneha K.', role: 'JEE · Panchkula', text: 'All my Arihant books at half price. Saved ₹1,200! 🎉', avatar: 'S', c: '#7C5CFC', tag: '🛒 Bought' },
+  { name: 'Rahul T.', role: 'Parent · Sec 22', text: 'Class 10 kit arrived perfectly packed in 2 days!', avatar: 'R', c: '#FF6B2C', tag: '🎒 Kit' },
+  { name: 'Divya N.', role: 'Class 8 · Shivalik', text: 'Every single book on the list. No market trips! 🙌', avatar: 'D', c: '#00B86B', tag: '🎒 Kit' },
+  { name: 'Karan B.', role: 'Commerce · Chd', text: 'Listed 6 books, got WhatsApp messages in an hour ⚡', avatar: 'K', c: '#FFC83D', tag: '📚 Sold' },
 ]
 
 const faqs = [
-  { q: 'Is BuddyBooks free to use?', a: 'Yes, completely free. Listing, browsing, and contacting sellers costs nothing. We never take commission.' },
-  { q: 'How do school kits work?', a: 'Pick your class, customise which books and stationery you need, pay via Razorpay, and choose pickup from our Sector-40C store or home delivery (+₹99). We assemble and dispatch your kit.' },
-  { q: 'How do I contact a seller?', a: "Every listing has a WhatsApp button. One tap opens a chat directly with the seller — no middlemen, no app required." },
-  { q: 'What areas do you cover?', a: 'Chandigarh, Mohali, Panchkula and surrounding tricity areas for second-hand listings. School kits deliver anywhere.' },
-  { q: 'Can I pay 30% now for a kit?', a: 'Yes! You can pay just 30% upfront to confirm your kit. The remaining balance is due at pickup or delivery.' },
+  { q: 'Is BuddyBooks free?', a: 'Yes! 100% free. Listing, browsing, and contacting sellers costs nothing. We never take commission.' },
+  { q: 'How do school kits work?', a: 'Pick your class, customise which books you need, pay via Razorpay, and choose pickup from Sector-40C or home delivery (+₹99).' },
+  { q: 'How do I contact a seller?', a: 'Every listing has a WhatsApp button. One tap opens a chat directly with the seller.' },
+  { q: 'Can I pay 30% now for a kit?', a: 'Yes! Pay just 30% upfront to confirm. The rest is due at pickup or delivery.' },
+  { q: 'What areas do you cover?', a: 'Chandigarh, Mohali, Panchkula and tricity for listings. Kits deliver anywhere.' },
 ]
 
 function useInView(threshold = 0.1) {
@@ -40,18 +47,17 @@ function useInView(threshold = 0.1) {
   return { ref, inView }
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
-
 export default function LandingPage() {
   const router = useRouter()
   const { isSignedIn } = useUser()
   const [search, setSearch] = useState('')
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [activeHero, setActiveHero] = useState<'marketplace' | 'kits'>('marketplace')
-  const { ref: parentRef, inView: parentInView } = useInView(0.05)
-  const { ref: howRef, inView: howInView } = useInView()
-  const { ref: testRef, inView: testInView } = useInView()
-  const { ref: faqRef, inView: faqInView } = useInView()
+  const { ref: catRef, inView: catIn } = useInView()
+  const { ref: howRef, inView: howIn } = useInView()
+  const { ref: testRef, inView: testIn } = useInView()
+  const { ref: faqRef, inView: faqIn } = useInView()
+  const { ref: parentRef, inView: parentIn } = useInView(0.05)
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault()
@@ -59,80 +65,78 @@ export default function LandingPage() {
   }
 
   const css = `
-    @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=DM+Sans:wght@300;400;500;600;700;800&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #F7F6F3; --white: #fff; --card: #fff; --subtle: #F0EEE9;
-      --border: #E5E2DA; --border-strong: #CCC9C0;
-      --text: #1A1A1A; --text-2: #5C5C5C; --text-3: #9A9690;
-      --green: #1D9E75; --green-dark: #157A5A; --green-bg: #E8F7F2; --green-border: #C0E8D8;
-      --navy: #1B2A4A;
-      --shadow: 0 2px 12px rgba(0,0,0,0.06); --shadow-lg: 0 8px 32px rgba(0,0,0,0.10); --r: 16px;
+      --bg: #FFF9F0; --white: #fff; --card: #fff; --subtle: #FFF3E0;
+      --border: #FFE2C2; --border-strong: #FFCB94;
+      --text: #1A1330; --text-2: #6B6280; --text-3: #A89FC0;
+      --green: #00B86B; --green-dark: #009957;
+      --shadow: 0 2px 14px rgba(124,92,252,0.08); --shadow-lg: 0 12px 40px rgba(124,92,252,0.16);
+      --r: 18px;
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #0F1117; --white: #1A1D27; --card: #1E2130; --subtle: #252840;
-        --border: #2A2D3E; --border-strong: #3A3D52;
-        --text: #F0EEE9; --text-2: #A0A0B0; --text-3: #666880;
-        --green-bg: #0D2B22; --green-border: #1A4035;
-        --shadow: 0 2px 12px rgba(0,0,0,0.4); --shadow-lg: 0 8px 32px rgba(0,0,0,0.5);
+        --bg: #14101F; --white: #1C1730; --card: #221C3A; --subtle: #2A2342;
+        --border: #352C52; --border-strong: #463A6B;
+        --text: #F3EEFF; --text-2: #B0A8CC; --text-3: #6E6590;
+        --shadow: 0 2px 14px rgba(0,0,0,0.4); --shadow-lg: 0 12px 40px rgba(0,0,0,0.5);
       }
     }
     body { background: var(--bg); font-family: 'DM Sans', sans-serif; color: var(--text); -webkit-font-smoothing: antialiased; }
     .k { font-family: 'Kalam', cursive; }
-    .nav { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 20px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(0,0,0,0.04); }
-    .btn-p { display: inline-flex; align-items: center; justify-content: center; background: var(--green); color: #fff; border: none; border-radius: 10px; padding: 11px 22px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; white-space: nowrap; }
-    .btn-p:hover { background: var(--green-dark); transform: translateY(-1px); }
-    .btn-ghost { display: inline-flex; align-items: center; justify-content: center; background: transparent; color: var(--text-2); border: none; border-radius: 10px; padding: 9px 14px; font-size: 14px; font-weight: 500; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: background 0.15s; white-space: nowrap; }
-    .btn-ghost:hover { background: var(--subtle); color: var(--text); }
-    .btn-kits { display: inline-flex; align-items: center; justify-content: center; background: linear-gradient(135deg,#EFF6FF,#F5F3FF); color: #1D4ED8; border: 1.5px solid #BFDBFE; border-radius: 10px; padding: 9px 14px; font-size: 13px; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; white-space: nowrap; }
-    .btn-kits:hover { transform: translateY(-1px); }
-    .step-num { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex-shrink: 0; }
-    .step-connector { width: 2px; height: 28px; background: var(--border); margin: 0 15px; }
-    .kit-chip { border-radius: 12px; padding: 12px 8px; text-align: center; cursor: pointer; transition: all 0.15s; border: 1.5px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08); }
-    .kit-chip:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(255,255,255,0.1); background: rgba(255,255,255,0.15); }
-    .test-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 20px; box-shadow: var(--shadow); transition: transform 0.2s, box-shadow 0.2s; }
-    .test-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
-    .faq-btn { width: 100%; text-align: left; background: none; border: none; padding: 17px 0; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 600; color: var(--text); font-family: 'DM Sans', sans-serif; gap: 12px; }
-    .search-bar { display: flex; width: 100%; background: var(--white); border: 2px solid var(--green); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(29,158,117,0.15); }
-    .search-bar input { flex: 1; border: none; background: transparent; padding: 12px 16px; font-size: 14px; color: var(--text); font-family: 'DM Sans', sans-serif; outline: none; min-width: 0; }
-    .search-bar input::placeholder { color: var(--text-3); }
-    .search-bar button { background: var(--green); color: #fff; border: none; padding: 0 18px; font-size: 13px; cursor: pointer; font-weight: 700; font-family: 'DM Sans', sans-serif; white-space: nowrap; flex-shrink: 0; }
-    @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
-    .ticker-wrap { overflow: hidden; background: linear-gradient(90deg, #1D9E75, #0ea5e9, #8B5CF6, #F97316, #1D9E75); background-size: 300% 100%; animation: gradientShift 8s ease infinite; padding: 8px 0; }
-    @keyframes gradientShift { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
-    .ticker-track { display: flex; animation: ticker 30s linear infinite; width: max-content; }
-    .ticker-item { white-space: nowrap; padding: 0 24px; font-size: 11px; color: rgba(255,255,255,0.95); font-weight: 600; }
-    @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
-    .fu { animation: fadeUp 0.5s ease both; }
-    .fu1 { animation-delay: 0.05s; } .fu2 { animation-delay: 0.1s; } .fu3 { animation-delay: 0.15s; } .fu4 { animation-delay: 0.22s; } .fu5 { animation-delay: 0.3s; }
-    .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.5s ease, transform 0.5s ease; }
+    .nav { background: var(--white); border-bottom: 2px solid var(--border); padding: 0 20px; height: 60px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow); }
+    .btn-pop { display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: linear-gradient(135deg,#00B86B,#2D7FF9); color: #fff; border: none; border-radius: 14px; padding: 11px 22px; font-size: 15px; font-weight: 800; cursor: pointer; font-family: 'DM Sans', sans-serif; white-space: nowrap; box-shadow: 0 4px 0 #009957, 0 8px 20px rgba(0,184,107,0.3); transition: transform 0.12s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.12s; }
+    .btn-pop:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #009957, 0 12px 28px rgba(0,184,107,0.4); }
+    .btn-pop:active { transform: translateY(2px); box-shadow: 0 1px 0 #009957; }
+    .btn-ghost { display: inline-flex; align-items: center; gap: 5px; background: transparent; color: var(--text-2); border: none; border-radius: 12px; padding: 9px 14px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+    .btn-ghost:hover { background: var(--subtle); color: var(--text); transform: translateY(-1px); }
+    .btn-kits { display: inline-flex; align-items: center; gap: 5px; background: linear-gradient(135deg,#FFC83D,#FF6B2C); color: #fff; border: none; border-radius: 12px; padding: 9px 16px; font-size: 13px; font-weight: 800; cursor: pointer; font-family: 'DM Sans', sans-serif; white-space: nowrap; box-shadow: 0 3px 0 #E0851F; transition: all 0.12s cubic-bezier(0.34,1.56,0.64,1); }
+    .btn-kits:hover { transform: translateY(-2px); box-shadow: 0 5px 0 #E0851F; }
+    @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    .floaty { animation: floaty 4s ease-in-out infinite; }
+    @keyframes wiggle { 0%,100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+    .wiggle { animation: wiggle 3s ease-in-out infinite; display: inline-block; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+    .su { animation: slideUp 0.6s cubic-bezier(0.22,1,0.36,1) both; }
+    .reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.6s cubic-bezier(0.22,1,0.36,1), transform 0.6s cubic-bezier(0.22,1,0.36,1); }
     .reveal.in { opacity: 1; transform: none; }
-    .r1 { transition-delay: 0s; } .r2 { transition-delay: 0.08s; } .r3 { transition-delay: 0.16s; } .r4 { transition-delay: 0.24s; } .r5 { transition-delay: 0.32s; } .r6 { transition-delay: 0.4s; }
-    @media (max-width: 639px) {
-      .nav-desktop-links { display: none !important; }
-      .nav-second-row { display: flex !important; }
-      .hero-stats { display: none !important; }
-    }
+    .d1{transition-delay:.05s;animation-delay:.05s}.d2{transition-delay:.12s;animation-delay:.12s}.d3{transition-delay:.19s;animation-delay:.19s}.d4{transition-delay:.26s;animation-delay:.26s}.d5{transition-delay:.33s;animation-delay:.33s}.d6{transition-delay:.4s;animation-delay:.4s}
+    @keyframes gradientMove { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+    .grad-animate { background-size: 300% 300%; animation: gradientMove 10s ease infinite; }
+    @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+    .ticker-wrap { overflow: hidden; background: linear-gradient(90deg,#FF6B2C,#FF3D81,#7C5CFC,#2D7FF9,#00B86B,#FF6B2C); background-size: 300% 100%; animation: gradientMove 8s ease infinite; padding: 9px 0; }
+    .ticker-track { display: flex; animation: ticker 28s linear infinite; width: max-content; }
+    .ticker-item { white-space: nowrap; padding: 0 22px; font-size: 12px; color: #fff; font-weight: 700; }
+    .pop-card { background: var(--card); border: 2px solid var(--border); border-radius: var(--r); transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.18s, border-color 0.18s; cursor: pointer; }
+    .pop-card:hover { transform: translateY(-6px) rotate(-0.5deg); box-shadow: var(--shadow-lg); border-color: #7C5CFC; }
+    .cat-tile { border-radius: 18px; padding: 18px 10px; text-align: center; cursor: pointer; border: 2px solid transparent; transition: transform 0.16s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.16s; }
+    .cat-tile:hover { transform: translateY(-5px) scale(1.03); box-shadow: 0 10px 24px rgba(0,0,0,0.12); }
+    .kit-chip { border-radius: 14px; padding: 12px 8px; text-align: center; cursor: pointer; border: 2px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.12); transition: all 0.15s cubic-bezier(0.34,1.56,0.64,1); }
+    .kit-chip:hover { transform: translateY(-4px) scale(1.05); background: rgba(255,255,255,0.25); }
+    .search-bar { display: flex; width: 100%; background: var(--white); border: 3px solid #00B86B; border-radius: 16px; overflow: hidden; box-shadow: 0 6px 24px rgba(0,184,107,0.25); }
+    .search-bar input { flex: 1; border: none; background: transparent; padding: 14px 18px; font-size: 15px; color: var(--text); font-family: 'DM Sans', sans-serif; outline: none; min-width: 0; }
+    .search-bar input::placeholder { color: var(--text-3); }
+    .search-bar button { background: linear-gradient(135deg,#00B86B,#009957); color: #fff; border: none; padding: 0 22px; font-size: 14px; cursor: pointer; font-weight: 800; font-family: 'DM Sans', sans-serif; white-space: nowrap; flex-shrink: 0; }
+    .faq-btn { width: 100%; text-align: left; background: none; border: none; padding: 18px 0; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 700; color: var(--text); font-family: 'DM Sans', sans-serif; gap: 12px; }
+    .hero-tabs { background: var(--white); border-bottom: 2px solid var(--border); padding: 10px 16px; display: flex; gap: 8px; position: sticky; top: 60px; z-index: 38; }
+    .htab { flex: 1; padding: 11px; border-radius: 14px; border: none; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 800; cursor: pointer; transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1); }
+    @media (max-width: 639px) { .nav-links { display: none !important; } .nav2 { display: flex !important; } .hero-stats { display: none !important; } }
     @media (min-width: 640px) {
-      .nav-mobile-cta { display: none !important; }
-      .split-grid { grid-template-columns: 1fr 1fr !important; min-height: calc(100vh - 90px); max-height: 900px; }
-      .how-steps { grid-template-columns: 1fr 1fr 1fr !important; }
-      .test-grid { grid-template-columns: 1fr 1fr 1fr !important; }
-      .parent-grid { grid-template-columns: repeat(3, 1fr) !important; }
+      .nav-mob { display: none !important; }
+      .split { grid-template-columns: 1fr 1fr !important; min-height: calc(100vh - 110px); max-height: 880px; }
       .hero-tabs { display: none !important; }
       .hero-panel { display: flex !important; }
+      .cat-grid { grid-template-columns: repeat(6,1fr) !important; }
+      .test-grid { grid-template-columns: repeat(3,1fr) !important; }
+      .how-grid { grid-template-columns: repeat(3,1fr) !important; }
+      .parent-grid { grid-template-columns: repeat(3,1fr) !important; }
     }
-    .nav-second-row {
-      display: none; background: var(--white); border-bottom: 1px solid var(--border);
-      padding: 7px 12px; gap: 8px; overflow-x: auto; -webkit-overflow-scrolling: touch;
-      scrollbar-width: none; position: sticky; top: 56px; z-index: 99;
-    }
-    .nav-second-row::-webkit-scrollbar { display: none; }
-    .nav-pill { display: inline-flex; align-items: center; gap: 5px; padding: 6px 13px; border-radius: 99px; border: 1.5px solid var(--border); background: var(--white); color: var(--text-2); font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; flex-shrink: 0; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
-    .nav-pill.green { background: #E8F7F2; color: #1D9E75; border-color: #C0E8D8; }
-    .nav-pill.blue { background: linear-gradient(135deg,#EFF6FF,#F5F3FF); color: #1D4ED8; border-color: #BFDBFE; }
-    ::-webkit-scrollbar { width: 4px; }
+    .nav2 { display: none; background: var(--white); border-bottom: 2px solid var(--border); padding: 8px 12px; gap: 8px; overflow-x: auto; scrollbar-width: none; position: sticky; top: 60px; z-index: 99; }
+    .nav2::-webkit-scrollbar { display: none; }
+    .pill { display: inline-flex; align-items: center; gap: 5px; padding: 7px 14px; border-radius: 99px; border: 2px solid var(--border); background: var(--white); color: var(--text-2); font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0; font-family: 'DM Sans', sans-serif; transition: all 0.15s; }
+    .pill:active { transform: scale(0.95); }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; }
   `
 
@@ -144,484 +148,299 @@ export default function LandingPage() {
         {/* Nav */}
         <nav className="nav">
           <div style={{ display: 'flex', alignItems: 'center', gap: '7px', cursor: 'pointer' }} onClick={() => router.push('/')}>
-            <img src="/logo.png" alt="BuddyBooks" style={{ height: '30px', width: 'auto' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-            <span className="k" style={{ fontSize: '19px', color: 'var(--text)' }}>BuddyBooks</span>
+            <img src="/logo.png" alt="BuddyBooks" style={{ height: '32px' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+            <span className="k" style={{ fontSize: '20px', background: 'linear-gradient(135deg,#FF6B2C,#FF3D81)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: '700' }}>BuddyBooks</span>
           </div>
-          <div className="nav-desktop-links" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <button className="btn-ghost" onClick={() => router.push('/marketplace')}>Browse</button>
+          <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <button className="btn-ghost" onClick={() => router.push('/marketplace')}>🛒 Browse</button>
             <button className="btn-kits" onClick={() => router.push('/school-sets')}>🎒 School Sets</button>
             <button className="btn-ghost" onClick={() => router.push('/requests')}>📋 Requests</button>
             {isSignedIn
-              ? <button className="btn-p" onClick={() => router.push('/sell')}>+ Sell</button>
-              : <SignInButton mode="modal"><button className="btn-p">Get started</button></SignInButton>
-            }
+              ? <button className="btn-pop" onClick={() => router.push('/sell')}>+ Sell</button>
+              : <SignInButton mode="modal"><button className="btn-pop">Get started</button></SignInButton>}
           </div>
-          <div className="nav-mobile-cta" style={{ display: 'flex', alignItems: 'center' }}>
+          <div className="nav-mob" style={{ display: 'flex', alignItems: 'center' }}>
             {isSignedIn
-              ? <button className="btn-p" style={{ padding: '8px 16px', fontSize: '13px' }} onClick={() => router.push('/sell')}>+ Sell</button>
-              : <SignInButton mode="modal"><button className="btn-p" style={{ padding: '8px 16px', fontSize: '13px' }}>Get started</button></SignInButton>
-            }
+              ? <button className="btn-pop" style={{ padding: '9px 16px', fontSize: '13px' }} onClick={() => router.push('/sell')}>+ Sell</button>
+              : <SignInButton mode="modal"><button className="btn-pop" style={{ padding: '9px 16px', fontSize: '13px' }}>Get started</button></SignInButton>}
           </div>
         </nav>
 
-        {/* Mobile second row */}
-        <div className="nav-second-row">
-          <button className="nav-pill" onClick={() => router.push('/marketplace')}>🛒 Browse</button>
-          <button className="nav-pill blue" onClick={() => router.push('/school-sets')}>🎒 School Sets</button>
-          <button className="nav-pill" onClick={() => router.push('/requests')}>📋 Requests</button>
-          {isSignedIn && <button className="nav-pill" onClick={() => router.push('/my-orders')}>📦 My Orders</button>}
-          <button className="nav-pill green" onClick={() => router.push('/contact')}>📍 Contact</button>
+        <div className="nav2">
+          <button className="pill" onClick={() => router.push('/marketplace')}>🛒 Browse</button>
+          <button className="pill" style={{ background: 'linear-gradient(135deg,#FFF6DD,#FFEDE2)', color: '#FF6B2C', borderColor: '#FFCB94' }} onClick={() => router.push('/school-sets')}>🎒 School Sets</button>
+          <button className="pill" onClick={() => router.push('/requests')}>📋 Requests</button>
+          {isSignedIn && <button className="pill" onClick={() => router.push('/my-orders')}>📦 My Orders</button>}
+          <button className="pill" style={{ background: '#DFFFEF', color: '#00B86B', borderColor: '#9DEAC4' }} onClick={() => router.push('/contact')}>📍 Contact</button>
         </div>
 
         {/* Ticker */}
         <div className="ticker-wrap">
           <div className="ticker-track">
             {[...Array(3)].map((_, j) =>
-              ['🔍 Buy second-hand books near you', '🎒 School kits Class 1–10', '💸 Save up to 60%', '📍 Chandigarh · Mohali · Panchkula', '✅ 100% free · No commission', '📦 Kit delivery available', '💬 WhatsApp direct contact', '📗 NCERT books available'].map((t, i) => (
+              ['🔥 Save up to 60% on books', '🎒 School kits Class 1–10', '⚡ Same-day pickup', '📍 Chandigarh · Mohali · Panchkula', '✅ 100% free · No commission', '🚚 Home delivery available', '💬 Direct WhatsApp contact', '🤑 Avg saving ₹250'].map((t, i) => (
                 <span key={j + '-' + i} className="ticker-item">{t}</span>
-              ))
-            )}
+              )))}
           </div>
         </div>
 
-        {/* ═══════════════════════════════════════════════════════════════════
-            HERO — Tab switcher on mobile, split on desktop
-        ═══════════════════════════════════════════════════════════════════ */}
-
-        {/* Mobile tab switcher — hidden on desktop */}
-        <div className="hero-tabs" style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '10px 16px', display: 'flex', gap: '8px', position: 'sticky', top: '96px', zIndex: 38 }}>
-          <button onClick={() => setActiveHero('marketplace')}
-            style={{ flex: 1, padding: '10px', borderRadius: '12px', border: 'none', fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s',
-              background: activeHero === 'marketplace' ? 'linear-gradient(135deg, #1B2A4A, #0F6E56)' : 'var(--subtle)',
-              color: activeHero === 'marketplace' ? '#fff' : 'var(--text-2)',
-              boxShadow: activeHero === 'marketplace' ? '0 4px 12px rgba(29,158,117,0.3)' : 'none' }}>
-            🛒 Buy Books
+        {/* Mobile hero tabs */}
+        <div className="hero-tabs">
+          <button className="htab" onClick={() => setActiveHero('marketplace')}
+            style={{ background: activeHero === 'marketplace' ? 'linear-gradient(135deg,#00B86B,#2D7FF9)' : 'var(--subtle)', color: activeHero === 'marketplace' ? '#fff' : 'var(--text-2)', boxShadow: activeHero === 'marketplace' ? '0 4px 14px rgba(0,184,107,0.35)' : 'none' }}>
+            🛒 Buy & Sell
           </button>
-          <button onClick={() => setActiveHero('kits')}
-            style={{ flex: 1, padding: '10px', borderRadius: '12px', border: 'none', fontFamily: 'DM Sans, sans-serif', fontSize: '13px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s',
-              background: activeHero === 'kits' ? 'linear-gradient(135deg, #1B2A4A, #1D4ED8)' : 'var(--subtle)',
-              color: activeHero === 'kits' ? '#fff' : 'var(--text-2)',
-              boxShadow: activeHero === 'kits' ? '0 4px 12px rgba(59,130,246,0.3)' : 'none' }}>
+          <button className="htab" onClick={() => setActiveHero('kits')}
+            style={{ background: activeHero === 'kits' ? 'linear-gradient(135deg,#FFC83D,#FF6B2C)' : 'var(--subtle)', color: activeHero === 'kits' ? '#fff' : 'var(--text-2)', boxShadow: activeHero === 'kits' ? '0 4px 14px rgba(255,107,44,0.35)' : 'none' }}>
             🎒 School Kits
           </button>
         </div>
 
-        {/* Hero panels */}
-        <div className="split-grid" style={{ display: 'grid', gridTemplateColumns: '1fr' }}>
-          <style>{`
-            @media(min-width:640px){
-              .split-grid{grid-template-columns:1fr 1fr!important;min-height:calc(100vh - 90px);max-height:900px;}
-              .hero-tabs{display:none!important;}
-              .hero-panel{display:flex!important;}
-            }
-            @media(max-width:639px){
-              .hero-panel-marketplace{display:${`var(--mp-display)`};}
-              .hero-panel-kits{display:${`var(--kits-display)`};}
-            }
-          `}</style>
+        {/* HERO */}
+        <div className="split" style={{ display: 'grid', gridTemplateColumns: '1fr' }}>
 
-          {/* LEFT — Marketplace */}
-          <div className="hero-panel hero-panel-marketplace"
-            style={{ background: 'linear-gradient(160deg, #1B2A4A 0%, #0F6E56 100%)', padding: 'clamp(28px,5vw,64px) clamp(20px,5vw,60px)', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden',
-              display: activeHero === 'marketplace' ? 'flex' : 'none' }}>
-            <div style={{ position: 'absolute', top: '-60px', right: '-60px', width: '220px', height: '220px', borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
+          {/* Marketplace */}
+          <div className="hero-panel grad-animate" style={{ background: 'linear-gradient(135deg,#1A1330,#00B86B,#2D7FF9)', backgroundSize: '300% 300%', padding: 'clamp(32px,5vw,64px) clamp(22px,5vw,56px)', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden', display: activeHero === 'marketplace' ? 'flex' : 'none' }}>
+            <div className="floaty" style={{ position: 'absolute', top: '8%', right: '8%', fontSize: '54px', opacity: 0.25 }}>📚</div>
+            <div className="floaty" style={{ position: 'absolute', bottom: '12%', left: '6%', fontSize: '40px', opacity: 0.2, animationDelay: '1s' }}>✏️</div>
             <div style={{ position: 'relative', zIndex: 1 }}>
-              <div className="fu" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px', padding: '4px 14px', marginBottom: '16px' }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#4ADE80', display: 'inline-block' }} />
-                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.9)', fontWeight: '700' }}>Second-hand marketplace</span>
+              <div className="su" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.18)', borderRadius: '99px', padding: '5px 16px', marginBottom: '18px', backdropFilter: 'blur(8px)' }}>
+                <span className="wiggle">🔥</span>
+                <span style={{ fontSize: '12px', color: '#fff', fontWeight: '800' }}>Second-hand marketplace</span>
               </div>
-              <h1 className="k fu fu1" style={{ fontSize: 'clamp(26px,5vw,46px)', color: '#fff', lineHeight: 1.15, marginBottom: '12px' }}>
-                Buy books cheap.<br />Sell the ones you're done with.
+              <h1 className="k su d1" style={{ fontSize: 'clamp(30px,5.5vw,52px)', color: '#fff', lineHeight: 1.1, marginBottom: '14px', textShadow: '0 2px 20px rgba(0,0,0,0.2)' }}>
+                Buy books cheap.<br />Sell what you're done with! 🤑
               </h1>
-              <p className="fu fu2" style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.75, marginBottom: '24px', maxWidth: '420px' }}>
-                Browse hundreds of listings from students nearby. Save up to 60% on NCERT, JEE prep, novels, stationery and more. 100% free, no commission.
+              <p className="su d2" style={{ fontSize: '15px', color: 'rgba(255,255,255,0.85)', lineHeight: 1.7, marginBottom: '24px', maxWidth: '440px' }}>
+                Hundreds of listings from students nearby. Save up to <b style={{ color: '#FFC83D' }}>60%</b> on NCERT, JEE prep, novels & more. 100% free!
               </p>
-              <form className="fu fu3" onSubmit={handleSearch} style={{ marginBottom: '20px', maxWidth: '420px' }}>
+              <form className="su d3" onSubmit={handleSearch} style={{ marginBottom: '22px', maxWidth: '440px' }}>
                 <div className="search-bar">
                   <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search NCERT, JEE books, novels…" />
-                  <button type="submit">Search →</button>
+                  <button type="submit">Search 🔍</button>
                 </div>
               </form>
-              <div className="fu fu3" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                <button onClick={() => router.push('/marketplace')}
-                  style={{ background: '#1D9E75', color: '#fff', border: 'none', borderRadius: '10px', padding: '11px 22px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', boxShadow: '0 4px 16px rgba(29,158,117,0.4)' }}>
-                  Browse listings →
-                </button>
+              <div className="su d4" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                <button className="btn-pop" onClick={() => router.push('/marketplace')}>Browse listings →</button>
                 {isSignedIn
-                  ? <button onClick={() => router.push('/sell')} style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: '10px', padding: '10px 20px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', backdropFilter: 'blur(8px)' }}>+ Sell your books</button>
-                  : <SignInButton mode="modal"><button style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1.5px solid rgba(255,255,255,0.3)', borderRadius: '10px', padding: '10px 20px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', backdropFilter: 'blur(8px)' }}>+ Sell your books</button></SignInButton>
-                }
+                  ? <button onClick={() => router.push('/sell')} style={{ background: 'rgba(255,255,255,0.16)', color: '#fff', border: '2px solid rgba(255,255,255,0.4)', borderRadius: '14px', padding: '11px 22px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', backdropFilter: 'blur(8px)' }}>+ Sell books</button>
+                  : <SignInButton mode="modal"><button style={{ background: 'rgba(255,255,255,0.16)', color: '#fff', border: '2px solid rgba(255,255,255,0.4)', borderRadius: '14px', padding: '11px 22px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', backdropFilter: 'blur(8px)' }}>+ Sell books</button></SignInButton>}
               </div>
-              <div className="fu fu4 hero-stats" style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', marginTop: '28px' }}>
+              <div className="su d5 hero-stats" style={{ display: 'flex', gap: '20px', marginTop: '30px' }}>
                 {[{ n: '500+', l: 'listings' }, { n: '₹250', l: 'avg saving' }, { n: 'Free', l: 'always' }].map(s => (
-                  <div key={s.l} style={{ textAlign: 'center' }}>
-                    <div className="k" style={{ fontSize: '20px', color: '#4ADE80', fontWeight: '700' }}>{s.n}</div>
-                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.l}</div>
+                  <div key={s.l}>
+                    <div className="k" style={{ fontSize: '24px', color: '#FFC83D', fontWeight: '700' }}>{s.n}</div>
+                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.l}</div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* RIGHT — School Kits */}
-          <div className="hero-panel hero-panel-kits"
-            style={{ background: 'linear-gradient(160deg, #1B2A4A 0%, #1D4ED8 100%)', padding: 'clamp(28px,5vw,64px) clamp(20px,5vw,60px)', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden',
-              display: activeHero === 'kits' ? 'flex' : 'none' }}>
-            <div style={{ position: 'absolute', top: '-40px', left: '-40px', width: '180px', height: '180px', borderRadius: '50%', background: 'rgba(255,255,255,0.04)' }} />
+          {/* Kits */}
+          <div className="hero-panel grad-animate" style={{ background: 'linear-gradient(135deg,#1A1330,#FF6B2C,#FFC83D)', backgroundSize: '300% 300%', padding: 'clamp(32px,5vw,64px) clamp(22px,5vw,56px)', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden', display: activeHero === 'kits' ? 'flex' : 'none' }}>
+            <div className="floaty" style={{ position: 'absolute', top: '10%', left: '8%', fontSize: '54px', opacity: 0.25 }}>🎒</div>
+            <div className="floaty" style={{ position: 'absolute', bottom: '10%', right: '8%', fontSize: '40px', opacity: 0.2, animationDelay: '1.2s' }}>📦</div>
             <div style={{ position: 'relative', zIndex: 1 }}>
-              <div className="fu" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px', padding: '4px 14px', marginBottom: '16px' }}>
-                <span style={{ fontSize: '12px' }}>🆕</span>
-                <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.9)', fontWeight: '700' }}>Shivalik Public School</span>
+              <div className="su" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.18)', borderRadius: '99px', padding: '5px 16px', marginBottom: '18px', backdropFilter: 'blur(8px)' }}>
+                <span className="wiggle">🆕</span>
+                <span style={{ fontSize: '12px', color: '#fff', fontWeight: '800' }}>Shivalik Public School</span>
               </div>
-              <h1 className="k fu fu1" style={{ fontSize: 'clamp(26px,5vw,46px)', color: '#fff', lineHeight: 1.15, marginBottom: '12px' }}>
-                Order your full school kit.
+              <h1 className="k su d1" style={{ fontSize: 'clamp(30px,5.5vw,52px)', color: '#fff', lineHeight: 1.1, marginBottom: '14px', textShadow: '0 2px 20px rgba(0,0,0,0.2)' }}>
+                Full school kit,<br />sorted in 3 min! 🎒
               </h1>
-              <p className="fu fu2" style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.75, marginBottom: '20px', maxWidth: '420px' }}>
-                Complete book + stationery kits for Class 1–10. Every item from the official book list. Customise, pay securely, and get it delivered.
+              <p className="su d2" style={{ fontSize: '15px', color: 'rgba(255,255,255,0.9)', lineHeight: 1.7, marginBottom: '20px', maxWidth: '440px' }}>
+                Complete book + stationery kits for Class 1–10. Every item from the official list. Customise & order!
               </p>
-              <div className="fu fu3" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginBottom: '20px', maxWidth: '380px' }}>
+              <div className="su d3" style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '8px', marginBottom: '22px', maxWidth: '400px' }}>
                 {classKits.map(k => (
                   <button key={k.cls} onClick={() => router.push('/school-sets')} className="kit-chip">
-                    <div className="k" style={{ fontSize: '13px', color: '#fff', marginBottom: '2px' }}>Cl. {k.cls}</div>
-                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', fontWeight: '600' }}>₹{k.price.toLocaleString()}</div>
+                    <div className="k" style={{ fontSize: '14px', color: '#fff' }}>Cl.{k.cls}</div>
+                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.75)', fontWeight: '700' }}>₹{k.price.toLocaleString()}</div>
                   </button>
                 ))}
               </div>
-              <div className="fu fu4" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                <button onClick={() => router.push('/school-sets')}
-                  style={{ background: '#fff', color: '#1D4ED8', border: 'none', borderRadius: '10px', padding: '11px 22px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', boxShadow: '0 4px 16px rgba(255,255,255,0.2)' }}>
-                  Order kit now →
-                </button>
-                <button onClick={() => router.push('/my-orders')}
-                  style={{ background: 'rgba(255,255,255,0.12)', color: '#fff', border: '1.5px solid rgba(255,255,255,0.25)', borderRadius: '10px', padding: '10px 20px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', backdropFilter: 'blur(8px)' }}>
-                  📦 Track order
-                </button>
+              <div className="su d4" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                <button onClick={() => router.push('/school-sets')} style={{ background: '#fff', color: '#FF6B2C', border: 'none', borderRadius: '14px', padding: '12px 24px', fontSize: '15px', fontWeight: '800', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', boxShadow: '0 4px 0 rgba(0,0,0,0.15), 0 8px 20px rgba(255,255,255,0.3)' }}>Order kit now →</button>
+                <button onClick={() => router.push('/my-orders')} style={{ background: 'rgba(255,255,255,0.16)', color: '#fff', border: '2px solid rgba(255,255,255,0.4)', borderRadius: '14px', padding: '11px 20px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', backdropFilter: 'blur(8px)' }}>📦 Track</button>
               </div>
-              <div className="fu fu5 hero-stats" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '28px' }}>
-                {['✅ Official book list', '💳 Pay 30% upfront', '🚚 Home delivery'].map(b => (
-                  <span key={b} style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.08)', padding: '4px 12px', borderRadius: '99px', border: '1px solid rgba(255,255,255,0.15)' }}>{b}</span>
+              <div className="su d5 hero-stats" style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '28px' }}>
+                {['✅ Official list', '💳 Pay 30%', '🚚 Delivery'].map(b => (
+                  <span key={b} style={{ fontSize: '12px', color: '#fff', background: 'rgba(255,255,255,0.16)', padding: '5px 14px', borderRadius: '99px', fontWeight: '700', backdropFilter: 'blur(8px)' }}>{b}</span>
                 ))}
               </div>
             </div>
           </div>
         </div>
 
-        {/* ═══════════════════════════════════════════════════════════════════
-            PARENT-TARGETED SCHOOL KIT SECTION
-        ═══════════════════════════════════════════════════════════════════ */}
-        <section ref={parentRef} style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: 'clamp(48px,6vw,72px) 20px' }}>
-          <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+        {/* CATEGORIES */}
+        <section ref={catRef} style={{ padding: 'clamp(40px,5vw,64px) 20px', maxWidth: '1000px', margin: '0 auto' }}>
+          <h2 className={'k reveal' + (catIn ? ' in' : '')} style={{ fontSize: 'clamp(22px,4vw,32px)', textAlign: 'center', marginBottom: '6px' }}>What are you looking for? 👀</h2>
+          <p className={'reveal d1' + (catIn ? ' in' : '')} style={{ fontSize: '14px', color: 'var(--text-3)', textAlign: 'center', marginBottom: '32px' }}>Tap a category to explore</p>
+          <div className="cat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px' }}>
+            {cats.map((c, i) => (
+              <div key={c.name} onClick={() => router.push('/marketplace')}
+                className={'cat-tile reveal d' + ((i % 6) + 1) + (catIn ? ' in' : '')}
+                style={{ background: c.bg, border: '2px solid ' + c.c + '33' }}>
+                <div className="floaty" style={{ fontSize: '34px', marginBottom: '8px', animationDelay: i * 0.2 + 's' }}>{c.emoji}</div>
+                <div style={{ fontSize: '13px', fontWeight: '800', color: c.c }}>{c.name}</div>
+              </div>
+            ))}
+          </div>
+        </section>
 
-            {/* Header */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '44px' }}>
-              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: '#EFF6FF', color: '#1D4ED8', fontSize: '11px', fontWeight: '700', padding: '5px 14px', borderRadius: '99px', marginBottom: '12px', border: '1px solid #BFDBFE', letterSpacing: '1px', textTransform: 'uppercase' }}>
+        {/* PARENT SECTION */}
+        <section ref={parentRef} style={{ background: 'var(--white)', borderTop: '2px solid var(--border)', borderBottom: '2px solid var(--border)', padding: 'clamp(44px,6vw,72px) 20px' }}>
+          <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+            <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg,#FFF6DD,#FFEDE2)', color: '#FF6B2C', fontSize: '11px', fontWeight: '800', padding: '6px 16px', borderRadius: '99px', marginBottom: '14px', border: '2px solid #FFCB94', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
                 🏫 For Parents · Shivalik Public School
               </div>
-              <h2 className="k" style={{ fontSize: 'clamp(24px,4vw,38px)', color: 'var(--text)', lineHeight: 1.2, marginBottom: '12px' }}>
-                Get your child's books sorted<br />in 3 minutes. From home.
+              <h2 className="k" style={{ fontSize: 'clamp(24px,4vw,38px)', lineHeight: 1.15, marginBottom: '12px' }}>
+                Child's books sorted<br />in 3 minutes. From home! 🏠
               </h2>
-              <p style={{ fontSize: '15px', color: 'var(--text-2)', lineHeight: 1.75, maxWidth: '520px' }}>
-                No more hunting across markets. Every book on the official Shivalik book list, assembled and delivered — or ready for pickup at our Sector-40C store.
+              <p style={{ fontSize: '15px', color: 'var(--text-2)', lineHeight: 1.7, maxWidth: '520px', margin: '0 auto' }}>
+                No more market hunting. Every book on the official Shivalik list, assembled & delivered — or ready for pickup at Sector-40C.
               </p>
             </div>
-
-            {/* 6 parent concern cards — 2 cols mobile, 3 cols desktop */}
-            <div className={'parent-grid reveal' + (parentInView ? ' in' : '') + ' r3'} style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '40px' }}>
+            <div className="parent-grid reveal d1" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '12px', marginBottom: '36px' }}>
               {[
-                {
-                  icon: '📋', color: '#1D4ED8', bg: '#EFF6FF', border: '#BFDBFE',
-                  title: 'Every book on the official list',
-                  body: 'We source directly from the school\'s official booklist for Shivalik Public School, Class 1–10. Nothing missing, nothing extra.',
-                },
-                {
-                  icon: '✏️', color: '#1D9E75', bg: '#E8F7F2', border: '#C0E8D8',
-                  title: 'Customise before you pay',
-                  body: 'Already have some books from last year? Just uncheck them. The price updates instantly. You only pay for what you need.',
-                },
-                {
-                  icon: '🚚', color: '#8B5CF6', bg: '#F5F3FF', border: '#DDD6FE',
-                  title: 'Pickup or home delivery',
-                  body: 'Collect from our Bedi Book Store, Booth 48, Sector-40C, Chandigarh. Or get it delivered to your door for just ₹99.',
-                },
-                {
-                  icon: '💳', color: '#F97316', bg: '#FFF7ED', border: '#FED7AA',
-                  title: 'Pay just 30% to book',
-                  body: 'Confirm your kit with only 30% upfront. Pay the rest when you collect or receive delivery. No risk, no full payment upfront.',
-                },
-                {
-                  icon: '🔒', color: '#EC4899', bg: '#FDF2F8', border: '#FBCFE8',
-                  title: 'Secure Razorpay payment',
-                  body: 'All payments go through Razorpay — India\'s most trusted payment gateway. Your money is completely safe.',
-                },
-                {
-                  icon: '📦', color: '#F59E0B', bg: '#FFFBEB', border: '#FDE68A',
-                  title: 'Track your order live',
-                  body: 'After ordering, track your kit status — Confirmed → Assembling → Ready → Delivered — from your phone in real time.',
-                },
+                { icon: '📋', c: '#2D7FF9', bg: '#E3F0FF', t: 'Official book list', b: 'Sourced directly from the school list, Class 1–10. Nothing missing.' },
+                { icon: '✏️', c: '#00B86B', bg: '#DFFFEF', t: 'Customise first', b: 'Already have books? Uncheck them. Price updates live.' },
+                { icon: '🚚', c: '#7C5CFC', bg: '#EFEAFF', t: 'Pickup or delivery', b: 'Collect from Sector-40C or get it home for ₹99.' },
+                { icon: '💳', c: '#FF6B2C', bg: '#FFEDE2', t: 'Pay just 30%', b: 'Confirm with 30% upfront. Rest at delivery.' },
+                { icon: '🔒', c: '#FF3D81', bg: '#FFE5EF', t: 'Secure payment', b: 'All payments via Razorpay. Completely safe.' },
+                { icon: '📦', c: '#FFC83D', bg: '#FFF6DD', t: 'Track live', b: 'Confirmed → Assembling → Ready → Delivered.' },
               ].map((c, i) => (
-                <div key={c.title} className={'reveal' + (parentInView ? ' in' : '') + ' r' + ((i % 4) + 1)}
-                  style={{ background: c.bg, border: '1.5px solid ' + c.border, borderRadius: '14px', padding: 'clamp(14px,3vw,20px)', boxShadow: 'var(--shadow)' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', marginBottom: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>{c.icon}</div>
-                  <div style={{ fontSize: 'clamp(12px,2.5vw,14px)', fontWeight: '700', color: c.color, marginBottom: '5px' }}>{c.title}</div>
-                  <div style={{ fontSize: 'clamp(11px,2vw,13px)', color: 'var(--text-2)', lineHeight: 1.55 }}>{c.body}</div>
+                <div key={c.t} className="pop-card" style={{ background: c.bg, border: '2px solid ' + c.c + '33', padding: 'clamp(14px,3vw,20px)' }}>
+                  <div className="floaty" style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--white)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', marginBottom: '10px', animationDelay: i * 0.15 + 's' }}>{c.icon}</div>
+                  <div style={{ fontSize: 'clamp(13px,2.5vw,15px)', fontWeight: '800', color: c.c, marginBottom: '5px' }}>{c.t}</div>
+                  <div style={{ fontSize: 'clamp(11px,2vw,13px)', color: 'var(--text-2)', lineHeight: 1.55 }}>{c.b}</div>
                 </div>
               ))}
             </div>
-
-            {/* Store card */}
-            <div className={'reveal' + (parentInView ? ' in' : '') + ' r4'}
-              style={{ background: 'linear-gradient(135deg, #1B2A4A 0%, #1D4ED8 100%)', borderRadius: '20px', padding: 'clamp(24px,4vw,36px)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '28px', alignItems: 'center' }}>
-
-              {/* Store info */}
+            <div className="grad-animate" style={{ background: 'linear-gradient(135deg,#1A1330,#FF6B2C,#FFC83D)', backgroundSize: '300% 300%', borderRadius: '24px', padding: 'clamp(24px,4vw,36px)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: '28px', alignItems: 'center' }}>
               <div>
-                <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>Our store</div>
-                <div className="k" style={{ fontSize: '22px', color: '#fff', marginBottom: '6px' }}>Bedi Book Store</div>
-                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.75)', lineHeight: 1.8 }}>
-                  📍 Booth No. 48, Sector-40C<br />
-                  Chandigarh — 160040<br />
-                  🕐 Mon–Sat · 9am–7pm
+                <div style={{ fontSize: '11px', fontWeight: '800', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>Our store</div>
+                <div className="k" style={{ fontSize: '24px', color: '#fff', marginBottom: '6px' }}>Bedi Book Store</div>
+                <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)', lineHeight: 1.8 }}>
+                  📍 Booth 48, Sector-40C, Chandigarh<br />🕐 Mon–Sat · 9am–7pm
                 </div>
                 <a href="https://wa.me/918872235738?text=Hi%2C+I+want+to+order+a+school+kit" target="_blank" rel="noopener noreferrer"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginTop: '14px', background: '#25D366', color: '#fff', borderRadius: '10px', padding: '10px 18px', fontSize: '13px', fontWeight: '700', textDecoration: 'none', fontFamily: 'DM Sans, sans-serif' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                  Chat on WhatsApp
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginTop: '14px', background: '#25D366', color: '#fff', borderRadius: '12px', padding: '11px 20px', fontSize: '13px', fontWeight: '800', textDecoration: 'none', fontFamily: 'DM Sans, sans-serif', boxShadow: '0 4px 0 #1da851' }}>
+                  💬 Chat on WhatsApp
                 </a>
               </div>
-
-              {/* Class + price grid */}
               <div>
-                <div style={{ fontSize: '11px', fontWeight: '700', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>Kit prices · Shivalik Public School</div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px', marginBottom: '14px' }}>
+                <div style={{ fontSize: '11px', fontWeight: '800', color: 'rgba(255,255,255,0.7)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>Kit prices</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '6px', marginBottom: '14px' }}>
                   {classKits.map(k => (
-                    <button key={k.cls} onClick={() => router.push('/school-sets')}
-                      style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: '10px', padding: '10px 4px', cursor: 'pointer', textAlign: 'center', transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif' }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.2)' }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.1)' }}>
-                      <div className="k" style={{ fontSize: '12px', color: '#fff' }}>Cl. {k.cls}</div>
-                      <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginTop: '1px' }}>₹{k.price.toLocaleString()}</div>
+                    <button key={k.cls} onClick={() => router.push('/school-sets')} className="kit-chip">
+                      <div className="k" style={{ fontSize: '13px', color: '#fff' }}>Cl.{k.cls}</div>
+                      <div style={{ fontSize: '9px', color: 'rgba(255,255,255,0.7)' }}>₹{k.price.toLocaleString()}</div>
                     </button>
                   ))}
                 </div>
-                <button onClick={() => router.push('/school-sets')}
-                  style={{ width: '100%', background: '#fff', color: '#1D4ED8', border: 'none', borderRadius: '12px', padding: '13px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', boxShadow: '0 4px 16px rgba(255,255,255,0.15)' }}>
+                <button onClick={() => router.push('/school-sets')} style={{ width: '100%', background: '#fff', color: '#FF6B2C', border: 'none', borderRadius: '14px', padding: '13px', fontSize: '15px', fontWeight: '800', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', boxShadow: '0 4px 0 rgba(0,0,0,0.12)' }}>
                   Order your kit now →
                 </button>
               </div>
             </div>
-
           </div>
         </section>
 
-        {/* ═══════════════════════════════════════════════════════════════════
-            HOW IT WORKS
-        ═══════════════════════════════════════════════════════════════════ */}
-        <section ref={howRef} style={{ padding: 'clamp(48px,6vw,80px) 20px', maxWidth: '1000px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-            <div className={'reveal' + (howInView ? ' in' : '')} style={{ display: 'inline-block', fontSize: '11px', fontWeight: '700', letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--green)', marginBottom: '8px' }}>How it works</div>
-            <h2 className={'k reveal' + (howInView ? ' in' : '') + ' r2'} style={{ fontSize: 'clamp(24px,4vw,34px)', color: 'var(--text)', lineHeight: 1.2 }}>Simple for buyers. Simple for sellers.</h2>
+        {/* HOW IT WORKS */}
+        <section ref={howRef} style={{ padding: 'clamp(44px,6vw,72px) 20px', maxWidth: '1000px', margin: '0 auto' }}>
+          <h2 className={'k reveal' + (howIn ? ' in' : '')} style={{ fontSize: 'clamp(24px,4vw,34px)', textAlign: 'center', marginBottom: '6px' }}>How it works ⚡</h2>
+          <p className={'reveal d1' + (howIn ? ' in' : '')} style={{ fontSize: '14px', color: 'var(--text-3)', textAlign: 'center', marginBottom: '36px' }}>Three taps to save money</p>
+          <div className="how-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
+            {[
+              { n: '1', icon: '🔍', t: 'Search near you', b: 'Browse listings from students in your area. Filter by category & price.', c: '#2D7FF9', bg: '#E3F0FF' },
+              { n: '2', icon: '💬', t: 'Tap WhatsApp', b: 'Chat directly with the seller. No middlemen, no delays.', c: '#00B86B', bg: '#DFFFEF' },
+              { n: '3', icon: '🤝', t: 'Meet & save', b: 'Meet locally, check the book, pay cash. Save up to 60%!', c: '#FF6B2C', bg: '#FFEDE2' },
+            ].map((s, i) => (
+              <div key={s.n} className={'pop-card reveal d' + (i + 1) + (howIn ? ' in' : '')} style={{ background: s.bg, border: '2px solid ' + s.c + '33', padding: '26px 22px', textAlign: 'center', position: 'relative' }}>
+                <div style={{ position: 'absolute', top: '14px', right: '16px', fontSize: '40px', fontWeight: '800', color: s.c + '22', fontFamily: 'Kalam, cursive' }}>{s.n}</div>
+                <div className="floaty" style={{ fontSize: '44px', marginBottom: '12px', animationDelay: i * 0.2 + 's' }}>{s.icon}</div>
+                <div style={{ fontSize: '17px', fontWeight: '800', color: s.c, marginBottom: '8px' }}>{s.t}</div>
+                <div style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.6 }}>{s.b}</div>
+              </div>
+            ))}
           </div>
-
-          {/* Two-column how it works */}
-          <div className="split-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
-
-            {/* Buyers */}
-            <div className={'reveal' + (howInView ? ' in' : '') + ' r2'}
-              style={{ background: 'linear-gradient(160deg, #EFF6FF, #E8F7F2)', border: '1.5px solid #BFDBFE', borderRadius: '20px', padding: '28px 24px', boxShadow: 'var(--shadow)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
-                <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: '#3B82F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>🛒</div>
-                <div>
-                  <div style={{ fontSize: '16px', fontWeight: '700', color: '#1E3A8A' }}>For Buyers</div>
-                  <div style={{ fontSize: '12px', color: '#3B82F6' }}>Find books. Save money.</div>
-                </div>
-              </div>
-              {[
-                { n: '1', icon: '🔍', title: 'Search near you', desc: 'Browse listings from students in your area. Filter by category, condition or price.', color: '#3B82F6' },
-                { n: '2', icon: '💬', title: 'Contact on WhatsApp', desc: 'Tap WhatsApp to chat directly with the seller. No middlemen, no delays.', color: '#1D9E75' },
-                { n: '3', icon: '🤝', title: 'Meet & save', desc: 'Meet locally, check the book, pay cash. Save up to 60%.', color: '#F97316' },
-              ].map((s, i, arr) => (
-                <div key={s.n}>
-                  <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <div className="step-num" style={{ background: s.color, color: '#fff' }}>{s.n}</div>
-                      {i < arr.length - 1 && <div className="step-connector" />}
-                    </div>
-                    <div style={{ paddingBottom: i < arr.length - 1 ? '16px' : '0', paddingTop: '4px' }}>
-                      <div style={{ fontSize: '20px', marginBottom: '4px' }}>{s.icon}</div>
-                      <div style={{ fontSize: '14px', fontWeight: '700', color: s.color, marginBottom: '4px' }}>{s.title}</div>
-                      <div style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.6 }}>{s.desc}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              <button onClick={() => router.push('/marketplace')}
-                style={{ marginTop: '20px', background: '#3B82F6', color: '#fff', border: 'none', borderRadius: '10px', padding: '11px 20px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', width: '100%' }}>
-                Find books near you →
-              </button>
-            </div>
-
-            {/* Sellers */}
-            <div className={'reveal' + (howInView ? ' in' : '') + ' r3'}
-              style={{ background: 'linear-gradient(160deg, #F5F3FF, #FDF2F8)', border: '1.5px solid #DDD6FE', borderRadius: '20px', padding: '28px 24px', boxShadow: 'var(--shadow)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
-                <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: '#8B5CF6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>📚</div>
-                <div>
-                  <div style={{ fontSize: '16px', fontWeight: '700', color: '#4C1D95' }}>For Sellers</div>
-                  <div style={{ fontSize: '12px', color: '#8B5CF6' }}>Earn cash. 100% free.</div>
-                </div>
-              </div>
-              {[
-                { n: '1', icon: '📸', title: 'Post your listing', desc: 'Add photos and set a price in under 2 minutes. Completely free, no fees.', color: '#8B5CF6' },
-                { n: '2', icon: '💬', title: 'Buyers contact you', desc: 'Interested buyers reach you on WhatsApp directly. No app needed.', color: '#1D9E75' },
-                { n: '3', icon: '💰', title: 'Meet & collect cash', desc: 'Meet locally, hand over the book, collect the cash. Done.', color: '#F59E0B' },
-              ].map((s, i, arr) => (
-                <div key={s.n}>
-                  <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                      <div className="step-num" style={{ background: s.color, color: '#fff' }}>{s.n}</div>
-                      {i < arr.length - 1 && <div className="step-connector" />}
-                    </div>
-                    <div style={{ paddingBottom: i < arr.length - 1 ? '16px' : '0', paddingTop: '4px' }}>
-                      <div style={{ fontSize: '20px', marginBottom: '4px' }}>{s.icon}</div>
-                      <div style={{ fontSize: '14px', fontWeight: '700', color: s.color, marginBottom: '4px' }}>{s.title}</div>
-                      <div style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.6 }}>{s.desc}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {isSignedIn
-                ? <button onClick={() => router.push('/sell')} style={{ marginTop: '20px', background: '#8B5CF6', color: '#fff', border: 'none', borderRadius: '10px', padding: '11px 20px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', width: '100%' }}>Post a listing →</button>
-                : <SignInButton mode="modal"><button style={{ marginTop: '20px', background: '#8B5CF6', color: '#fff', border: 'none', borderRadius: '10px', padding: '11px 20px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', width: '100%' }}>Start selling →</button></SignInButton>
-              }
-            </div>
-
-            {/* School Kits how it works */}
-            <div className={'reveal' + (howInView ? ' in' : '') + ' r4'}
-              style={{ background: 'linear-gradient(160deg, #1B2A4A 0%, #1D4ED8 100%)', border: 'none', borderRadius: '20px', padding: '28px 24px', boxShadow: 'var(--shadow-lg)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '24px' }}>
-                <div style={{ width: '38px', height: '38px', borderRadius: '12px', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>🎒</div>
-                <div>
-                  <div style={{ fontSize: '16px', fontWeight: '700', color: '#fff' }}>School Kits</div>
-                  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>Shivalik Public School · Class 1–10</div>
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                {[
-                  { n: '1', emoji: '🏫', title: 'Pick your class', desc: 'Select Class 1–10 from the official Shivalik book list.' },
-                  { n: '2', emoji: '✅', title: 'Customise', desc: 'Uncheck items you already have. Price updates live.' },
-                  { n: '3', emoji: '📦', title: 'Pay & receive', desc: 'Secure Razorpay payment. Pickup or home delivery.' },
-                ].map(s => (
-                  <div key={s.n} style={{ background: 'rgba(255,255,255,0.08)', borderRadius: '14px', padding: '16px 12px', border: '1px solid rgba(255,255,255,0.12)', textAlign: 'center' }}>
-                    <div style={{ fontSize: '24px', marginBottom: '8px' }}>{s.emoji}</div>
-                    <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#3B82F6', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: '700', margin: '0 auto 8px' }}>{s.n}</div>
-                    <div style={{ fontSize: '12px', fontWeight: '700', color: '#fff', marginBottom: '4px' }}>{s.title}</div>
-                    <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>{s.desc}</div>
-                  </div>
-                ))}
-              </div>
-              <button onClick={() => router.push('/school-sets')}
-                style={{ marginTop: '20px', background: '#fff', color: '#1D4ED8', border: 'none', borderRadius: '10px', padding: '11px 20px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', width: '100%' }}>
-                Order your class kit →
-              </button>
-            </div>
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', marginTop: '28px', flexWrap: 'wrap' }}>
+            <button className="btn-pop" onClick={() => router.push('/marketplace')}>🛒 Browse books</button>
+            {isSignedIn
+              ? <button className="btn-kits" style={{ padding: '13px 24px', fontSize: '15px' }} onClick={() => router.push('/sell')}>📚 Sell yours</button>
+              : <SignInButton mode="modal"><button className="btn-kits" style={{ padding: '13px 24px', fontSize: '15px' }}>📚 Start selling</button></SignInButton>}
           </div>
         </section>
 
-        {/* ═══════════════════════════════════════════════════════════════════
-            REVIEWS
-        ═══════════════════════════════════════════════════════════════════ */}
-        <section ref={testRef} style={{ background: 'var(--white)', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', padding: 'clamp(48px,6vw,72px) 20px' }}>
+        {/* REVIEWS */}
+        <section ref={testRef} style={{ background: 'var(--white)', borderTop: '2px solid var(--border)', borderBottom: '2px solid var(--border)', padding: 'clamp(44px,6vw,72px) 20px' }}>
           <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-            <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-              <div className={'reveal' + (testInView ? ' in' : '')} style={{ display: 'inline-block', fontSize: '11px', fontWeight: '700', letterSpacing: '1.5px', textTransform: 'uppercase', color: '#F97316', marginBottom: '8px' }}>Student reviews</div>
-              <h2 className={'k reveal' + (testInView ? ' in' : '') + ' r2'} style={{ fontSize: 'clamp(22px,4vw,32px)', color: 'var(--text)', lineHeight: 1.2, marginBottom: '8px' }}>Real students. Real savings.</h2>
-              <p className={'reveal' + (testInView ? ' in' : '') + ' r3'} style={{ fontSize: '14px', color: 'var(--text-3)' }}>From Chandigarh, Mohali and Panchkula</p>
-            </div>
-
+            <h2 className={'k reveal' + (testIn ? ' in' : '')} style={{ fontSize: 'clamp(22px,4vw,32px)', textAlign: 'center', marginBottom: '6px' }}>Students love it 💛</h2>
+            <p className={'reveal d1' + (testIn ? ' in' : '')} style={{ fontSize: '14px', color: 'var(--text-3)', textAlign: 'center', marginBottom: '36px' }}>Real reviews from Chandigarh tricity</p>
             <div className="test-grid" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '14px' }}>
               {testimonials.map((t, i) => (
-                <div key={t.name} className={'test-card reveal' + (testInView ? ' in' : '') + ' r' + ((i % 6) + 1)} style={{ borderLeft: '4px solid ' + t.color }}>
-                  {/* Stars */}
-                  <div style={{ display: 'flex', gap: '2px', marginBottom: '10px' }}>
-                    {[...Array(t.stars)].map((_, j) => <span key={j} style={{ color: '#F59E0B', fontSize: '13px' }}>★</span>)}
-                  </div>
-                  {/* Quote */}
-                  <p style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.65, marginBottom: '14px', fontStyle: 'italic' }}>"{t.text}"</p>
-                  {/* Author */}
+                <div key={t.name} className={'pop-card reveal d' + ((i % 6) + 1) + (testIn ? ' in' : '')} style={{ padding: '20px', borderTop: '4px solid ' + t.c }}>
+                  <div style={{ display: 'flex', gap: '2px', marginBottom: '10px' }}>{[...Array(5)].map((_, j) => <span key={j} style={{ color: '#FFC83D', fontSize: '14px' }}>★</span>)}</div>
+                  <p style={{ fontSize: '14px', color: 'var(--text)', lineHeight: 1.6, marginBottom: '14px', fontWeight: '500' }}>"{t.text}"</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
-                    <div className="k" style={{ width: '36px', height: '36px', borderRadius: '50%', background: t.bg, color: t.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', fontWeight: '700', flexShrink: 0, border: '2px solid ' + t.border }}>{t.avatar}</div>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text)' }}>{t.name}</div>
+                    <div className="k" style={{ width: '38px', height: '38px', borderRadius: '50%', background: t.c, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: '700', flexShrink: 0 }}>{t.avatar}</div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text)' }}>{t.name}</div>
                       <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>{t.role}</div>
                     </div>
-                    <div style={{ marginLeft: 'auto', fontSize: '10px', fontWeight: '700', color: t.color, background: t.bg, padding: '3px 10px', borderRadius: '99px', border: '1px solid ' + t.border, whiteSpace: 'nowrap' }}>
-                      {i < 2 ? '📚 Marketplace' : i < 4 ? '🎒 School Kit' : i === 4 ? '🎒 School Kit' : '📚 Marketplace'}
-                    </div>
+                    <span style={{ fontSize: '10px', fontWeight: '800', color: t.c, background: t.c + '18', padding: '4px 10px', borderRadius: '99px', whiteSpace: 'nowrap' }}>{t.tag}</span>
                   </div>
                 </div>
               ))}
             </div>
-
-            {/* Aggregate rating */}
-            <div className={'reveal' + (testInView ? ' in' : '') + ' r5'} style={{ marginTop: '32px', background: 'linear-gradient(135deg, #FFFBEB, #FFF7ED)', border: '1.5px solid #FDE68A', borderRadius: '16px', padding: '20px 24px', display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <div className="reveal d2" style={{ marginTop: '28px', background: 'linear-gradient(135deg,#FFF6DD,#FFEDE2)', border: '2px solid #FFCB94', borderRadius: '20px', padding: '20px', display: 'flex', alignItems: 'center', gap: '24px', justifyContent: 'center', flexWrap: 'wrap' }}>
               <div style={{ textAlign: 'center' }}>
-                <div className="k" style={{ fontSize: '36px', color: '#F59E0B', fontWeight: '700' }}>5.0</div>
-                <div style={{ display: 'flex', gap: '2px', justifyContent: 'center', marginBottom: '2px' }}>
-                  {[...Array(5)].map((_, j) => <span key={j} style={{ color: '#F59E0B', fontSize: '14px' }}>★</span>)}
-                </div>
-                <div style={{ fontSize: '11px', color: '#92400E' }}>Average rating</div>
+                <div className="k" style={{ fontSize: '40px', color: '#FF6B2C', fontWeight: '700' }}>5.0</div>
+                <div>{[...Array(5)].map((_, j) => <span key={j} style={{ color: '#FFC83D', fontSize: '13px' }}>★</span>)}</div>
               </div>
-              <div style={{ width: '1px', height: '50px', background: '#FDE68A' }} />
-              <div style={{ textAlign: 'center' }}>
-                <div className="k" style={{ fontSize: '36px', color: '#F59E0B', fontWeight: '700' }}>6</div>
-                <div style={{ fontSize: '11px', color: '#92400E' }}>Reviews</div>
-              </div>
-              <div style={{ width: '1px', height: '50px', background: '#FDE68A' }} />
-              <div style={{ fontSize: '13px', color: '#92400E', lineHeight: 1.6, maxWidth: '260px' }}>
-                Students in Chandigarh, Mohali and Panchkula are saving money every day on BuddyBooks.
+              <div style={{ fontSize: '14px', color: '#92400E', lineHeight: 1.6, maxWidth: '320px', fontWeight: '600' }}>
+                Students across Chandigarh, Mohali & Panchkula are saving money every single day on BuddyBooks! 🎉
               </div>
             </div>
           </div>
         </section>
 
-        {/* ═══════════════════════════════════════════════════════════════════
-            FAQ
-        ═══════════════════════════════════════════════════════════════════ */}
-        <section ref={faqRef} style={{ padding: 'clamp(48px,6vw,72px) 20px', maxWidth: '680px', margin: '0 auto' }}>
-          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <div className={'reveal' + (faqInView ? ' in' : '')} style={{ display: 'inline-block', fontSize: '11px', fontWeight: '700', letterSpacing: '1.5px', textTransform: 'uppercase', color: 'var(--green)', marginBottom: '8px' }}>FAQ</div>
-            <h2 className={'k reveal' + (faqInView ? ' in' : '') + ' r2'} style={{ fontSize: 'clamp(22px,4vw,30px)', color: 'var(--text)', lineHeight: 1.2 }}>Common questions</h2>
-          </div>
-          <div className={'reveal' + (faqInView ? ' in' : '') + ' r3'} style={{ background: 'var(--card)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '0 20px', boxShadow: 'var(--shadow)' }}>
+        {/* FAQ */}
+        <section ref={faqRef} style={{ padding: 'clamp(44px,6vw,72px) 20px', maxWidth: '680px', margin: '0 auto' }}>
+          <h2 className={'k reveal' + (faqIn ? ' in' : '')} style={{ fontSize: 'clamp(22px,4vw,30px)', textAlign: 'center', marginBottom: '32px' }}>Questions? 🤔</h2>
+          <div className={'reveal d1' + (faqIn ? ' in' : '')} style={{ background: 'var(--card)', border: '2px solid var(--border)', borderRadius: '20px', padding: '0 22px', boxShadow: 'var(--shadow)' }}>
             {faqs.map((faq, i) => (
-              <div key={i} style={{ borderBottom: i < faqs.length - 1 ? '1px solid var(--border)' : 'none' }}>
+              <div key={i} style={{ borderBottom: i < faqs.length - 1 ? '2px solid var(--border)' : 'none' }}>
                 <button className="faq-btn" onClick={() => setOpenFaq(openFaq === i ? null : i)}>
                   <span>{faq.q}</span>
-                  <span style={{ color: 'var(--green)', fontSize: '20px', fontWeight: '300', transform: openFaq === i ? 'rotate(45deg)' : 'none', display: 'inline-block', transition: 'transform 0.2s', flexShrink: 0 }}>+</span>
+                  <span style={{ color: '#FF6B2C', fontSize: '24px', fontWeight: '300', transform: openFaq === i ? 'rotate(45deg)' : 'none', display: 'inline-block', transition: 'transform 0.25s cubic-bezier(0.34,1.56,0.64,1)', flexShrink: 0 }}>+</span>
                 </button>
-                {openFaq === i && <div style={{ fontSize: '14px', color: 'var(--text-2)', lineHeight: 1.7, paddingBottom: '17px' }}>{faq.a}</div>}
+                {openFaq === i && <div className="su" style={{ fontSize: '14px', color: 'var(--text-2)', lineHeight: 1.7, paddingBottom: '18px' }}>{faq.a}</div>}
               </div>
             ))}
           </div>
         </section>
 
         {/* Footer */}
-        <footer style={{ borderTop: '1px solid var(--border)', padding: '24px 20px', background: 'var(--white)' }}>
+        <footer style={{ borderTop: '2px solid var(--border)', padding: '28px 20px', background: 'var(--white)' }}>
           <div style={{ maxWidth: '920px', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-              <img src="/logo.png" alt="BuddyBooks" style={{ height: '24px' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-              <span className="k" style={{ fontSize: '16px', color: 'var(--text)' }}>BuddyBooks</span>
+              <img src="/logo.png" alt="BuddyBooks" style={{ height: '26px' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+              <span className="k" style={{ fontSize: '17px', background: 'linear-gradient(135deg,#FF6B2C,#FF3D81)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: '700' }}>BuddyBooks</span>
             </div>
-            <span style={{ fontSize: '11px', color: 'var(--text-3)' }}>Student marketplace · Chandigarh · Free</span>
-            <div style={{ display: 'flex', gap: '18px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '11px', color: 'var(--text-3)' }}>Student marketplace · Chandigarh · Free 💛</span>
+            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
               {[['Browse', '/marketplace'], ['School Sets', '/school-sets'], ['Sell', '/sell'], ['Requests', '/requests'], ['My Orders', '/my-orders'], ['Contact', '/contact']].map(([l, h]) => (
-                <span key={l} onClick={() => router.push(h)} style={{ fontSize: '12px', color: 'var(--text-3)', cursor: 'pointer' }}
-                  onMouseEnter={e => (e.currentTarget.style.color = 'var(--green)')}
+                <span key={l} onClick={() => router.push(h)} style={{ fontSize: '12px', color: 'var(--text-3)', cursor: 'pointer', fontWeight: '600' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#FF6B2C')}
                   onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-3)')}>{l}</span>
               ))}
             </div>
           </div>
         </footer>
-
       </div>
     </>
   )
