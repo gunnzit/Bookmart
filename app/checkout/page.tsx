@@ -53,10 +53,18 @@ function CheckoutInner() {
     setOrdering(true)
     const numKits = kits!.length
     try {
-      const res = await fetch('/api/payment/create-order', {
+       const res = await fetch('/api/payment/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: payNow * 100, currency: 'INR', receipt: 'kit_class_' + classLabel.replace(/, /g, '_') }),
+        body: JSON.stringify({
+          amount: payNow * 100,
+          currency: 'INR',
+          receipt: 'kit_class_' + classLabel.replace(/, /g, '_'),
+          items: allItems,
+          numKits,
+          deliveryMode,
+          paymentMode,
+        }),
       })
       const order = await res.json()
       if (order.error) { alert('Payment error: ' + JSON.stringify(order.error)); setOrdering(false); return }

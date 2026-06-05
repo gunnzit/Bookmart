@@ -1,5 +1,6 @@
 import Razorpay from 'razorpay'
 import { NextResponse } from 'next/server'
+import { validateKitOrder } from '@/lib/kit-prices'
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID!,
@@ -15,19 +16,67 @@ const TIERS: Record<string, { amount: number; days: number; label: string }> = {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { listingId, tier, amount: rawAmount, receipt: rawReceipt } = body
+    const {
+      listingId,
+      tier,
+      amount: rawAmount,
+      receipt: rawReceipt,
+      // School-kit fields (sent by checkout so the server can price-check)
+      items,
+      numKits,
+      deliveryMode,
+      paymentMode,
+    } = body
 
     let amount: number
     let receipt: string
     let notes: Record<string, string> = {}
 
-    if (rawAmount) {
-      // School kit order — amount passed directly in paise
-      amount = rawAmount
+    // ── School kit order ────────────────────────────────────────────────
+    // We do NOT trust rawAmount. We recompute the price from the items the
+    // browser sent, using server-side prices, and reject any mismatch.
+    if (rawAmount && Array.isArray(items)) {
+      const check = validateKitOrder({ items, numKits, deliveryMode, paymentMode })
+
+      if (!check.ok) {
+        return NextResponse.json(
+          { error: 'Order validation failed. ' + (check.reason || 'Invalid items.') },
+          { status: 400 }
+        )
+      }
+
+      // The amount the browser asked to charge must equal what the server computed.
+      if (Math.round(Number(rawAmount)) !== check.expectedPayNowPaise) {
+        return NextResponse.json(
+          {
+            error: 'Price mismatch. Please refresh and try again.',
+            // (debug fields are safe to expose: they reveal only the correct price)
+            expected: check.expectedPayNowPaise,
+            received: Math.round(Number(rawAmount)),
+          },
+          { status: 400 }
+        )
+      }
+
+      // Use the SERVER amount, never the browser's.
+      amount = check.expectedPayNowPaise
       receipt = rawReceipt || 'kit_' + Date.now().toString().slice(-8)
-      notes = { type: 'school_kit', ...body }
+      notes = {
+        type: 'school_kit',
+        numKits: String(check.breakdown ? numKits : 1),
+        deliveryMode: deliveryMode === 'delivery' ? 'delivery' : 'pickup',
+        paymentMode: paymentMode === 'partial' ? 'partial' : 'full',
+        itemsSubtotal: String(check.itemsSubtotal),
+      }
+    } else if (rawAmount) {
+      // Legacy / non-kit raw amount path with no items to validate — refuse,
+      // because an amount with no validatable contents is exactly the exploit.
+      return NextResponse.json(
+        { error: 'Missing order items for validation.' },
+        { status: 400 }
+      )
     } else {
-      // Featured listing order
+      // ── Featured listing order ────────────────────────────────────────
       const selected = TIERS[tier] || TIERS.standard
       amount = selected.amount
       receipt = 'feat_' + (tier?.[0] || 's') + '_' + (listingId?.slice(-8) || 'x') + '_' + Date.now().toString().slice(-6)
