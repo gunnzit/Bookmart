@@ -337,7 +337,7 @@ const kits: Record<number, {
 type Section = 'ncert' | 'pvt' | 'notebooks' | 'stationery'
 
 const sectionLabels: Record<Section, { label: string; emoji: string; color: string; bg: string; border: string; illoColor: string }> = {
-  ncert:      { label: 'NCERT Books',    emoji: '📗', color: '#1D9E75', bg: '#E8F7F2', border: '#C0E8D8', illoColor: '#1D9E75' },
+  ncert:      { label: 'NCERT Books',    emoji: '📗', color: '#00B86B', bg: '#DFFFEF', border: '#9DEAC4', illoColor: '#00B86B' },
   pvt:        { label: 'Private Books',  emoji: '📘', color: '#3B82F6', bg: '#EFF6FF', border: '#BFDBFE', illoColor: '#3B82F6' },
   notebooks:  { label: 'Notebooks',      emoji: '📓', color: '#F59E0B', bg: '#FFFBEB', border: '#FDE68A', illoColor: '#F59E0B' },
   stationery: { label: 'Stationery',     emoji: '✏️', color: '#8B5CF6', bg: '#F5F3FF', border: '#DDD6FE', illoColor: '#8B5CF6' },
@@ -413,7 +413,7 @@ function StationeryIllo({ color }: { color: string }) {
 
 // Kit hero photo placeholder SVG
 function KitPhotoPlaceholder({ cls }: { cls: number }) {
-  const colors = ['#3B82F6', '#8B5CF6', '#1D9E75', '#F59E0B', '#EC4899', '#06B6D4', '#F97316', '#3B82F6', '#8B5CF6', '#1D9E75']
+  const colors = ['#3B82F6', '#8B5CF6', '#00B86B', '#F59E0B', '#EC4899', '#06B6D4', '#F97316', '#3B82F6', '#8B5CF6', '#00B86B']
   const c = colors[(cls - 1) % colors.length]
   return (
     <svg viewBox="0 0 400 220" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
@@ -673,29 +673,34 @@ export default function SchoolSetsPage() {
   }
 
   const css = `
-    @import url('https://fonts.googleapis.com/css2?family=Kalam:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --bg: #F7F6F3; --white: #fff; --card: #fff; --border: #E5E2DA;
-      --text: #1B2A4A; --text-2: #666; --text-3: #999;
-      --green: #1D9E75; --green-dark: #157A5A; --green-bg: #E8F7F2; --green-border: #C0E8D8;
-      --shadow: 0 2px 12px rgba(27,42,74,0.07); --shadow-lg: 0 8px 32px rgba(27,42,74,0.12);
-      --r: 16px;
+      --bg: #FFF9F0; --white: #fff; --card: #fff; --border: #FFE2C2; --border-strong: #FFCB94;
+      --text: #1A1330; --text-2: #6B6280; --text-3: #A89FC0;
+      --green: #00B86B; --green-dark: #009957; --green-bg: #DFFFEF; --green-border: #9DEAC4;
+      --orange: #FF6B2C; --shadow: 0 2px 14px rgba(124,92,252,0.08); --shadow-lg: 0 12px 40px rgba(124,92,252,0.16);
+      --r: 18px;
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --bg: #0F1117; --white: #1A1D27; --card: #1E2130; --border: #2A2D3E;
-        --text: #E8E6F0; --text-2: #A0A0B0; --text-3: #666880;
-        --green-bg: #0D2B22; --green-border: #1A4035;
-        --shadow: 0 2px 12px rgba(0,0,0,0.3); --shadow-lg: 0 8px 32px rgba(0,0,0,0.4);
+        --bg: #14101F; --white: #1C1730; --card: #221C3A; --border: #352C52; --border-strong: #463A6B;
+        --text: #F3EEFF; --text-2: #B0A8CC; --text-3: #6E6590;
+        --green-bg: #0A3A26; --green-border: #155C3C;
+        --shadow: 0 2px 14px rgba(0,0,0,0.4); --shadow-lg: 0 12px 40px rgba(0,0,0,0.5);
       }
     }
-    body { background: var(--bg); font-family: 'DM Sans', sans-serif; color: var(--text); }
-    .k { font-family: 'Kalam', cursive; }
+    body { background: var(--bg); font-family: 'Poppins', sans-serif; color: var(--text); -webkit-font-smoothing: antialiased; }
+    .k { font-family: 'Poppins', sans-serif; font-weight: 800; letter-spacing: -0.02em; }
+    @keyframes floaty { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+    .floaty-hero { animation: floaty 4s ease-in-out infinite; }
+    @keyframes gradientMove { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+    .hero-grad { animation: gradientMove 12s ease infinite; }
     .nav { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 20px; height: 56px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 100; box-shadow: var(--shadow); }
-    .class-btn { padding: 8px 0; border-radius: 10px; border: 2px solid var(--border); background: var(--white); color: var(--text-2); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; font-family: 'DM Sans', sans-serif; text-align: center; }
-    .class-btn.active { background: var(--green); color: #fff; border-color: var(--green); box-shadow: 0 4px 12px rgba(29,158,117,0.3); }
-    .class-btn:hover:not(.active) { border-color: var(--green); color: var(--green); }
+    .class-btn { padding: 10px 0; border-radius: 12px; border: 2px solid var(--border); background: var(--white); color: var(--text-2); font-size: 13px; font-weight: 700; cursor: pointer; transition: transform 0.14s cubic-bezier(0.34,1.56,0.64,1), background 0.15s, border-color 0.15s, color 0.15s; font-family: 'Poppins', sans-serif; text-align: center; }
+    .class-btn.active { background: linear-gradient(135deg,#00B86B,#2D7FF9); color: #fff; border-color: transparent; box-shadow: 0 4px 14px rgba(0,184,107,0.35); }
+    .class-btn:hover:not(.active) { border-color: var(--green); color: var(--green); transform: translateY(-2px); }
+    .class-btn:active { transform: scale(0.94); }
     .section-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; cursor: pointer; user-select: none; transition: background 0.15s; }
     .section-header:hover { background: var(--bg) !important; }
     .item-row { display: flex; align-items: center; gap: 12px; padding: 10px 18px; transition: background 0.1s; border-bottom: 1px solid var(--border); }
@@ -703,44 +708,45 @@ export default function SchoolSetsPage() {
     .item-row:hover { background: var(--bg); }
     .prod-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 14px; }
     .prod-card { background: var(--card); border: 1.5px solid var(--border); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; transition: border-color 0.2s, box-shadow 0.2s; position: relative; }
-    .prod-card.selected { border-color: #1D9E75; box-shadow: 0 0 0 1px #1D9E75; }
+    .prod-card.selected { border-color: #00B86B; box-shadow: 0 0 0 1px #00B86B; }
     .prod-card.selected .prod-photo { background: #F0FDF8; }
     .prod-photo { width: 100%; aspect-ratio: 1/1; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; position: relative; border-bottom: 1px solid var(--border); }
     .prod-body { padding: 10px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
     .prod-name { font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; min-height: 32px; }
     .prod-foot { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: auto; }
-    .prod-price { font-size: 14px; font-weight: 700; color: var(--text); font-family: 'Kalam', cursive; }
-    .add-btn { border: 1.5px solid #1D9E75; background: #E8F7F2; color: #1D9E75; border-radius: 9px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: transform 0.12s cubic-bezier(0.34,1.56,0.64,1), background 0.15s, color 0.15s, box-shadow 0.15s; white-space: nowrap; }
-    .add-btn:hover { background: #1D9E75; color: #fff; transform: translateY(-1px); box-shadow: 0 3px 10px rgba(29,158,117,0.3); }
+    .prod-price { font-size: 14px; font-weight: 700; color: var(--text); font-family: 'Poppins', sans-serif; }
+    .add-btn { border: 1.5px solid #00B86B; background: #DFFFEF; color: #00B86B; border-radius: 9px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: 'Poppins', sans-serif; transition: transform 0.12s cubic-bezier(0.34,1.56,0.64,1), background 0.15s, color 0.15s, box-shadow 0.15s; white-space: nowrap; }
+    .add-btn:hover { background: #00B86B; color: #fff; transform: translateY(-1px); box-shadow: 0 3px 10px rgba(0,184,107,0.3); }
     .add-btn:active { transform: scale(0.88); }
-    .add-btn.added { background: #1D9E75; color: #fff; animation: addedPop 0.34s cubic-bezier(0.34,1.56,0.64,1); }
+    .add-btn.added { background: #00B86B; color: #fff; animation: addedPop 0.34s cubic-bezier(0.34,1.56,0.64,1); }
     @keyframes addedPop { 0% { transform: scale(1); } 40% { transform: scale(1.18); } 70% { transform: scale(0.94); } 100% { transform: scale(1); } }
-    .check-badge { position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; border-radius: 50%; background: #1D9E75; display: flex; align-items: center; justify-content: center; animation: badgePop 0.34s cubic-bezier(0.34,1.56,0.64,1); }
+    .check-badge { position: absolute; top: 6px; right: 6px; width: 20px; height: 20px; border-radius: 50%; background: #00B86B; display: flex; align-items: center; justify-content: center; animation: badgePop 0.34s cubic-bezier(0.34,1.56,0.64,1); }
     @keyframes badgePop { 0% { transform: scale(0); opacity: 0; } 60% { transform: scale(1.3); opacity: 1; } 100% { transform: scale(1); } }
     @media (min-width: 700px) { .prod-grid { grid-template-columns: repeat(3, 1fr); } }
     .checkbox { width: 18px; height: 18px; border-radius: 5px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; cursor: pointer; }
     .checkbox.checked { background: var(--green); border-color: var(--green); }
     .qty-ctrl { display: flex; align-items: center; gap: 6px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px; padding: 2px 4px; }
     .qty-btn { width: 24px; height: 24px; border-radius: 6px; border: none; background: var(--white); cursor: pointer; font-size: 15px; font-weight: 700; color: var(--text-2); display: flex; align-items: center; justify-content: center; transition: all 0.1s; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-    .qty-btn:hover { background: #E8F7F2; color: #1D9E75; }
+    .qty-btn:hover { background: #DFFFEF; color: #00B86B; }
     .qty-btn:disabled { opacity: 0.3; cursor: not-allowed; }
     .qty-num { font-size: 13px; font-weight: 700; color: var(--text); min-width: 22px; text-align: center; }
-    .delivery-btn { flex: 1; padding: 10px; border-radius: 10px; border: 2px solid var(--border); background: var(--white); color: var(--text-2); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; font-family: 'DM Sans', sans-serif; }
+    .delivery-btn { flex: 1; padding: 10px; border-radius: 10px; border: 2px solid var(--border); background: var(--white); color: var(--text-2); font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; font-family: 'Poppins', sans-serif; }
     .delivery-btn.active { border-color: var(--green); background: var(--green-bg); color: var(--green); }
-    input[type="text"], textarea { color: var(--text) !important; background: var(--bg) !important; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 14px; font-size: 14px; font-family: 'DM Sans', sans-serif; width: 100%; outline: none; transition: border 0.15s; }
-    input[type="text"]:focus, textarea:focus { border-color: var(--green) !important; box-shadow: 0 0 0 3px rgba(29,158,117,0.1); }
-    .order-btn { width: 100%; background: var(--green); color: #fff; border: none; border-radius: 14px; padding: 16px; font-size: 16px; font-weight: 700; cursor: pointer; font-family: 'Kalam', cursive; transition: all 0.2s; box-shadow: 0 6px 20px rgba(29,158,117,0.3); }
-    .order-btn:hover { background: var(--green-dark); transform: translateY(-2px); }
-    .order-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+    input[type="text"], textarea { color: var(--text) !important; background: var(--bg) !important; border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 14px; font-size: 14px; font-family: 'Poppins', sans-serif; width: 100%; outline: none; transition: border 0.15s; }
+    input[type="text"]:focus, textarea:focus { border-color: var(--green) !important; box-shadow: 0 0 0 3px rgba(0,184,107,0.1); }
+    .order-btn { width: 100%; background: linear-gradient(135deg,#00B86B,#2D7FF9); color: #fff; border: none; border-radius: 14px; padding: 16px; font-size: 16px; font-weight: 800; cursor: pointer; font-family: 'Poppins', sans-serif; transition: transform 0.12s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.12s; box-shadow: 0 4px 0 #009957, 0 8px 20px rgba(0,184,107,0.3); }
+    .order-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #009957, 0 12px 28px rgba(0,184,107,0.4); }
+    .order-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #009957; }
+    .order-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; box-shadow: none; }
     .sticky-summary { position: sticky; top: 120px; }
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
     .modal-box { background: var(--white); border-radius: 20px; padding: 28px 24px; max-width: 380px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
     .checkout-modal { background: var(--white); border-radius: 24px; padding: 0; max-width: 420px; width: 100%; box-shadow: 0 24px 80px rgba(0,0,0,0.35); overflow: hidden; }
     @keyframes modalPop { from { opacity: 0; transform: scale(0.94) translateY(16px); } to { opacity: 1; transform: scale(1) translateY(0); } }
     .modal-pop { animation: modalPop 0.25s cubic-bezier(0.34,1.56,0.64,1) both; }
-    .pay-opt-btn { width: 100%; border-radius: 14px; padding: 16px; cursor: pointer; display: flex; align-items: center; gap: 14px; transition: all 0.15s; border: 2px solid var(--border); background: var(--card); text-align: left; font-family: 'DM Sans', sans-serif; }
+    .pay-opt-btn { width: 100%; border-radius: 14px; padding: 16px; cursor: pointer; display: flex; align-items: center; gap: 14px; transition: all 0.15s; border: 2px solid var(--border); background: var(--card); text-align: left; font-family: 'Poppins', sans-serif; }
     .pay-opt-btn:hover { transform: translateY(-2px); }
-    .pay-opt-btn.selected-full { border-color: #1D9E75; background: #E8F7F2; box-shadow: 0 4px 16px rgba(29,158,117,0.2); }
+    .pay-opt-btn.selected-full { border-color: #00B86B; background: #DFFFEF; box-shadow: 0 4px 16px rgba(0,184,107,0.2); }
     .pay-opt-btn.selected-partial { border-color: #3B82F6; background: #EFF6FF; box-shadow: 0 4px 16px rgba(59,130,246,0.2); }
     .photo-card { border-radius: 16px; overflow: hidden; border: 1.5px solid var(--border); box-shadow: var(--shadow); background: var(--card); margin-bottom: 16px; }
     .photo-card img { width: 100%; height: 220px; object-fit: cover; display: block; }
@@ -773,8 +779,8 @@ export default function SchoolSetsPage() {
               <strong style={{ color: 'var(--text)' }}>{warnItemName()}</strong> is in the official Shivalik book list. Remove it?
             </p>
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => setWarnModal(null)} style={{ flex: 1, background: 'var(--bg)', color: 'var(--text-2)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '11px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Keep it</button>
-              <button onClick={confirmUncheck} style={{ flex: 1, background: '#FEF2F2', color: '#E24B4A', border: '1.5px solid #FCA5A5', borderRadius: '10px', padding: '11px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>Yes, remove</button>
+              <button onClick={() => setWarnModal(null)} style={{ flex: 1, background: 'var(--bg)', color: 'var(--text-2)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '11px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'Poppins, sans-serif' }}>Keep it</button>
+              <button onClick={confirmUncheck} style={{ flex: 1, background: '#FEF2F2', color: '#E24B4A', border: '1.5px solid #FCA5A5', borderRadius: '10px', padding: '11px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Poppins, sans-serif' }}>Yes, remove</button>
             </div>
           </div>
         </div>
@@ -802,20 +808,22 @@ export default function SchoolSetsPage() {
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => router.push('/')}>
             <img src="/logo.png" alt="BuddyBooks" style={{ height: '28px' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-            <span className="k" style={{ fontSize: '18px', color: 'var(--text)' }}>BuddyBooks</span>
+            <span className="k" style={{ fontSize: '19px', background: 'linear-gradient(135deg,#FF6B2C,#FF3D81)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>BuddyBooks</span>
           </div>
-          <button onClick={() => router.push('/my-orders')} style={{ marginLeft: 'auto', background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '6px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: 'var(--text-2)', fontFamily: 'DM Sans, sans-serif' }}>📦 My Orders</button>
+          <button onClick={() => router.push('/my-orders')} style={{ marginLeft: 'auto', background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '6px 14px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', color: 'var(--text-2)', fontFamily: 'Poppins, sans-serif' }}>📦 My Orders</button>
         </nav>
 
         {/* Hero */}
-        <div style={{ background: 'linear-gradient(135deg, #1B2A4A 0%, #1D9E75 100%)', padding: '28px 20px 32px', position: 'relative', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: '-40px', right: '-40px', width: '160px', height: '160px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
-          <div style={{ maxWidth: '960px', margin: '0 auto' }}>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.12)', borderRadius: '99px', padding: '4px 12px', marginBottom: '12px' }}>
-              <span style={{ fontSize: '11px', color: 'rgba(255,255,255,0.9)', fontWeight: '600' }}>📦 Pre-assembled school kits · Delivery available</span>
+        <div className="hero-grad" style={{ background: 'linear-gradient(135deg, #1A1330 0%, #FF6B2C 60%, #FFC83D 100%)', backgroundSize: '200% 200%', padding: '30px 20px 34px', position: 'relative', overflow: 'hidden' }}>
+          <div className="floaty-hero" style={{ position: 'absolute', top: '12%', right: '8%', fontSize: '42px', opacity: 0.3 }}>🎒</div>
+          <div className="floaty-hero" style={{ position: 'absolute', bottom: '8%', right: '24%', fontSize: '30px', opacity: 0.25, animationDelay: '1s' }}>📦</div>
+          <div style={{ position: 'absolute', top: '-40px', left: '-40px', width: '160px', height: '160px', borderRadius: '50%', background: 'rgba(255,255,255,0.06)' }} />
+          <div style={{ maxWidth: '960px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.18)', borderRadius: '99px', padding: '5px 14px', marginBottom: '12px', backdropFilter: 'blur(8px)' }}>
+              <span style={{ fontSize: '11px', color: '#fff', fontWeight: '700' }}>📦 Pre-assembled school kits · Delivery available</span>
             </div>
-            <h1 className="k" style={{ fontSize: 'clamp(24px, 5vw, 38px)', color: '#fff', marginBottom: '8px', lineHeight: 1.2 }}>School Sets 🎒</h1>
-            <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)', lineHeight: 1.6, maxWidth: '480px' }}>
+            <h1 className="k" style={{ fontSize: 'clamp(26px, 5vw, 40px)', color: '#fff', marginBottom: '8px', lineHeight: 1.1, textShadow: '0 2px 20px rgba(0,0,0,0.15)' }}>School Sets 🎒</h1>
+            <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.88)', lineHeight: 1.6, maxWidth: '480px', fontWeight: '500' }}>
               Complete book + stationery kits for {SCHOOL}. All items from the official book list. Customise what you need and order in minutes.
             </p>
           </div>
@@ -862,7 +870,7 @@ export default function SchoolSetsPage() {
                     <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '2px' }}>{SCHOOL} · Official book list</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div className="k" style={{ fontSize: '20px', color: '#1D9E75' }}>₹{bill.toLocaleString()}</div>
+                    <div className="k" style={{ fontSize: '20px', color: '#00B86B' }}>₹{bill.toLocaleString()}</div>
                     <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>full kit value</div>
                   </div>
                 </div>
@@ -870,7 +878,7 @@ export default function SchoolSetsPage() {
 
               {/* Savings comparison box */}
               {youSave > 0 && (
-                <div style={{ background: 'linear-gradient(135deg, #E8F7F2, #EFF6FF)', border: '1.5px solid #C0E8D8', borderRadius: '16px', padding: '16px 18px', margin: '4px 0' }}>
+                <div style={{ background: 'linear-gradient(135deg, #DFFFEF, #EFF6FF)', border: '1.5px solid #9DEAC4', borderRadius: '16px', padding: '16px 18px', margin: '4px 0' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
                       <div style={{ textAlign: 'center' }}>
@@ -879,16 +887,16 @@ export default function SchoolSetsPage() {
                       </div>
                       <div style={{ fontSize: '18px', color: 'var(--text-3)' }}>→</div>
                       <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '11px', color: '#1D9E75', fontWeight: '600', marginBottom: '2px' }}>BuddyBooks kit</div>
-                        <div className="k" style={{ fontSize: '20px', color: '#1D9E75', fontWeight: '700' }}>₹{kitSubtotal.toLocaleString()}</div>
+                        <div style={{ fontSize: '11px', color: '#00B86B', fontWeight: '600', marginBottom: '2px' }}>BuddyBooks kit</div>
+                        <div className="k" style={{ fontSize: '20px', color: '#00B86B', fontWeight: '700' }}>₹{kitSubtotal.toLocaleString()}</div>
                       </div>
                     </div>
-                    <div style={{ background: '#1D9E75', borderRadius: '12px', padding: '8px 16px', textAlign: 'center' }}>
+                    <div style={{ background: '#00B86B', borderRadius: '12px', padding: '8px 16px', textAlign: 'center' }}>
                       <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.85)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>You save</div>
                       <div className="k" style={{ fontSize: '20px', color: '#fff', fontWeight: '700' }}>₹{youSave.toLocaleString()}</div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(29,158,117,0.15)' }}>
+                  <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(0,184,107,0.15)' }}>
                     <span style={{ fontSize: '12px', color: '#0F6E56', display: 'flex', alignItems: 'center', gap: '5px' }}>⏱️ Saves ~3 hours of market hunting</span>
                     <span style={{ fontSize: '12px', color: '#0F6E56', display: 'flex', alignItems: 'center', gap: '5px' }}>✅ Every book on the official list</span>
                     <span style={{ fontSize: '12px', color: '#0F6E56', display: 'flex', alignItems: 'center', gap: '5px' }}>📦 Assembled & ready</span>
@@ -923,7 +931,7 @@ export default function SchoolSetsPage() {
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <button onClick={e => { e.stopPropagation(); toggleAll(s, !allChecked) }}
-                          style={{ fontSize: '11px', color: sec.color, background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700', fontFamily: 'DM Sans, sans-serif' }}>
+                          style={{ fontSize: '11px', color: sec.color, background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700', fontFamily: 'Poppins, sans-serif' }}>
                           {allChecked ? 'Deselect all' : 'Select all'}
                         </button>
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}>
@@ -992,7 +1000,7 @@ export default function SchoolSetsPage() {
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <button onClick={e => { e.stopPropagation(); toggleAll(s, !allChecked) }}
-                          style={{ fontSize: '11px', color: sec.color, background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700', fontFamily: 'DM Sans, sans-serif' }}>
+                          style={{ fontSize: '11px', color: sec.color, background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700', fontFamily: 'Poppins, sans-serif' }}>
                           {allChecked ? 'Deselect all' : 'Select all'}
                         </button>
                         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" style={{ transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}>
@@ -1007,7 +1015,7 @@ export default function SchoolSetsPage() {
                         {/* Brand info banner */}
                         <div style={{ background: 'linear-gradient(135deg, #FFFBEB, #FFF7ED)', borderBottom: '1px solid #FDE68A', padding: '10px 18px', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ background: '#1D9E75', color: '#fff', fontSize: '10px', fontWeight: '800', padding: '3px 10px', borderRadius: '99px' }}>BUDDY</div>
+                            <div style={{ background: '#00B86B', color: '#fff', fontSize: '10px', fontWeight: '800', padding: '3px 10px', borderRadius: '99px' }}>BUDDY</div>
                             <span style={{ fontSize: '11px', color: '#92400E', fontWeight: '600' }}>Our brand · 20% OFF MRP</span>
                           </div>
                           <div style={{ width: '1px', height: '16px', background: '#FDE68A' }} />
@@ -1046,7 +1054,7 @@ export default function SchoolSetsPage() {
                                   <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '2px' }}>
                                     {isReg ? 'Register · ' + (pages ? pages + ' pages' : '') : 'Notebook'}
                                     {' · ₹' + unitPrice + ' each'}
-                                    {brand === 'buddy' && <span style={{ color: '#1D9E75', fontWeight: '700', marginLeft: '4px' }}>20% off</span>}
+                                    {brand === 'buddy' && <span style={{ color: '#00B86B', fontWeight: '700', marginLeft: '4px' }}>20% off</span>}
                                   </div>
                                 </div>
                                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -1071,11 +1079,11 @@ export default function SchoolSetsPage() {
                                         : (tempBrand === 'buddy' ? 50 : 55)
                                       return (
                                         <button key={b} onClick={() => { const arr = [...nbBrand]; arr[i] = b; setNbBrand(arr) }}
-                                          style={{ flex: 1, padding: '7px 8px', borderRadius: '10px', border: isActive ? '2px solid ' + (b === 'buddy' ? '#1D9E75' : '#3B82F6') : '1.5px solid var(--border)', background: isActive ? (b === 'buddy' ? '#E8F7F2' : '#EFF6FF') : 'var(--bg)', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.15s', textAlign: 'center' }}>
-                                          <div style={{ fontSize: '10px', fontWeight: '800', color: isActive ? (b === 'buddy' ? '#1D9E75' : '#3B82F6') : 'var(--text-3)', marginBottom: '2px', textTransform: 'uppercase' }}>{b === 'buddy' ? '⭐ BUDDY' : 'CLASSMATE'}</div>
-                                          <div style={{ fontSize: '12px', fontWeight: '700', color: isActive ? (b === 'buddy' ? '#1D9E75' : '#3B82F6') : 'var(--text-2)' }}>₹{optPrice}</div>
-                                          {b === 'buddy' && isReg && <div style={{ fontSize: '9px', color: '#1D9E75', fontWeight: '600' }}>20% OFF</div>}
-                                          {b === 'buddy' && !isReg && <div style={{ fontSize: '9px', color: '#1D9E75', fontWeight: '600' }}>20% off ₹62</div>}
+                                          style={{ flex: 1, padding: '7px 8px', borderRadius: '10px', border: isActive ? '2px solid ' + (b === 'buddy' ? '#00B86B' : '#3B82F6') : '1.5px solid var(--border)', background: isActive ? (b === 'buddy' ? '#DFFFEF' : '#EFF6FF') : 'var(--bg)', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', transition: 'all 0.15s', textAlign: 'center' }}>
+                                          <div style={{ fontSize: '10px', fontWeight: '800', color: isActive ? (b === 'buddy' ? '#00B86B' : '#3B82F6') : 'var(--text-3)', marginBottom: '2px', textTransform: 'uppercase' }}>{b === 'buddy' ? '⭐ BUDDY' : 'CLASSMATE'}</div>
+                                          <div style={{ fontSize: '12px', fontWeight: '700', color: isActive ? (b === 'buddy' ? '#00B86B' : '#3B82F6') : 'var(--text-2)' }}>₹{optPrice}</div>
+                                          {b === 'buddy' && isReg && <div style={{ fontSize: '9px', color: '#00B86B', fontWeight: '600' }}>20% OFF</div>}
+                                          {b === 'buddy' && !isReg && <div style={{ fontSize: '9px', color: '#00B86B', fontWeight: '600' }}>20% off ₹62</div>}
                                           {b === 'classmate' && <div style={{ fontSize: '9px', color: 'var(--text-3)' }}>MRP ₹{isReg ? (regType === 'slim' ? 85 : 105) : 62}</div>}
                                         </button>
                                       )
@@ -1091,7 +1099,7 @@ export default function SchoolSetsPage() {
                                         const rtMrp = rt === 'slim' ? (brand === 'buddy' ? 68 : 85) : (brand === 'buddy' ? 88 : 105)
                                         return (
                                           <button key={rt} onClick={() => { const arr = [...nbRegType]; arr[i] = rt; setNbRegType(arr) }}
-                                            style={{ flex: 1, padding: '7px 8px', borderRadius: '10px', border: isRtActive ? '2px solid #F59E0B' : '1.5px solid var(--border)', background: isRtActive ? '#FFFBEB' : 'var(--bg)', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.15s', textAlign: 'center' }}>
+                                            style={{ flex: 1, padding: '7px 8px', borderRadius: '10px', border: isRtActive ? '2px solid #F59E0B' : '1.5px solid var(--border)', background: isRtActive ? '#FFFBEB' : 'var(--bg)', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', transition: 'all 0.15s', textAlign: 'center' }}>
                                             <div style={{ fontSize: '10px', fontWeight: '700', color: isRtActive ? '#D97706' : 'var(--text-3)', marginBottom: '2px' }}>{rtPages} pages</div>
                                             <div style={{ fontSize: '12px', fontWeight: '700', color: isRtActive ? '#D97706' : 'var(--text-2)' }}>₹{rtMrp}</div>
                                           </button>
@@ -1154,13 +1162,13 @@ export default function SchoolSetsPage() {
               <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{totalKits} kits total</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
                 {siblingDiscount > 0 && <span style={{ fontSize: '13px', color: 'var(--text-3)', textDecoration: 'line-through' }}>₹{cartTotal.toLocaleString()}</span>}
-                <span className="k" style={{ fontSize: '22px', color: '#1D9E75' }}>₹{cartAfterDiscount.toLocaleString()}</span>
+                <span className="k" style={{ fontSize: '22px', color: '#00B86B' }}>₹{cartAfterDiscount.toLocaleString()}</span>
               </div>
             </>
           ) : (
             <>
               <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Kit subtotal</div>
-              <div className="k" style={{ fontSize: '22px', color: '#1D9E75' }}>₹{kitSubtotal.toLocaleString()}</div>
+              <div className="k" style={{ fontSize: '22px', color: '#00B86B' }}>₹{kitSubtotal.toLocaleString()}</div>
             </>
           )}
         </div>
@@ -1171,19 +1179,19 @@ export default function SchoolSetsPage() {
               onClick={handleAddAnotherKit}
               disabled={kitSubtotal === 0}
               title="Add another child's kit and save 5%"
-              style={{ background: '#F5F3FF', color: '#7C3AED', border: '1.5px solid #DDD6FE', borderRadius: '12px', padding: '13px 16px', fontSize: '13px', fontWeight: '700', cursor: kitSubtotal === 0 ? 'not-allowed' : 'pointer', fontFamily: 'DM Sans, sans-serif', whiteSpace: 'nowrap', opacity: kitSubtotal === 0 ? 0.5 : 1 }}>
+              style={{ background: '#EFEAFF', color: '#7C5CFC', border: '2px solid #DDD6FE', borderRadius: '12px', padding: '13px 16px', fontSize: '13px', fontWeight: '800', cursor: kitSubtotal === 0 ? 'not-allowed' : 'pointer', fontFamily: 'Poppins, sans-serif', whiteSpace: 'nowrap', opacity: kitSubtotal === 0 ? 0.5 : 1, boxShadow: kitSubtotal === 0 ? 'none' : '0 3px 0 #C4B5FD' }}>
               + Add child
             </button>
             <button
               onClick={handleProceedToCheckout}
               disabled={kitSubtotal === 0 && cart.length === 0}
-              style={{ background: 'linear-gradient(135deg, #1D9E75, #157A5A)', color: '#fff', border: 'none', borderRadius: '12px', padding: '13px 20px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', boxShadow: '0 4px 16px rgba(29,158,117,0.35)', whiteSpace: 'nowrap' }}>
+              style={{ background: 'linear-gradient(135deg, #00B86B, #2D7FF9)', color: '#fff', border: 'none', borderRadius: '12px', padding: '13px 22px', fontSize: '14px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', boxShadow: '0 4px 0 #009957', whiteSpace: 'nowrap' }}>
               Checkout →
             </button>
           </div>
         ) : (
           <SignInButton mode="modal">
-            <button style={{ background: 'linear-gradient(135deg, #1D9E75, #157A5A)', color: '#fff', border: 'none', borderRadius: '12px', padding: '13px 24px', fontSize: '15px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Kalam, cursive', boxShadow: '0 4px 16px rgba(29,158,117,0.35)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            <button style={{ background: 'linear-gradient(135deg, #00B86B, #2D7FF9)', color: '#fff', border: 'none', borderRadius: '12px', padding: '13px 24px', fontSize: '15px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', boxShadow: '0 4px 0 #009957', whiteSpace: 'nowrap', flexShrink: 0 }}>
               Sign in to order →
             </button>
           </SignInButton>
