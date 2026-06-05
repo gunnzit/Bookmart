@@ -51,6 +51,7 @@ function CheckoutInner() {
 
   async function handleOrder() {
     setOrdering(true)
+    const numKits = kits!.length
     try {
       const res = await fetch('/api/payment/create-order', {
         method: 'POST',
@@ -79,7 +80,7 @@ function CheckoutInner() {
               kitData: {
                 school: SCHOOL, class: classLabel, items: allItems,
                 kitSubtotal, deliveryFee, totalAmount: total,
-                siblingDiscount, numKits: kits.length,
+                siblingDiscount, numKits,
                 paidNow: payNow, payLater: paymentMode === 'full' ? 0 : payLater,
                 paymentMode, deliveryMode,
                 address: address || null,
@@ -88,7 +89,7 @@ function CheckoutInner() {
               }
             }),
           })
-          const msg = '📦 NEW KIT ORDER\n' + (isMultiKit ? kits.length + ' KITS — Classes ' + classLabel : 'Class ' + classLabel) + ' — ' + SCHOOL
+          const msg = '📦 NEW KIT ORDER\n' + (isMultiKit ? numKits + ' KITS — Classes ' + classLabel : 'Class ' + classLabel) + ' — ' + SCHOOL
             + '\nName: ' + name + '\nPhone: ' + phone
             + '\nDelivery: ' + deliveryMode + (deliveryMode === 'delivery' ? '\nAddress: ' + address : '')
             + (siblingDiscount > 0 ? '\nSibling discount: −₹' + siblingDiscount : '')
