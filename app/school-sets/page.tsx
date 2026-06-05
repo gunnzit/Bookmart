@@ -12,6 +12,13 @@ const kitPhotos: Record<number, string | null> = {
   6: null, 7: null, 8: null, 9: null, 10: null,
 }
 
+// Per-item product photos — keyed by exact item name. Fill with real URLs as you photograph them.
+// e.g. 'Mridang - 1': '/products/mridang-1.jpg'
+const itemPhotos: Record<string, string> = {}
+function getItemPhoto(name: string): string | null {
+  return itemPhotos[name] || null
+}
+
 const kits: Record<number, {
   ncert: { name: string; price: number }[]
   pvt: { name: string; price: number }[]
@@ -694,6 +701,18 @@ export default function SchoolSetsPage() {
     .item-row { display: flex; align-items: center; gap: 12px; padding: 10px 18px; transition: background 0.1s; border-bottom: 1px solid var(--border); }
     .item-row:last-child { border-bottom: none; }
     .item-row:hover { background: var(--bg); }
+    .prod-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 14px; }
+    .prod-card { background: var(--card); border: 1.5px solid var(--border); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; transition: all 0.15s; position: relative; }
+    .prod-card.selected { border-color: #1D9E75; box-shadow: 0 0 0 1px #1D9E75; }
+    .prod-photo { width: 100%; aspect-ratio: 1/1; background: var(--bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; position: relative; border-bottom: 1px solid var(--border); }
+    .prod-body { padding: 10px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+    .prod-name { font-size: 12px; font-weight: 600; color: var(--text); line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; min-height: 32px; }
+    .prod-foot { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: auto; }
+    .prod-price { font-size: 14px; font-weight: 700; color: var(--text); font-family: 'Kalam', cursive; }
+    .add-btn { border: 1.5px solid #1D9E75; background: #E8F7F2; color: #1D9E75; border-radius: 9px; padding: 6px 14px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.12s; white-space: nowrap; }
+    .add-btn:hover { background: #1D9E75; color: #fff; }
+    .add-btn.added { background: #1D9E75; color: #fff; }
+    @media (min-width: 700px) { .prod-grid { grid-template-columns: repeat(3, 1fr); } }
     .checkbox { width: 18px; height: 18px; border-radius: 5px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.15s; cursor: pointer; }
     .checkbox.checked { background: var(--green); border-color: var(--green); }
     .qty-ctrl { display: flex; align-items: center; gap: 6px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px; padding: 2px 4px; }
@@ -908,16 +927,39 @@ export default function SchoolSetsPage() {
                       </div>
                     </div>
                     {isOpen && (
-                      <div className="slide-down" style={{ borderTop: '1px solid ' + sec.border }}>
-                        {items.map((item, i) => (
-                          <div key={i} className="item-row" onClick={() => handleCheckClick(s, i)}>
-                            <div className={'checkbox' + (checkedItems[i] ? ' checked' : '')}>
-                              {checkedItems[i] && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                      <div className="slide-down prod-grid" style={{ borderTop: '1px solid ' + sec.border }}>
+                        {items.map((item, i) => {
+                          const isAdded = checkedItems[i]
+                          const photo = getItemPhoto(item.name)
+                          return (
+                            <div key={i} className={'prod-card' + (isAdded ? ' selected' : '')}>
+                              <div className="prod-photo">
+                                {photo ? (
+                                  <img src={photo} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                ) : (
+                                  <>
+                                    <span style={{ fontSize: '34px' }}>{sec.emoji}</span>
+                                    <span style={{ fontSize: '8px', color: 'var(--text-3)', fontWeight: '600' }}>📸 Photo soon</span>
+                                  </>
+                                )}
+                                {isAdded && (
+                                  <div style={{ position: 'absolute', top: '6px', right: '6px', width: '20px', height: '20px', borderRadius: '50%', background: '#1D9E75', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <svg width="11" height="11" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="prod-body">
+                                <div className="prod-name">{item.name}</div>
+                                <div className="prod-foot">
+                                  <span className="prod-price" style={{ color: isAdded ? sec.color : 'var(--text-3)' }}>₹{item.price}</span>
+                                  <button className={'add-btn' + (isAdded ? ' added' : '')} onClick={() => handleCheckClick(s, i)}>
+                                    {isAdded ? '✓ Added' : 'ADD +'}
+                                  </button>
+                                </div>
+                              </div>
                             </div>
-                            <div style={{ flex: 1, fontSize: '13px', color: checkedItems[i] ? 'var(--text)' : 'var(--text-3)', fontWeight: checkedItems[i] ? '500' : '400', textDecoration: checkedItems[i] ? 'none' : 'line-through' }}>{item.name}</div>
-                            <div style={{ fontSize: '13px', fontWeight: '700', color: checkedItems[i] ? sec.color : 'var(--text-3)', fontFamily: 'Kalam, cursive', flexShrink: 0 }}>₹{item.price}</div>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     )}
                   </div>
@@ -983,8 +1025,13 @@ export default function SchoolSetsPage() {
 
                           return (
                             <div key={i} style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
-                              {/* Top row: checkbox + name + price */}
+                              {/* Top row: photo + checkbox + name + price */}
                               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: isChecked ? '12px' : '0' }}>
+                                <div style={{ width: '48px', height: '48px', borderRadius: '10px', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                                  {getItemPhoto(item.name)
+                                    ? <img src={getItemPhoto(item.name)!} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    : <span style={{ fontSize: '22px' }}>📓</span>}
+                                </div>
                                 <div className={'checkbox' + (isChecked ? ' checked' : '')} style={{ marginTop: '2px', flexShrink: 0 }}
                                   onClick={() => handleCheckClick(s, i)}>
                                   {isChecked && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
@@ -1076,43 +1123,11 @@ export default function SchoolSetsPage() {
               </div>
             </div>
 
-              {/* Photo placeholder grid per section */}
-              {(['ncert', 'pvt', 'stationery'] as Section[]).map(s => {
-                const sec = sectionLabels[s]
-                const items = kit[s] as { name: string; price: number }[]
-                const isOpen = openSections[s]
-                if (!isOpen) return null
-                return (
-                  <div key={s + '_photos'} className="photo-grid">
-                    {items.map((item, i) => (
-                      <div key={i} className="photo-placeholder" style={{ height: '80px' }} title={'Add photo: ' + item.name}>
-                        <span style={{ fontSize: '22px' }}>{sec.emoji}</span>
-                        <span style={{ fontSize: '9px', color: 'var(--text-3)', fontWeight: '600', textAlign: 'center', padding: '0 4px', lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>{item.name}</span>
-                        <span style={{ fontSize: '8px', color: 'var(--text-3)' }}>📸 Photo</span>
-                      </div>
-                    ))}
-                  </div>
-                )
-              })}
-
-              {/* Notebooks photo placeholders */}
-              {openSections.notebooks && (
-                <div className="photo-grid">
-                  {kit.notebooks.map((item, i) => (
-                    <div key={i} className="photo-placeholder" style={{ height: '80px' }} title={'Add photo: ' + item.name}>
-                      <span style={{ fontSize: '22px' }}>📓</span>
-                      <span style={{ fontSize: '9px', color: 'var(--text-3)', fontWeight: '600', textAlign: 'center', padding: '0 4px', lineHeight: 1.3, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' } as any}>{item.name}</span>
-                      <span style={{ fontSize: '8px', color: 'var(--text-3)' }}>📸 Photo</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
               {/* Tip */}
               <div style={{ background: '#FFFBEB', border: '1.5px solid #FDE68A', borderRadius: '12px', padding: '12px 16px', display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '80px' }}>
                 <span style={{ fontSize: '16px', flexShrink: 0 }}>💡</span>
                 <div style={{ fontSize: '12px', color: '#92400E', lineHeight: 1.6 }}>
-                  Quantities pre-set from the official book list. Adjust as needed — price updates live. Photo placeholders above will show real product photos once uploaded.
+                  Quantities pre-set from the official book list. Adjust as needed — price updates live. Product photos will appear on each card once uploaded.
                 </div>
               </div>
             </div>
