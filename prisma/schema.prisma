@@ -1,4 +1,4 @@
-generator client {
+\generator client {
   provider = "prisma-client-js"
 }
 
@@ -123,7 +123,7 @@ model OutOfStockItem {
   name      String   @id
   createdAt DateTime @default(now())
 }
- 
+
 model StockNotify {
   id        String   @id @default(cuid())
   itemName  String
@@ -131,10 +131,10 @@ model StockNotify {
   buyerName String?
   notified  Boolean  @default(false)
   createdAt DateTime @default(now())
- 
+
   @@unique([itemName, phone])
   @@index([itemName])
-
+}
 
 model playing_with_neon {
   id    Int    @id @default(autoincrement())
