@@ -8,10 +8,14 @@ const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 const prisma = globalForPrisma.prisma ?? new PrismaClient()
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-})
+// Created inside the handler (not at top of file) so it only runs at request
+// time — avoids the "key_id is mandatory" build error.
+function getRazorpay() {
+  return new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID!,
+    key_secret: process.env.RAZORPAY_KEY_SECRET!,
+  })
+}
 
 // Valid featured-tier amounts in paise — keep in sync with create-order TIERS.
 const VALID_TIER_AMOUNTS = new Set([1900, 2900, 4900])
@@ -27,7 +31,7 @@ export async function POST(request: Request) {
       kitData,
     } = body
 
-    // 1) Verify the Razorpay signature (proves the payment is real & matches the order)
+    // 1) Verify the Razorpay signature
     const sigBody = razorpay_order_id + '|' + razorpay_payment_id
     const expectedSignature = crypto
       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET!)
@@ -106,14 +110,10 @@ export async function POST(request: Request) {
     }
 
     // ── Featured listing payment (Fix #3) ────────────────────────────────
-    // A valid signature only proves "some payment happened". It does NOT prove
-    // the payment was for THIS listing. So we read the listingId back from the
-    // Razorpay ORDER NOTES (set server-side by create-order) and require it to
-    // match. A replayed signature from a different order carries a different
-    // (or missing) note and is rejected.
     if (listingId) {
       let order: any
       try {
+        const razorpay = getRazorpay()
         order = await razorpay.orders.fetch(razorpay_order_id)
       } catch {
         return NextResponse.json({ error: 'Could not verify order' }, { status: 400 })
