@@ -3,14 +3,19 @@ import { useUser, SignInButton } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
+const ADMIN_WA = '919914735738'
+
 const statusConfig: Record<string, { label: string; color: string; bg: string; border: string; emoji: string; desc: string }> = {
   confirmed:  { label: 'Order Confirmed',  color: '#2D7FF9', bg: '#E3F0FF', border: '#BFDBFE', emoji: '✅', desc: "We've received your order and payment." },
   assembling: { label: 'Being Assembled',  color: '#FF6B2C', bg: '#FFEDE2', border: '#FED7AA', emoji: '📦', desc: "Your kit is being assembled at the store." },
   ready:      { label: 'Ready!',           color: '#7C5CFC', bg: '#EFEAFF', border: '#DDD6FE', emoji: '🎒', desc: 'Your kit is packed and ready.' },
   delivered:  { label: 'Delivered',        color: '#00B86B', bg: '#DFFFEF', border: '#9DEAC4', emoji: '🏠', desc: 'Kit delivered. Enjoy the new school year!' },
+  cancellation_requested: { label: 'Cancellation Requested', color: '#F59E0B', bg: '#FFFBEB', border: '#FDE68A', emoji: '⏳', desc: 'You requested cancellation. The store will review and process your refund.' },
+  cancelled:  { label: 'Cancelled',        color: '#EF4444', bg: '#FEF2F2', border: '#FCA5A5', emoji: '🚫', desc: 'This order was cancelled. Any refund is handled by the store.' },
 }
 
 const statusSteps = ['confirmed', 'assembling', 'ready', 'delivered']
+const CANCEL_WINDOW_MS = 24 * 60 * 60 * 1000
 
 export default function MyOrdersPage() {
   const { isSignedIn, user, isLoaded } = useUser()
@@ -18,13 +23,42 @@ export default function MyOrdersPage() {
   const [orders, setOrders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [cancelling, setCancelling] = useState<string | null>(null)
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !user) return
-    fetch('/api/kit-orders')      .then(r => r.json())
+    fetch('/api/kit-orders')
+      .then(r => r.json())
       .then(data => { if (Array.isArray(data)) setOrders(data); setLoading(false) })
       .catch(() => setLoading(false))
   }, [isLoaded, isSignedIn, user])
+
+  async function requestCancel(order: any) {
+    if (!confirm('Request cancellation of this order?\n\nThe store will review your request and process your refund. Cancellation is only allowed within 24 hours of ordering.')) return
+    setCancelling(order.id)
+    try {
+      const res = await fetch('/api/kit-orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: order.id, action: 'request-cancel' }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        alert(data.error || 'Sorry, this order could not be cancelled.')
+        setCancelling(null)
+        return
+      }
+      setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'cancellation_requested' } : o))
+      // Notify the store so they can approve + refund
+      const msg = '🚫 CANCELLATION REQUEST\nClass ' + order.class + ' kit (Order ' + order.id.slice(-8) + ')'
+        + '\nName: ' + order.buyerName + '\nPaid: ₹' + order.paidNow
+        + '\nPlease process my refund. Thank you.'
+      window.open('https://wa.me/' + ADMIN_WA + '?text=' + encodeURIComponent(msg), '_blank')
+    } catch {
+      alert('Something went wrong. Please try again or contact the store.')
+    }
+    setCancelling(null)
+  }
 
   const css = `
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap');
@@ -111,6 +145,14 @@ export default function MyOrdersPage() {
                 const currentStep = statusSteps.indexOf(order.status)
                 const isExpanded = expandedId === order.id
                 const items = Array.isArray(order.items) ? order.items : []
+                const showTracker = statusSteps.includes(order.status)
+
+                // Cancellation eligibility (UI hint — the server enforces the real rule)
+                const ageMs = Date.now() - new Date(order.createdAt).getTime()
+                const within24h = ageMs <= CANCEL_WINDOW_MS
+                const canCancel = order.status === 'confirmed' && within24h
+                const windowClosed = order.status === 'confirmed' && !within24h
+                const isRequested = order.status === 'cancellation_requested'
 
                 return (
                   <div key={order.id} className="order-card fade-up" style={{ animationDelay: idx * 0.06 + 's' }}>
@@ -143,27 +185,29 @@ export default function MyOrdersPage() {
                         </div>
                       </div>
 
-                      {/* Progress tracker */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0' }}>
-                        {statusSteps.map((step, i) => {
-                          const done = i <= currentStep
-                          const current = i === currentStep
-                          const sc2 = statusConfig[step]
-                          return (
-                            <div key={step} style={{ display: 'flex', alignItems: 'center', flex: i < statusSteps.length - 1 ? 1 : 'none' }}>
-                              <div title={sc2.label} style={{ width: '32px', height: '32px', borderRadius: '50%', background: done ? sc2.color : 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: done ? '14px' : '11px', border: current ? '2.5px solid ' + sc2.color : 'none', boxShadow: current ? '0 0 0 4px ' + sc2.color + '33' : 'none', transition: 'all 0.3s', flexShrink: 0 }}>
-                                {done ? sc2.emoji : <span style={{ color: 'var(--text-3)' }}>{i + 1}</span>}
+                      {/* Progress tracker — only for live orders, not cancelled/requested */}
+                      {showTracker && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0' }}>
+                          {statusSteps.map((step, i) => {
+                            const done = i <= currentStep
+                            const current = i === currentStep
+                            const sc2 = statusConfig[step]
+                            return (
+                              <div key={step} style={{ display: 'flex', alignItems: 'center', flex: i < statusSteps.length - 1 ? 1 : 'none' }}>
+                                <div title={sc2.label} style={{ width: '32px', height: '32px', borderRadius: '50%', background: done ? sc2.color : 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: done ? '14px' : '11px', border: current ? '2.5px solid ' + sc2.color : 'none', boxShadow: current ? '0 0 0 4px ' + sc2.color + '33' : 'none', transition: 'all 0.3s', flexShrink: 0 }}>
+                                  {done ? sc2.emoji : <span style={{ color: 'var(--text-3)' }}>{i + 1}</span>}
+                                </div>
+                                {i < statusSteps.length - 1 && (
+                                  <div style={{ flex: 1, height: '3px', background: i < currentStep ? sc.color : 'var(--border)', transition: 'background 0.3s', margin: '0 2px' }} />
+                                )}
                               </div>
-                              {i < statusSteps.length - 1 && (
-                                <div style={{ flex: 1, height: '3px', background: i < currentStep ? sc.color : 'var(--border)', transition: 'background 0.3s', margin: '0 2px' }} />
-                              )}
-                            </div>
-                          )
-                        })}
-                      </div>
+                            )
+                          })}
+                        </div>
+                      )}
 
                       {/* Current status desc */}
-                      <div style={{ marginTop: '10px', fontSize: '12px', color: sc.color, fontWeight: '700', background: sc.bg, borderRadius: '10px', padding: '8px 12px', border: '2px solid ' + sc.border }}>
+                      <div style={{ marginTop: showTracker ? '10px' : '0', fontSize: '12px', color: sc.color, fontWeight: '700', background: sc.bg, borderRadius: '10px', padding: '8px 12px', border: '2px solid ' + sc.border }}>
                         {sc.emoji} {sc.desc}
                       </div>
                     </div>
@@ -193,8 +237,31 @@ export default function MyOrdersPage() {
                           ))}
                         </div>
 
+                        {/* ── Cancellation area ───────────────────────────── */}
+                        {canCancel && (
+                          <div style={{ marginBottom: '12px' }}>
+                            <button onClick={() => requestCancel(order)} disabled={cancelling === order.id}
+                              style={{ width: '100%', background: '#FEF2F2', color: '#EF4444', border: '2px solid #FCA5A5', borderRadius: '12px', padding: '12px', fontSize: '13px', fontWeight: '800', cursor: cancelling === order.id ? 'wait' : 'pointer', fontFamily: 'Poppins, sans-serif', opacity: cancelling === order.id ? 0.6 : 1 }}>
+                              {cancelling === order.id ? 'Requesting…' : '🚫 Request cancellation'}
+                            </button>
+                            <div style={{ fontSize: '11px', color: 'var(--text-3)', textAlign: 'center', marginTop: '6px', fontWeight: '500', lineHeight: 1.5 }}>
+                              Free cancellation within <strong>24 hours</strong> of ordering. The store will review and process your refund.
+                            </div>
+                          </div>
+                        )}
+                        {windowClosed && (
+                          <div style={{ marginBottom: '12px', background: 'var(--card)', border: '2px solid var(--border)', borderRadius: '12px', padding: '12px', fontSize: '12px', color: 'var(--text-3)', textAlign: 'center', fontWeight: '500', lineHeight: 1.6 }}>
+                            ⏳ Cancellation is only allowed <strong>within 24 hours</strong> of ordering. That window has now closed — please contact the store below for any help.
+                          </div>
+                        )}
+                        {isRequested && (
+                          <div style={{ marginBottom: '12px', background: '#FFFBEB', border: '2px solid #FDE68A', borderRadius: '12px', padding: '12px', fontSize: '12px', color: '#92400E', textAlign: 'center', fontWeight: '600', lineHeight: 1.6 }}>
+                            ⏳ Cancellation requested — awaiting store approval. Your refund will be processed once approved.
+                          </div>
+                        )}
+
                         {/* Contact store */}
-                        <button onClick={() => window.open('https://wa.me/919914735738?text=' + encodeURIComponent('Hi, I have a query about my Class ' + order.class + ' kit order (ID: ' + order.id.slice(-8) + ')'), '_blank')}
+                        <button onClick={() => window.open('https://wa.me/' + ADMIN_WA + '?text=' + encodeURIComponent('Hi, I have a query about my Class ' + order.class + ' kit order (ID: ' + order.id.slice(-8) + ')'), '_blank')}
                           style={{ width: '100%', background: '#DFFFEF', color: '#00B86B', border: '2px solid #9DEAC4', borderRadius: '12px', padding: '12px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                           Contact store about this order

@@ -11,6 +11,8 @@ const statusConfig: Record<string, { label: string; color: string; bg: string; b
   assembling: { label: 'Assembling', color: '#F59E0B', bg: '#FFFBEB', border: '#FDE68A', emoji: '📦' },
   ready:      { label: 'Ready',      color: '#8B5CF6', bg: '#F5F3FF', border: '#DDD6FE', emoji: '🎒' },
   delivered:  { label: 'Delivered',  color: '#1D9E75', bg: '#E8F7F2', border: '#C0E8D8', emoji: '🏠' },
+  cancellation_requested: { label: 'Cancel Requested', color: '#F59E0B', bg: '#FFFBEB', border: '#FDE68A', emoji: '⏳' },
+  cancelled:  { label: 'Cancelled',  color: '#9CA3AF', bg: '#F3F4F6', border: '#E5E7EB', emoji: '🚫' },
 }
 
 export default function AdminOrdersPage() {
@@ -30,7 +32,8 @@ export default function AdminOrdersPage() {
 
   async function fetchOrders() {
     setLoading(true)
-    const res = await fetch('/api/kit-orders?admin=true&clerkId=' + ADMIN_ID)
+    // Server identifies the admin from the Clerk session — no query params needed.
+    const res = await fetch('/api/kit-orders')
     const data = await res.json()
     if (Array.isArray(data)) setOrders(data)
     setLoading(false)
@@ -41,15 +44,34 @@ export default function AdminOrdersPage() {
     await fetch('/api/kit-orders', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, status, clerkId: ADMIN_ID }),
+      body: JSON.stringify({ id, status }),
     })
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o))
     setUpdating(null)
   }
 
-  function nextStatus(current: string) {
-    const idx = statusFlow.indexOf(current)
-    return idx < statusFlow.length - 1 ? statusFlow[idx + 1] : null
+  // Approve or decline a customer's cancellation request.
+  async function handleCancelDecision(id: string, decision: 'approve-cancel' | 'decline-cancel') {
+    const order = orders.find(o => o.id === id)
+    if (decision === 'approve-cancel') {
+      if (!confirm('Approve cancellation?\n\nIMPORTANT: refund ₹' + (order?.paidNow ?? '') + ' to this customer in your Razorpay dashboard FIRST, then approve. This marks the order Cancelled.')) return
+    } else {
+      if (!confirm('Decline this cancellation request? The order goes back to Confirmed.')) return
+    }
+    setUpdating(id)
+    const res = await fetch('/api/kit-orders', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, action: decision }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (res.ok) {
+      const newStatus = decision === 'approve-cancel' ? 'cancelled' : 'confirmed'
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, status: newStatus } : o))
+    } else {
+      alert(data.error || 'Failed to update')
+    }
+    setUpdating(null)
   }
 
   const filtered = filter === 'all' ? orders : orders.filter(o => o.status === filter)
@@ -60,8 +82,10 @@ export default function AdminOrdersPage() {
     assembling: orders.filter(o => o.status === 'assembling').length,
     ready: orders.filter(o => o.status === 'ready').length,
     delivered: orders.filter(o => o.status === 'delivered').length,
-    revenue: orders.reduce((s, o) => s + o.paidNow, 0),
-    pending: orders.reduce((s, o) => s + o.payLater, 0),
+    cancelReqs: orders.filter(o => o.status === 'cancellation_requested').length,
+    // Revenue excludes cancelled orders (they're refunded)
+    revenue: orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + o.paidNow, 0),
+    pending: orders.filter(o => o.status !== 'cancelled').reduce((s, o) => s + o.payLater, 0),
   }
 
   const css = `
@@ -107,6 +131,16 @@ export default function AdminOrdersPage() {
 
         <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '24px 20px' }}>
 
+          {/* Cancellation requests banner */}
+          {stats.cancelReqs > 0 && (
+            <div onClick={() => setFilter('cancellation_requested')} style={{ background: '#FFFBEB', border: '1.5px solid #FDE68A', borderRadius: '12px', padding: '12px 16px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+              <span style={{ fontSize: '20px' }}>⏳</span>
+              <span style={{ fontSize: '13px', fontWeight: '700', color: '#92400E' }}>
+                {stats.cancelReqs} cancellation request{stats.cancelReqs !== 1 ? 's' : ''} waiting for your approval — tap to view
+              </span>
+            </div>
+          )}
+
           {/* Stats row */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '10px', marginBottom: '24px' }}>
             {[
@@ -115,6 +149,7 @@ export default function AdminOrdersPage() {
               { label: 'Assembling', value: stats.assembling, color: '#F59E0B', bg: '#FFFBEB' },
               { label: 'Ready', value: stats.ready, color: '#8B5CF6', bg: '#F5F3FF' },
               { label: 'Delivered', value: stats.delivered, color: '#1D9E75', bg: '#E8F7F2' },
+              { label: 'Cancel reqs', value: stats.cancelReqs, color: '#F59E0B', bg: '#FFFBEB' },
               { label: 'Revenue', value: '₹' + stats.revenue.toLocaleString(), color: '#1D9E75', bg: '#E8F7F2' },
               { label: 'Pending COD', value: '₹' + stats.pending.toLocaleString(), color: '#F97316', bg: '#FFF7ED' },
             ].map(s => (
@@ -127,7 +162,7 @@ export default function AdminOrdersPage() {
 
           {/* Filters */}
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
-            {['all', 'confirmed', 'assembling', 'ready', 'delivered'].map(f => (
+            {['all', 'confirmed', 'assembling', 'ready', 'delivered', 'cancellation_requested', 'cancelled'].map(f => (
               <button key={f} className={'filter-btn' + (filter === f ? ' active' : '')} onClick={() => setFilter(f)} style={filter === f && f !== 'all' ? { background: statusConfig[f]?.color, borderColor: statusConfig[f]?.color } : {}}>
                 {f === 'all' ? '📋 All' : statusConfig[f]?.emoji + ' ' + statusConfig[f]?.label}
               </button>
@@ -149,12 +184,12 @@ export default function AdminOrdersPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {filtered.map((order, idx) => {
                 const sc = statusConfig[order.status] || statusConfig.confirmed
-                const next = nextStatus(order.status)
-                const nextSc = next ? statusConfig[next] : null
                 const isExpanded = expandedId === order.id
                 const items = Array.isArray(order.items) ? order.items : []
+                const isCancelReq = order.status === 'cancellation_requested'
+                const isCancelled = order.status === 'cancelled'
                 return (
-                  <div key={order.id} className="order-card fade-up" style={{ animationDelay: idx * 0.04 + 's' }}>
+                  <div key={order.id} className="order-card fade-up" style={{ animationDelay: idx * 0.04 + 's', borderColor: isCancelReq ? '#FDE68A' : 'var(--border)', borderWidth: isCancelReq ? '2px' : '1.5px' }}>
                     {/* Status bar */}
                     <div style={{ height: '4px', background: sc.color }} />
 
@@ -164,10 +199,10 @@ export default function AdminOrdersPage() {
                         {sc.emoji}
                       </div>
                       <div style={{ flex: 1, minWidth: '180px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px', flexWrap: 'wrap' }}>
                           <span className="k" style={{ fontSize: '16px', color: 'var(--text)' }}>Class {order.class} Kit</span>
                           <span style={{ fontSize: '11px', fontWeight: '700', color: sc.color, background: sc.bg, padding: '2px 8px', borderRadius: '99px', border: '1px solid ' + sc.border }}>{sc.emoji} {sc.label}</span>
-                          {order.payLater > 0 && (
+                          {order.payLater > 0 && !isCancelled && (
                             <span style={{ fontSize: '10px', fontWeight: '700', color: '#F97316', background: '#FFF7ED', padding: '2px 8px', borderRadius: '99px', border: '1px solid #FED7AA' }}>₹{order.payLater.toLocaleString()} COD</span>
                           )}
                         </div>
@@ -215,25 +250,50 @@ export default function AdminOrdersPage() {
                           ))}
                         </div>
 
-                        {/* Status actions */}
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                          <div style={{ fontSize: '12px', color: 'var(--text-3)', fontWeight: '600' }}>Move to:</div>
-                          {statusFlow.filter(s => s !== order.status).map(s => {
-                            const sc2 = statusConfig[s]
-                            return (
-                              <button key={s} className="next-btn" disabled={updating === order.id}
-                                onClick={() => updateStatus(order.id, s)}
-                                style={{ background: sc2.bg, color: sc2.color, border: '1.5px solid ' + sc2.border }}>
-                                {updating === order.id ? '…' : sc2.emoji + ' ' + sc2.label}
+                        {/* ── Cancellation request: approve / decline ───────── */}
+                        {isCancelReq && (
+                          <div style={{ background: '#FFFBEB', border: '1.5px solid #FDE68A', borderRadius: '12px', padding: '14px', marginBottom: '14px' }}>
+                            <div style={{ fontSize: '13px', fontWeight: '700', color: '#92400E', marginBottom: '4px' }}>⏳ Customer requested cancellation</div>
+                            <div style={{ fontSize: '12px', color: '#92400E', marginBottom: '12px', lineHeight: 1.5 }}>
+                              Refund <strong>₹{order.paidNow?.toLocaleString()}</strong> to this customer in your Razorpay dashboard first, then approve. Payment ID: {order.paymentId?.slice(-12)}
+                            </div>
+                            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                              <button className="next-btn" disabled={updating === order.id} onClick={() => handleCancelDecision(order.id, 'approve-cancel')}
+                                style={{ background: '#FEE2E2', color: '#DC2626', border: '1.5px solid #FCA5A5' }}>
+                                {updating === order.id ? '…' : '✅ Approve & mark cancelled'}
                               </button>
-                            )
-                          })}
-                          {/* WhatsApp buyer */}
-                          <button onClick={() => window.open('https://wa.me/91' + order.buyerPhone.replace(/\D/g, '') + '?text=' + encodeURIComponent('Hi ' + order.buyerName + ', your Class ' + order.class + ' kit is ' + statusConfig[order.status]?.label?.toLowerCase() + '. — BuddyBooks 📚'), '_blank')}
-                            style={{ marginLeft: 'auto', background: '#E8F7F2', color: '#1D9E75', border: '1.5px solid #C0E8D8', borderRadius: '10px', padding: '7px 14px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
-                            💬 WhatsApp buyer
-                          </button>
-                        </div>
+                              <button className="next-btn" disabled={updating === order.id} onClick={() => handleCancelDecision(order.id, 'decline-cancel')}
+                                style={{ background: '#EFF6FF', color: '#3B82F6', border: '1.5px solid #BFDBFE' }}>
+                                {updating === order.id ? '…' : '↩ Decline (back to confirmed)'}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Status actions — hidden for cancelled & cancel-requested */}
+                        {!isCancelled && !isCancelReq && (
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <div style={{ fontSize: '12px', color: 'var(--text-3)', fontWeight: '600' }}>Move to:</div>
+                            {statusFlow.filter(s => s !== order.status).map(s => {
+                              const sc2 = statusConfig[s]
+                              return (
+                                <button key={s} className="next-btn" disabled={updating === order.id}
+                                  onClick={() => updateStatus(order.id, s)}
+                                  style={{ background: sc2.bg, color: sc2.color, border: '1.5px solid ' + sc2.border }}>
+                                  {updating === order.id ? '…' : sc2.emoji + ' ' + sc2.label}
+                                </button>
+                              )
+                            })}
+                            <button onClick={() => window.open('https://wa.me/91' + order.buyerPhone.replace(/\D/g, '') + '?text=' + encodeURIComponent('Hi ' + order.buyerName + ', your Class ' + order.class + ' kit is ' + statusConfig[order.status]?.label?.toLowerCase() + '. — BuddyBooks 📚'), '_blank')}
+                              style={{ marginLeft: 'auto', background: '#E8F7F2', color: '#1D9E75', border: '1.5px solid #C0E8D8', borderRadius: '10px', padding: '7px 14px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
+                              💬 WhatsApp buyer
+                            </button>
+                          </div>
+                        )}
+
+                        {isCancelled && (
+                          <div style={{ fontSize: '12px', color: 'var(--text-3)', fontWeight: '600' }}>🚫 Order cancelled. Make sure the ₹{order.paidNow?.toLocaleString()} refund was processed in Razorpay.</div>
+                        )}
                       </div>
                     )}
                   </div>
