@@ -521,3 +521,19 @@ export function validateKitOrder(opts: {
     breakdown,
   }
 }
+
+// ── Stock helpers (used by the out-of-stock / notify-me feature) ──────────
+// Every unique item name across all classes (books, stationery, notebooks).
+export function allItemNames(): string[] {
+  const s = new Set<string>()
+  for (const key of Object.keys(kits)) {
+    const kit = kits[Number(key)]
+    for (const it of [...kit.ncert, ...kit.pvt, ...kit.stationery]) s.add(it.name)
+    for (const nb of kit.notebooks) s.add(nb.name)
+  }
+  return Array.from(s).sort()
+}
+
+export function isKnownItem(name: string): boolean {
+  return allItemNames().includes(name)
+}
