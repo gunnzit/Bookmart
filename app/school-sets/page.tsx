@@ -5,15 +5,11 @@ import { useUser, SignInButton, useClerk } from '@clerk/nextjs'
 
 const SCHOOL = 'Shivalik Public School'
 
-// Kit photos — replace null with '/kit-photos/class-1.jpg' etc after you take photos
-// Recommended: flat-lay photo of all books + stationery spread out
 const kitPhotos: Record<number, string | null> = {
   1: null, 2: null, 3: null, 4: null, 5: null,
   6: null, 7: null, 8: null, 9: null, 10: null,
 }
 
-// Per-item product photos — keyed by exact item name. Fill with real URLs as you photograph them.
-// e.g. 'Mridang - 1': '/products/mridang-1.jpg'
 const itemPhotos: Record<string, string> = {}
 function getItemPhoto(name: string): string | null {
   return itemPhotos[name] || null
@@ -343,7 +339,6 @@ const sectionLabels: Record<Section, { label: string; emoji: string; color: stri
   stationery: { label: 'Stationery',     emoji: '✏️', color: '#8B5CF6', bg: '#F5F3FF', border: '#DDD6FE', illoColor: '#8B5CF6' },
 }
 
-// SVG illustrations for each section header
 function BooksIllo({ color }: { color: string }) {
   return (
     <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
@@ -395,30 +390,25 @@ function NotebookIllo({ color }: { color: string }) {
 function StationeryIllo({ color }: { color: string }) {
   return (
     <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-      {/* Pencil */}
       <rect x="10" y="12" width="6" height="24" rx="1" fill={color} opacity="0.8" transform="rotate(-15 13 24)"/>
       <polygon points="10,36 16,36 13,42" fill={color} opacity="0.6" transform="rotate(-15 13 24)"/>
       <rect x="10" y="12" width="6" height="5" rx="1" fill="white" opacity="0.4" transform="rotate(-15 13 24)"/>
-      {/* Ruler */}
       <rect x="22" y="10" width="5" height="28" rx="1" fill={color} opacity="0.5" transform="rotate(10 24 24)"/>
       <line x1="23" y1="14" x2="26" y2="14" stroke="white" strokeWidth="1" opacity="0.5" transform="rotate(10 24 24)"/>
       <line x1="23" y1="18" x2="26" y2="18" stroke="white" strokeWidth="1" opacity="0.5" transform="rotate(10 24 24)"/>
       <line x1="23" y1="22" x2="26" y2="22" stroke="white" strokeWidth="1" opacity="0.5" transform="rotate(10 24 24)"/>
-      {/* Eraser */}
       <rect x="32" y="28" width="10" height="8" rx="2" fill={color} opacity="0.6"/>
       <rect x="32" y="28" width="4" height="8" rx="2" fill={color} opacity="0.9"/>
     </svg>
   )
 }
 
-// Kit hero photo placeholder SVG
 function KitPhotoPlaceholder({ cls }: { cls: number }) {
   const colors = ['#3B82F6', '#8B5CF6', '#00B86B', '#F59E0B', '#EC4899', '#06B6D4', '#F97316', '#3B82F6', '#8B5CF6', '#00B86B']
   const c = colors[(cls - 1) % colors.length]
   return (
     <svg viewBox="0 0 400 220" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }}>
       <rect width="400" height="220" fill={c} opacity="0.08"/>
-      {/* Decorative books */}
       <rect x="40" y="60" width="28" height="100" rx="4" fill={c} opacity="0.15"/>
       <rect x="42" y="60" width="5" height="100" fill={c} opacity="0.3"/>
       <rect x="75" y="80" width="28" height="80" rx="4" fill={c} opacity="0.12"/>
@@ -429,11 +419,9 @@ function KitPhotoPlaceholder({ cls }: { cls: number }) {
       <rect x="252" y="65" width="5" height="95" fill={c} opacity="0.3"/>
       <rect x="285" y="75" width="24" height="85" rx="4" fill={c} opacity="0.12"/>
       <rect x="315" y="55" width="30" height="105" rx="4" fill={c} opacity="0.18"/>
-      {/* Center content */}
       <rect x="155" y="75" width="90" height="70" rx="8" fill={c} opacity="0.1" stroke={c} strokeWidth="1.5" strokeDasharray="4 3"/>
       <text x="200" y="105" textAnchor="middle" fontSize="24" fill={c} opacity="0.4">📸</text>
       <text x="200" y="128" textAnchor="middle" fontSize="11" fill={c} opacity="0.5" fontFamily="sans-serif" fontWeight="600">Photo coming soon</text>
-      {/* Class badge */}
       <rect x="160" y="170" width="80" height="28" rx="14" fill={c} opacity="0.15"/>
       <text x="200" y="189" textAnchor="middle" fontSize="13" fill={c} opacity="0.7" fontFamily="sans-serif" fontWeight="700">Class {cls} Kit</text>
     </svg>
@@ -449,31 +437,69 @@ export default function SchoolSetsPage() {
   const [openSections, setOpenSections] = useState<Record<Section, boolean>>({ ncert: true, pvt: true, notebooks: true, stationery: true })
   const [checked, setChecked] = useState<Record<Section, boolean[]>>({} as any)
   const [nbQty, setNbQty] = useState<number[]>([])
-  const [nbBrand, setNbBrand] = useState<('buddy' | 'classmate')[]>([]) // brand per notebook item
-  const [nbRegType, setNbRegType] = useState<('slim' | 'thick')[]>([])  // register variant per item
+  const [nbBrand, setNbBrand] = useState<('buddy' | 'classmate')[]>([])
+  const [nbRegType, setNbRegType] = useState<('slim' | 'thick')[]>([])
   const [warnModal, setWarnModal] = useState<{ section: Section; idx: number } | null>(null)
   const [photoExpanded, setPhotoExpanded] = useState(false)
   const [cart, setCart] = useState<{ selectedClass: number; items: string[]; kitSubtotal: number }[]>([])
 
-  // Load cart from sessionStorage on mount
+  // ── Out of stock + Notify me ───────────────────────────────────────────
+  const [oosItems, setOosItems] = useState<Set<string>>(new Set())
+  const [notifyFor, setNotifyFor] = useState<string | null>(null)
+  const [notifyName, setNotifyName] = useState('')
+  const [notifyPhone, setNotifyPhone] = useState('')
+  const [notifyBusy, setNotifyBusy] = useState(false)
+  const [notifyDone, setNotifyDone] = useState(false)
+
+  function isOOS(name: string) { return oosItems.has(name) }
+
+  function openNotify(name: string) {
+    setNotifyFor(name)
+    setNotifyDone(false)
+    setNotifyPhone('')
+    setNotifyName(user?.fullName || '')
+  }
+
+  async function submitNotify() {
+    if (!notifyFor) return
+    const phone = notifyPhone.replace(/\D/g, '').slice(0, 10)
+    if (phone.length !== 10) { alert('Please enter a valid 10-digit number'); return }
+    setNotifyBusy(true)
+    try {
+      const res = await fetch('/api/stock/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ itemName: notifyFor, phone, buyerName: notifyName || (user?.fullName ?? '') }),
+      })
+      if (res.ok) { setNotifyDone(true) }
+      else { const d = await res.json().catch(() => ({})); alert(d.error || 'Could not save. Please try again.') }
+    } catch { alert('Something went wrong. Please try again.') }
+    setNotifyBusy(false)
+  }
+  // ───────────────────────────────────────────────────────────────────────
+
   useEffect(() => {
     const raw = sessionStorage.getItem('buddybooks_cart')
     if (raw) { try { setCart(JSON.parse(raw)) } catch {} }
+    fetch('/api/stock')
+      .then(r => r.json())
+      .then(d => { if (d?.outOfStock) setOosItems(new Set(d.outOfStock)) })
+      .catch(() => {})
   }, [])
 
   useEffect(() => {
     const kit = kits[selectedClass]
     setChecked({
-      ncert: kit.ncert.map(() => true),
-      pvt: kit.pvt.map(() => true),
-      notebooks: kit.notebooks.map(() => true),
-      stationery: kit.stationery.map(() => true),
+      ncert: kit.ncert.map(it => !oosItems.has(it.name)),
+      pvt: kit.pvt.map(it => !oosItems.has(it.name)),
+      notebooks: kit.notebooks.map(it => !oosItems.has(it.name)),
+      stationery: kit.stationery.map(it => !oosItems.has(it.name)),
     })
     setNbQty(kit.notebooks.map(n => n.qty))
     setNbBrand(kit.notebooks.map(() => 'buddy'))
     setNbRegType(kit.notebooks.map(() => 'slim'))
     setPhotoExpanded(false)
-  }, [selectedClass])
+  }, [selectedClass, oosItems])
 
   const kit = kits[selectedClass]
 
@@ -482,6 +508,8 @@ export default function SchoolSetsPage() {
   }
 
   function handleCheckClick(s: Section, i: number) {
+    const name = (kit[s] as any[])[i]?.name
+    if (name && isOOS(name)) { openNotify(name); return }
     if (checked[s]?.[i]) {
       setWarnModal({ section: s, idx: i })
     } else {
@@ -508,33 +536,22 @@ export default function SchoolSetsPage() {
     if (!val) {
       if (!window.confirm('This will remove all ' + sectionLabels[s].label + ' from your kit. These are listed in the official book list. Are you sure?')) return
     }
-    setChecked(prev => ({ ...prev, [s]: prev[s].map(() => val) }))
+    setChecked(prev => ({ ...prev, [s]: prev[s].map((_, i) => val && !isOOS((kit[s] as any[])[i]?.name)) }))
   }
 
-  // ── Notebook pricing ─────────────────────────────────────────────────────
-  // Is this item a "register" type? (Class 9/10 have registers)
   function isRegister(name: string) {
     return name.toLowerCase().includes('register')
   }
 
-  // Classmate prices
-  // Regular notebook: ₹55
-  // Register slim (196 pages): ₹85
-  // Register thick (240 pages): ₹105
-  // Buddy prices (20% off MRP)
-  // Regular notebook MRP ₹62 → Buddy price ₹62 (no discount on regular — sold at MRP)
-  // Wait — per user: Buddy notebooks = ₹62 flat (our own brand at ₹62)
-  // Register slim MRP ₹85 → Buddy price ₹68 (20% off ₹85)
-  // Register thick MRP ₹110 → Buddy price ₹88 (20% off ₹110)
   function nbUnitPrice(i: number) {
     const name = kit.notebooks[i]?.name || ''
     const brand = nbBrand[i] || 'buddy'
     const regType = nbRegType[i] || 'slim'
     if (isRegister(name)) {
-      if (brand === 'buddy') return regType === 'slim' ? 68 : 88   // 20% off ₹85 and ₹110
-      else return regType === 'slim' ? 85 : 105                     // Classmate
+      if (brand === 'buddy') return regType === 'slim' ? 68 : 88
+      else return regType === 'slim' ? 85 : 105
     }
-    return brand === 'buddy' ? 50 : 55  // Buddy ₹50 (20% off ₹62 MRP), Classmate ₹55
+    return brand === 'buddy' ? 50 : 55
   }
 
   function nbBrandLabel(i: number) {
@@ -548,7 +565,6 @@ export default function SchoolSetsPage() {
     }
     return { pages: null, mrp: brand === 'buddy' ? 62 : 55 }
   }
-  // ─────────────────────────────────────────────────────────────────────────
 
   function setQty(i: number, val: number) {
     if (val < 0) return
@@ -565,11 +581,11 @@ export default function SchoolSetsPage() {
     const flatSections: Section[] = ['ncert', 'pvt', 'stationery']
     flatSections.forEach(s => {
       kit[s].forEach((item: any, i: number) => {
-        if (checked[s]?.[i]) total += item.price
+        if (checked[s]?.[i] && !isOOS(item.name)) total += item.price
       })
     })
     kit.notebooks.forEach((item, i) => {
-      if (checked.notebooks?.[i]) total += nbUnitPrice(i) * (nbQty[i] || 0)
+      if (checked.notebooks?.[i] && !isOOS(item.name)) total += nbUnitPrice(i) * (nbQty[i] || 0)
     })
     return total
   }
@@ -579,11 +595,11 @@ export default function SchoolSetsPage() {
     const flatSections: Section[] = ['ncert', 'pvt', 'stationery']
     flatSections.forEach(s => {
       kit[s].forEach((item: any, i: number) => {
-        if (checked[s]?.[i]) items.push(item.name + ' ₹' + item.price)
+        if (checked[s]?.[i] && !isOOS(item.name)) items.push(item.name + ' ₹' + item.price)
       })
     })
     kit.notebooks.forEach((item, i) => {
-      if (checked.notebooks?.[i] && (nbQty[i] || 0) > 0) {
+      if (checked.notebooks?.[i] && !isOOS(item.name) && (nbQty[i] || 0) > 0) {
         const brand = nbBrand[i] === 'buddy' ? 'Buddy' : 'Classmate'
         const regType = isRegister(item.name) ? (nbRegType[i] === 'slim' ? ' (196pg)' : nbBrand[i] === 'buddy' ? ' (210pg)' : ' (240pg)') : ''
         items.push(item.name + ' [' + brand + regType + '] x' + nbQty[i] + ' ₹' + (nbUnitPrice(i) * nbQty[i]))
@@ -595,9 +611,8 @@ export default function SchoolSetsPage() {
   function billTotal() {
     const flatSections: Section[] = ['ncert', 'pvt', 'stationery']
     let total = flatSections.reduce((sum, s) => sum + (kit[s] as any[]).reduce((a: number, b: any) => a + b.price, 0), 0)
-    // Use default buddy prices for bill total
     kit.notebooks.forEach((n) => {
-      const price = isRegister(n.name) ? 68 : 50 // buddy register slim / buddy notebook
+      const price = isRegister(n.name) ? 68 : 50
       total += price * n.qty
     })
     return total
@@ -606,18 +621,16 @@ export default function SchoolSetsPage() {
   const kitSubtotal = calcTotal()
   const bill = billTotal()
 
-  // Market price = what they'd pay buying everything separately at full MRP (no Buddy discount)
   function marketTotal() {
     const flatSections: Section[] = ['ncert', 'pvt', 'stationery']
     let total = 0
     flatSections.forEach(s => {
       kit[s].forEach((item: any, i: number) => {
-        if (checked[s]?.[i]) total += item.price
+        if (checked[s]?.[i] && !isOOS(item.name)) total += item.price
       })
     })
-    // Notebooks at Classmate/MRP price (₹55 notebook, register MRP ₹85/₹105)
     kit.notebooks.forEach((item, i) => {
-      if (checked.notebooks?.[i]) {
+      if (checked.notebooks?.[i] && !isOOS(item.name)) {
         const mrp = isRegister(item.name) ? (nbRegType[i] === 'slim' ? 85 : 105) : 55
         total += mrp * (nbQty[i] || 0)
       }
@@ -635,7 +648,6 @@ export default function SchoolSetsPage() {
     const newCart = [...cart, currentKit()]
     setCart(newCart)
     sessionStorage.setItem('buddybooks_cart', JSON.stringify(newCart))
-    // Move to a different class for the next child
     const usedClasses = newCart.map(k => k.selectedClass)
     const nextClass = [1,2,3,4,5,6,7,8,9,10].find(c => !usedClasses.includes(c)) || 1
     setSelectedClass(nextClass)
@@ -643,14 +655,12 @@ export default function SchoolSetsPage() {
   }
 
   function handleProceedToCheckout() {
-    // Bundle current kit + any saved kits
     const allKits = [...cart, currentKit()]
     sessionStorage.setItem('buddybooks_kit_order', JSON.stringify(allKits))
     sessionStorage.removeItem('buddybooks_cart')
     router.push('/checkout')
   }
 
-  // Total across all kits in cart + current
   const cartTotal = cart.reduce((sum, k) => sum + k.kitSubtotal, 0) + kitSubtotal
   const totalKits = cart.length + 1
   const siblingDiscount = totalKits >= 2 ? Math.round(cartTotal * 0.05) : 0
@@ -741,27 +751,20 @@ export default function SchoolSetsPage() {
     .sticky-summary { position: sticky; top: 120px; }
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
     .modal-box { background: var(--white); border-radius: 20px; padding: 28px 24px; max-width: 380px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
-    .checkout-modal { background: var(--white); border-radius: 24px; padding: 0; max-width: 420px; width: 100%; box-shadow: 0 24px 80px rgba(0,0,0,0.35); overflow: hidden; }
     @keyframes modalPop { from { opacity: 0; transform: scale(0.94) translateY(16px); } to { opacity: 1; transform: scale(1) translateY(0); } }
     .modal-pop { animation: modalPop 0.25s cubic-bezier(0.34,1.56,0.64,1) both; }
-    .pay-opt-btn { width: 100%; border-radius: 14px; padding: 16px; cursor: pointer; display: flex; align-items: center; gap: 14px; transition: all 0.15s; border: 2px solid var(--border); background: var(--card); text-align: left; font-family: 'Poppins', sans-serif; }
-    .pay-opt-btn:hover { transform: translateY(-2px); }
-    .pay-opt-btn.selected-full { border-color: #00B86B; background: #DFFFEF; box-shadow: 0 4px 16px rgba(0,184,107,0.2); }
-    .pay-opt-btn.selected-partial { border-color: #3B82F6; background: #EFF6FF; box-shadow: 0 4px 16px rgba(59,130,246,0.2); }
     .photo-card { border-radius: 16px; overflow: hidden; border: 1.5px solid var(--border); box-shadow: var(--shadow); background: var(--card); margin-bottom: 16px; }
-    .photo-card img { width: 100%; height: 220px; object-fit: cover; display: block; }
     .photo-thumb { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
     .photo-thumb:hover { transform: scale(1.02); box-shadow: var(--shadow-lg); }
     @keyframes slideDown { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
     .slide-down { animation: slideDown 0.2s ease; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     .fade-in { animation: fadeIn 0.3s ease; }
-    @media (min-width: 900px) { .layout { display: block; } }
     @media (max-width: 640px) { .sticky-summary { position: static !important; } }
     .checkout-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--white); border-top: 1.5px solid var(--border); padding: 14px 20px; z-index: 90; box-shadow: 0 -4px 20px rgba(0,0,0,0.08); display: flex; align-items: center; gap: 16px; }
-    .photo-placeholder { background: var(--bg); border: 1.5px dashed var(--border); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; cursor: pointer; transition: all 0.15s; }
-    .photo-placeholder:hover { border-color: var(--green); background: var(--green-bg); }
-    .photo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 8px; padding: 12px 18px; background: var(--bg); border-top: 1px solid var(--border); }
+    .oos-badge { position: absolute; top: 6px; right: 6px; background: #FEE2E2; color: #DC2626; font-size: 9px; font-weight: 800; padding: 3px 8px; border-radius: 99px; letter-spacing: 0.3px; }
+    .notify-btn { border: 1.5px solid #FCA5A5; background: #FEF2F2; color: #DC2626; border-radius: 9px; padding: 6px 12px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: 'Poppins', sans-serif; white-space: nowrap; transition: all 0.15s; }
+    .notify-btn:hover { background: #DC2626; color: #fff; }
   `
 
   return (
@@ -782,6 +785,36 @@ export default function SchoolSetsPage() {
               <button onClick={() => setWarnModal(null)} style={{ flex: 1, background: 'var(--bg)', color: 'var(--text-2)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '11px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'Poppins, sans-serif' }}>Keep it</button>
               <button onClick={confirmUncheck} style={{ flex: 1, background: '#FEF2F2', color: '#E24B4A', border: '1.5px solid #FCA5A5', borderRadius: '10px', padding: '11px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Poppins, sans-serif' }}>Yes, remove</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notify-me modal */}
+      {notifyFor && (
+        <div className="modal-overlay" onClick={() => setNotifyFor(null)}>
+          <div className="modal-box modal-pop" onClick={e => e.stopPropagation()}>
+            {notifyDone ? (
+              <>
+                <div style={{ fontSize: '40px', marginBottom: '12px', textAlign: 'center' }}>✅</div>
+                <h3 className="k" style={{ fontSize: '18px', color: 'var(--text)', marginBottom: '8px', textAlign: 'center' }}>You're on the list!</h3>
+                <p style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.6, marginBottom: '20px', textAlign: 'center' }}>
+                  We'll WhatsApp you as soon as <strong style={{ color: 'var(--text)' }}>{notifyFor}</strong> is back in stock.
+                </p>
+                <button onClick={() => setNotifyFor(null)} className="order-btn">Done</button>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: '40px', marginBottom: '12px', textAlign: 'center' }}>🔔</div>
+                <h3 className="k" style={{ fontSize: '18px', color: 'var(--text)', marginBottom: '6px', textAlign: 'center' }}>Notify me when it's back</h3>
+                <p style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.6, marginBottom: '16px', textAlign: 'center' }}>
+                  <strong style={{ color: 'var(--text)' }}>{notifyFor}</strong> is out of stock. Leave your number — we'll WhatsApp you when it's available.
+                </p>
+                <input type="text" value={notifyName} onChange={e => setNotifyName(e.target.value)} placeholder="Your name" style={{ marginBottom: '10px' }} />
+                <input type="text" value={notifyPhone} onChange={e => setNotifyPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="WhatsApp number (10 digits)" style={{ marginBottom: '16px' }} />
+                <button onClick={submitNotify} disabled={notifyBusy} className="order-btn">{notifyBusy ? 'Saving…' : '🔔 Notify me'}</button>
+                <button onClick={() => setNotifyFor(null)} style={{ width: '100%', marginTop: '10px', background: 'none', border: 'none', color: 'var(--text-3)', fontSize: '13px', fontWeight: '600', cursor: 'pointer', fontFamily: 'Poppins, sans-serif' }}>Cancel</button>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -847,7 +880,7 @@ export default function SchoolSetsPage() {
             {/* LEFT: Kit customizer */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
-              {/* Kit photo — hero image or illustrated placeholder */}
+              {/* Kit photo */}
               <div className={'photo-card photo-thumb fade-in'} onClick={() => hasPhoto && setPhotoExpanded(true)}
                 style={{ cursor: hasPhoto ? 'zoom-in' : 'default', position: 'relative' }}>
                 {hasPhoto ? (
@@ -863,7 +896,6 @@ export default function SchoolSetsPage() {
                     </div>
                   </div>
                 )}
-                {/* Kit info bar */}
                 <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border)', background: 'var(--card)' }}>
                   <div>
                     <div className="k" style={{ fontSize: '16px', color: 'var(--text)' }}>Class {selectedClass} Complete Kit</div>
@@ -897,14 +929,13 @@ export default function SchoolSetsPage() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '14px', flexWrap: 'wrap', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid rgba(0,184,107,0.15)' }}>
-                    <span style={{ fontSize: '12px', color: '#0F6E56', display: 'flex', alignItems: 'center', gap: '5px' }}>⏱️ Saves ~3 hours of market hunting</span>
-                    <span style={{ fontSize: '12px', color: '#0F6E56', display: 'flex', alignItems: 'center', gap: '5px' }}>✅ Every book on the official list</span>
-                    <span style={{ fontSize: '12px', color: '#0F6E56', display: 'flex', alignItems: 'center', gap: '5px' }}>📦 Assembled & ready</span>
+                    <span style={{ fontSize: '12px', color: '#009957', display: 'flex', alignItems: 'center', gap: '5px' }}>⏱️ Saves ~3 hours of market hunting</span>
+                    <span style={{ fontSize: '12px', color: '#009957', display: 'flex', alignItems: 'center', gap: '5px' }}>✅ Every book on the official list</span>
+                    <span style={{ fontSize: '12px', color: '#009957', display: 'flex', alignItems: 'center', gap: '5px' }}>📦 Assembled & ready</span>
                   </div>
                 </div>
               )}
 
-              {/* Section cards with illustrations */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '4px 0' }}>
                 <h2 className="k" style={{ fontSize: '18px', color: 'var(--text)' }}>Customise your kit</h2>
                 <span style={{ fontSize: '11px', color: 'var(--text-3)' }}>Uncheck items you already have</span>
@@ -916,7 +947,7 @@ export default function SchoolSetsPage() {
                 const items = kit[s] as { name: string; price: number }[]
                 const checkedItems = checked[s] || []
                 const allChecked = checkedItems.every(Boolean)
-                const secTotal = items.reduce((sum, item, i) => sum + (checkedItems[i] ? item.price : 0), 0)
+                const secTotal = items.reduce((sum, item, i) => sum + (checkedItems[i] && !isOOS(item.name) ? item.price : 0), 0)
                 const isOpen = openSections[s]
                 const Illo = sectionIllos[s]
                 return (
@@ -942,20 +973,23 @@ export default function SchoolSetsPage() {
                     {isOpen && (
                       <div className="slide-down prod-grid" style={{ borderTop: '1px solid ' + sec.border }}>
                         {items.map((item, i) => {
-                          const isAdded = checkedItems[i]
+                          const oos = isOOS(item.name)
+                          const isAdded = checkedItems[i] && !oos
                           const photo = getItemPhoto(item.name)
                           return (
-                            <div key={i} className={'prod-card' + (isAdded ? ' selected' : '')}>
+                            <div key={i} className={'prod-card' + (isAdded ? ' selected' : '')} style={{ opacity: oos ? 0.7 : 1 }}>
                               <div className="prod-photo">
                                 {photo ? (
                                   <img src={photo} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 ) : (
                                   <>
-                                    <span style={{ fontSize: '34px' }}>{sec.emoji}</span>
+                                    <span style={{ fontSize: '34px', filter: oos ? 'grayscale(1)' : 'none' }}>{sec.emoji}</span>
                                     <span style={{ fontSize: '8px', color: 'var(--text-3)', fontWeight: '600' }}>📸 Photo soon</span>
                                   </>
                                 )}
-                                {isAdded && (
+                                {oos ? (
+                                  <div className="oos-badge">OUT OF STOCK</div>
+                                ) : isAdded && (
                                   <div className="check-badge">
                                     <svg width="11" height="11" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>
                                   </div>
@@ -964,10 +998,14 @@ export default function SchoolSetsPage() {
                               <div className="prod-body">
                                 <div className="prod-name">{item.name}</div>
                                 <div className="prod-foot">
-                                  <span className="prod-price" style={{ color: isAdded ? sec.color : 'var(--text-3)' }}>₹{item.price}</span>
-                                  <button className={'add-btn' + (isAdded ? ' added' : '')} onClick={() => handleCheckClick(s, i)}>
-                                    {isAdded ? '✓ Added' : 'ADD +'}
-                                  </button>
+                                  <span className="prod-price" style={{ color: oos ? 'var(--text-3)' : (isAdded ? sec.color : 'var(--text-3)') }}>₹{item.price}</span>
+                                  {oos ? (
+                                    <button className="notify-btn" onClick={() => openNotify(item.name)}>🔔 Notify me</button>
+                                  ) : (
+                                    <button className={'add-btn' + (isAdded ? ' added' : '')} onClick={() => handleCheckClick(s, i)}>
+                                      {isAdded ? '✓ Added' : 'ADD +'}
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -979,14 +1017,14 @@ export default function SchoolSetsPage() {
                 )
               })}
 
-              {/* NOTEBOOKS with qty + brand selector */}
+              {/* NOTEBOOKS */}
               {(() => {
                 const s: Section = 'notebooks'
                 const sec = sectionLabels[s]
                 const checkedItems = checked[s] || []
                 const isOpen = openSections[s]
                 const allChecked = checkedItems.every(Boolean)
-                const secTotal = kit.notebooks.reduce((sum, item, i) => sum + (checkedItems[i] ? nbUnitPrice(i) * (nbQty[i] || 0) : 0), 0)
+                const secTotal = kit.notebooks.reduce((sum, item, i) => sum + (checkedItems[i] && !isOOS(item.name) ? nbUnitPrice(i) * (nbQty[i] || 0) : 0), 0)
                 const Illo = sectionIllos[s]
                 return (
                   <div style={{ background: 'var(--card)', borderRadius: 'var(--r)', border: '1.5px solid ' + sec.border, boxShadow: 'var(--shadow)', overflow: 'hidden' }}>
@@ -1012,7 +1050,6 @@ export default function SchoolSetsPage() {
                     {isOpen && (
                       <div className="slide-down" style={{ borderTop: '1px solid ' + sec.border }}>
 
-                        {/* Brand info banner */}
                         <div style={{ background: 'linear-gradient(135deg, #FFFBEB, #FFF7ED)', borderBottom: '1px solid #FDE68A', padding: '10px 18px', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <div style={{ background: '#00B86B', color: '#fff', fontSize: '10px', fontWeight: '800', padding: '3px 10px', borderRadius: '99px' }}>BUDDY</div>
@@ -1026,7 +1063,8 @@ export default function SchoolSetsPage() {
                         </div>
 
                         {kit.notebooks.map((item, i) => {
-                          const isChecked = checkedItems[i]
+                          const oos = isOOS(item.name)
+                          const isChecked = checkedItems[i] && !oos
                           const qty = nbQty[i] || 0
                           const recommended = item.qty
                           const brand = nbBrand[i] || 'buddy'
@@ -1034,45 +1072,56 @@ export default function SchoolSetsPage() {
                           const unitPrice = nbUnitPrice(i)
                           const itemTotal = isChecked ? unitPrice * qty : 0
                           const isReg = isRegister(item.name)
-                          const { pages, mrp } = nbBrandLabel(i)
+                          const { pages } = nbBrandLabel(i)
 
                           return (
-                            <div key={i} style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
-                              {/* Top row: photo + checkbox + name + price */}
+                            <div key={i} style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', opacity: oos ? 0.7 : 1 }}>
                               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: isChecked ? '12px' : '0' }}>
                                 <div style={{ width: '48px', height: '48px', borderRadius: '10px', background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
                                   {getItemPhoto(item.name)
                                     ? <img src={getItemPhoto(item.name)!} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                    : <span style={{ fontSize: '22px' }}>📓</span>}
+                                    : <span style={{ fontSize: '22px', filter: oos ? 'grayscale(1)' : 'none' }}>📓</span>}
                                 </div>
-                                <div className={'checkbox' + (isChecked ? ' checked' : '')} style={{ marginTop: '2px', flexShrink: 0 }}
-                                  onClick={() => handleCheckClick(s, i)}>
-                                  {isChecked && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
-                                </div>
+                                {oos ? (
+                                  <div style={{ width: '18px', height: '18px', flexShrink: 0, marginTop: '2px' }} />
+                                ) : (
+                                  <div className={'checkbox' + (isChecked ? ' checked' : '')} style={{ marginTop: '2px', flexShrink: 0 }}
+                                    onClick={() => handleCheckClick(s, i)}>
+                                    {isChecked && <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5l2.5 2.5L8 3" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+                                  </div>
+                                )}
                                 <div style={{ flex: 1 }}>
                                   <div style={{ fontSize: '13px', color: isChecked ? 'var(--text)' : 'var(--text-3)', fontWeight: isChecked ? '600' : '400', textDecoration: isChecked ? 'none' : 'line-through' }}>{item.name}</div>
                                   <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '2px' }}>
-                                    {isReg ? 'Register · ' + (pages ? pages + ' pages' : '') : 'Notebook'}
-                                    {' · ₹' + unitPrice + ' each'}
-                                    {brand === 'buddy' && <span style={{ color: '#00B86B', fontWeight: '700', marginLeft: '4px' }}>20% off</span>}
+                                    {oos ? <span style={{ color: '#DC2626', fontWeight: '700' }}>Out of stock</span> : (
+                                      <>
+                                        {isReg ? 'Register · ' + (pages ? pages + ' pages' : '') : 'Notebook'}
+                                        {' · ₹' + unitPrice + ' each'}
+                                        {brand === 'buddy' && <span style={{ color: '#00B86B', fontWeight: '700', marginLeft: '4px' }}>20% off</span>}
+                                      </>
+                                    )}
                                   </div>
                                 </div>
                                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                                  <div className="k" style={{ fontSize: '14px', color: isChecked && qty > 0 ? sec.color : 'var(--text-3)' }}>
-                                    {isChecked && qty > 0 ? '₹' + itemTotal : '—'}
-                                  </div>
-                                  {isChecked && qty > 0 && <div style={{ fontSize: '10px', color: 'var(--text-3)' }}>{qty} pcs</div>}
+                                  {oos ? (
+                                    <button className="notify-btn" onClick={() => openNotify(item.name)}>🔔 Notify me</button>
+                                  ) : (
+                                    <>
+                                      <div className="k" style={{ fontSize: '14px', color: isChecked && qty > 0 ? sec.color : 'var(--text-3)' }}>
+                                        {isChecked && qty > 0 ? '₹' + itemTotal : '—'}
+                                      </div>
+                                      {isChecked && qty > 0 && <div style={{ fontSize: '10px', color: 'var(--text-3)' }}>{qty} pcs</div>}
+                                    </>
+                                  )}
                                 </div>
                               </div>
 
                               {isChecked && (
                                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
 
-                                  {/* Brand toggle */}
                                   <div style={{ display: 'flex', gap: '6px', flex: 1, minWidth: '180px' }}>
                                     {(['buddy', 'classmate'] as const).map(b => {
                                       const isActive = brand === b
-                                      // compute price for this brand option
                                       const tempBrand = b
                                       const optPrice = isReg
                                         ? (tempBrand === 'buddy' ? (regType === 'slim' ? 68 : 88) : (regType === 'slim' ? 85 : 105))
@@ -1090,7 +1139,6 @@ export default function SchoolSetsPage() {
                                     })}
                                   </div>
 
-                                  {/* Register type picker — only for registers */}
                                   {isReg && (
                                     <div style={{ display: 'flex', gap: '6px', flex: 1, minWidth: '160px' }}>
                                       {(['slim', 'thick'] as const).map(rt => {
@@ -1108,7 +1156,6 @@ export default function SchoolSetsPage() {
                                     </div>
                                   )}
 
-                                  {/* Qty control */}
                                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px' }}>
                                     <div className="qty-ctrl">
                                       <button className="qty-btn" disabled={qty <= 0} onClick={() => setQty(i, qty - 1)}>−</button>
@@ -1128,26 +1175,18 @@ export default function SchoolSetsPage() {
                 )
               })()}
 
-              <div style={{ background: '#FFFBEB', border: '1.5px solid #FDE68A', borderRadius: '12px', padding: '12px 16px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                <span style={{ fontSize: '16px', flexShrink: 0 }}>💡</span>
-                <div style={{ fontSize: '12px', color: '#92400E', lineHeight: 1.6 }}>
-                  Quantities are pre-set from the official book list. Adjust as needed — price updates live.
-                </div>
-              </div>
-            </div>
-
-              {/* Tip */}
               <div style={{ background: '#FFFBEB', border: '1.5px solid #FDE68A', borderRadius: '12px', padding: '12px 16px', display: 'flex', gap: '10px', alignItems: 'flex-start', marginBottom: '80px' }}>
                 <span style={{ fontSize: '16px', flexShrink: 0 }}>💡</span>
                 <div style={{ fontSize: '12px', color: '#92400E', lineHeight: 1.6 }}>
-                  Quantities pre-set from the official book list. Adjust as needed — price updates live. Product photos will appear on each card once uploaded.
+                  Quantities pre-set from the official book list. Adjust as needed — price updates live. Out-of-stock items show a “Notify me” button.
                 </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-      {/* Sibling discount hint banner — shows when cart has kits */}
+      {/* Sibling discount hint banner */}
       {cart.length > 0 && (
         <div style={{ position: 'fixed', bottom: '72px', left: 0, right: 0, background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', padding: '8px 20px', zIndex: 91, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', fontSize: '12px', color: '#fff', fontWeight: '600' }}>
           🎉 {totalKits} kits in your order · 5% sibling discount applied (−₹{siblingDiscount.toLocaleString()})
