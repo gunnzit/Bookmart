@@ -71,7 +71,7 @@ model Order {
 model KitOrder {
   id              String   @id @default(cuid())
   school          String
-  class           Int
+  class           String
   items           Json
   kitSubtotal     Int
   deliveryFee     Int      @default(0)
