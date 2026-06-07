@@ -3,13 +3,12 @@ import { NextResponse } from 'next/server'
 import crypto from 'crypto'
 import Razorpay from 'razorpay'
 import { validateKitOrder } from '@/lib/kit-prices'
+import { sendOrderAlert } from '@/lib/notify'
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 const prisma = globalForPrisma.prisma ?? new PrismaClient()
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
-// Created inside the handler (not at top of file) so it only runs at request
-// time — avoids the "key_id is mandatory" build error.
 function getRazorpay() {
   return new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID!,
@@ -17,7 +16,6 @@ function getRazorpay() {
   })
 }
 
-// Valid featured-tier amounts in paise — keep in sync with create-order TIERS.
 const VALID_TIER_AMOUNTS = new Set([1900, 2900, 4900])
 
 export async function POST(request: Request) {
@@ -42,7 +40,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
     }
 
-    // ── Kit order payment (Fix #1) ───────────────────────────────────────
+    // ── Kit order payment ────────────────────────────────────────────────
     if (kitData) {
       const check = validateKitOrder({
         items: kitData.items,
@@ -106,10 +104,32 @@ export async function POST(request: Request) {
         }
       })
 
+      // ── Reliable server-side alert (independent of the customer's browser) ──
+      const items = Array.isArray(kitData.items) ? kitData.items : []
+      const payLine = kitData.paymentMode === 'partial'
+        ? 'Paid \u20B9' + b.payNow + ' now \u00B7 \u20B9' + b.payLater + ' at ' + (kitData.deliveryMode === 'delivery' ? 'delivery' : 'pickup')
+        : 'Paid \u20B9' + b.payNow + ' (full)'
+      const deliveryLine = kitData.deliveryMode === 'delivery'
+        ? '\uD83D\uDE9A Delivery \u2014 ' + (kitData.address || 'address not provided')
+        : '\uD83C\uDFEA Pickup from Sector-40C'
+      const alert = [
+        '\uD83D\uDED2 NEW KIT ORDER',
+        'Class ' + kitData.class + ' \u2014 ' + kitData.school,
+        '\uD83D\uDC64 ' + kitData.buyerName + ' \u00B7 ' + kitData.buyerPhone,
+        '\uD83D\uDCB0 ' + payLine,
+        deliveryLine,
+        '',
+        '\uD83D\uDCE6 Items:',
+        ...items.map((it: string) => '\u2022 ' + it),
+        '',
+        '\uD83C\uDD94 ' + razorpay_payment_id,
+      ].join('\n')
+      await sendOrderAlert(alert)
+
       return NextResponse.json({ success: true, type: 'kit' })
     }
 
-    // ── Featured listing payment (Fix #3) ────────────────────────────────
+    // ── Featured listing payment ─────────────────────────────────────────
     if (listingId) {
       let order: any
       try {
