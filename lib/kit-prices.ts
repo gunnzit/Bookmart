@@ -1,17 +1,3 @@
-// lib/kit-prices.ts
-// ─────────────────────────────────────────────────────────────────────────
-// SERVER-SIDE price authority for school kits.
-//
-// This is the source of truth the payment routes use to confirm that the
-// amount actually charged matches the legitimate price of the items ordered.
-// The browser sends the items it wants; the server looks up the REAL prices
-// here and recomputes the total. A tampered "₹1" amount can never pass,
-// because the server never trusts a price that came from the browser.
-//
-// ⚠️  KEEP THE `kits` OBJECT IN SYNC with app/school-sets/page.tsx.
-//     If you change a price there, change it here too.
-// ─────────────────────────────────────────────────────────────────────────
-
 export const DELIVERY_FEE = 99
 
 type FlatItem = { name: string; price: number }
@@ -332,6 +318,17 @@ export const kits: Record<number, Kit> = {
       { name: 'Blank Laboratory Manual', price: 85 },
     ],
   },
+}
+
+// ── Binding charge ────────────────────────────────────────────────────────
+// Every NCERT book carries a compulsory binding charge. The bare prices in
+// `kits` above already include the OLD ₹20 binding. Binding is now ₹25, so we
+// add ₹5 to every NCERT item — in ONE place. If binding changes again, change
+// only BINDING_INCREASE here (and the identical block in school-sets/page.tsx).
+export const BINDING_CHARGE = 25
+const BINDING_INCREASE = 5
+for (const key of Object.keys(kits)) {
+  for (const it of kits[Number(key)].ncert) it.price += BINDING_INCREASE
 }
 
 // Legal notebook unit prices, derived from nbUnitPrice() in school-sets:

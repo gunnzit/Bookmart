@@ -330,6 +330,16 @@ const kits: Record<number, {
   },
 }
 
+// ── Binding charge ────────────────────────────────────────────────────────
+// NCERT prices above already include the OLD ₹20 binding; it is now ₹25, so we
+// add ₹5 to every NCERT item — in ONE place. MUST stay identical to the block
+// in lib/kit-prices.ts so the displayed price matches the server price check.
+const BINDING_CHARGE = 25
+const BINDING_INCREASE = 5
+for (const _c of Object.keys(kits)) {
+  for (const _it of kits[Number(_c)].ncert) _it.price += BINDING_INCREASE
+}
+
 type Section = 'ncert' | 'pvt' | 'notebooks' | 'stationery'
 
 const sectionLabels: Record<Section, { label: string; emoji: string; color: string; bg: string; border: string; illoColor: string }> = {
@@ -939,6 +949,14 @@ export default function SchoolSetsPage() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '4px 0' }}>
                 <h2 className="k" style={{ fontSize: '18px', color: 'var(--text)' }}>Customise your kit</h2>
                 <span style={{ fontSize: '11px', color: 'var(--text-3)' }}>Uncheck items you already have</span>
+              </div>
+
+              {/* Binding charge note — bold but mild */}
+              <div style={{ background: 'var(--green-bg)', border: '1px solid var(--green-border)', borderRadius: '12px', padding: '10px 14px', display: 'flex', gap: '10px', alignItems: 'center', margin: '0 0 4px' }}>
+                <span style={{ fontSize: '16px', flexShrink: 0 }}>📗</span>
+                <div style={{ fontSize: '12px', color: 'var(--green-dark)', lineHeight: 1.5 }}>
+                  <strong style={{ fontWeight: 700 }}>NCERT book prices include a ₹25 binding charge.</strong> Every NCERT book is delivered hardbound (compulsory).
+                </div>
               </div>
 
               {/* NCERT, PVT, STATIONERY */}
