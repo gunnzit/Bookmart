@@ -1,6 +1,20 @@
+// lib/kit-prices.ts
+// ─────────────────────────────────────────────────────────────────────────
+// SERVER-SIDE price authority for school kits.
+//
+// This is the source of truth the payment routes use to confirm that the
+// amount actually charged matches the legitimate price of the items ordered.
+// The browser sends the items it wants; the server looks up the REAL prices
+// here and recomputes the total. A tampered "₹1" amount can never pass,
+// because the server never trusts a price that came from the browser.
+//
+// ⚠️  KEEP THE `kits` OBJECT IN SYNC with app/school-sets/page.tsx.
+//     If you change a price there, change it here too.
+// ─────────────────────────────────────────────────────────────────────────
+
 export const DELIVERY_FEE = 99
 
-type FlatItem = { name: string; price: number }
+type FlatItem = { name: string; price: number; optional?: boolean }
 type Notebook = { name: string; unitPrice: number; qty: number }
 type Kit = {
   ncert: FlatItem[]
@@ -320,6 +334,131 @@ export const kits: Record<number, Kit> = {
   },
 }
 
+// ── DPS Chandigarh (NCERT core + notebooks; optional/language books TBA) ──
+// Stored prices use the SAME convention as Shivalik: they include the OLD ₹20
+// binding, and the binding loop below adds ₹5 to make it ₹25. New NEP books
+// are ₹65 MRP -> stored 85 -> 90 after the loop. Class 10 reuses Shivalik's
+// NCERT prices (Class 10 books are unchanged for 2026-27).
+const dpsKits: Record<number, Kit> = {
+  3: {
+    ncert: [
+      { name: 'Santoor', price: 85 },
+      { name: 'Maths Mela', price: 85 },
+      { name: 'Our Wondrous World', price: 85 },
+      { name: 'Veena (Hindi)', price: 85 },
+    ],
+    pvt: [],
+    notebooks: [
+      { name: 'Four-Lined Notebooks', unitPrice: 62, qty: 2 },
+      { name: 'Four-Line Inter Leaf Notebooks', unitPrice: 62, qty: 2 },
+      { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 4 },
+    ],
+    stationery: [],
+  },
+  4: {
+    ncert: [
+      { name: 'Santoor 4', price: 85 },
+      { name: 'Maths Mela 4', price: 85 },
+      { name: 'Our Wondrous World 4', price: 85 },
+      { name: 'Veena 4 (Hindi)', price: 85 },
+    ],
+    pvt: [],
+    notebooks: [
+      { name: 'Four-Lined Notebooks', unitPrice: 62, qty: 1 },
+      { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 8 },
+    ],
+    stationery: [],
+  },
+  5: {
+    ncert: [
+      { name: 'Santoor 5', price: 85 },
+      { name: 'Maths Mela 5', price: 85 },
+      { name: 'Our Wondrous World 5', price: 85 },
+      { name: 'Veena 5 (Hindi)', price: 85 },
+    ],
+    pvt: [],
+    notebooks: [
+      { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 5 },
+      { name: 'Single-Line Inter Leaf Notebooks', unitPrice: 62, qty: 3 },
+    ],
+    stationery: [],
+  },
+  6: {
+    ncert: [
+      { name: 'Poorvi', price: 85 },
+      { name: 'Ganita Prakash 6', price: 85 },
+      { name: 'Curiosity 6', price: 85 },
+      { name: 'Exploring Society India & Beyond 6', price: 85 },
+      { name: 'Malhar (Hindi)', price: 85 },
+    ],
+    pvt: [],
+    notebooks: [
+      { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 6 },
+      { name: 'Single-Line Inter Leaf Notebooks', unitPrice: 62, qty: 1 },
+    ],
+    stationery: [],
+  },
+  7: {
+    ncert: [
+      { name: 'Poorvi 7', price: 85 },
+      { name: 'Ganita Prakash 7', price: 85 },
+      { name: 'Curiosity 7', price: 85 },
+      { name: 'Exploring Society 7 (Part 1)', price: 85 },
+      { name: 'Exploring Society 7 (Part 2)', price: 85 },
+      { name: 'Malhar 7 (Hindi)', price: 85 },
+    ],
+    pvt: [],
+    notebooks: [
+      { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 6 },
+      { name: 'Single-Line Inter Leaf Notebooks', unitPrice: 62, qty: 2 },
+    ],
+    stationery: [],
+  },
+  8: {
+    ncert: [
+      { name: 'Poorvi 8', price: 85 },
+      { name: 'Ganita Prakash 8', price: 85 },
+      { name: 'Curiosity 8', price: 85 },
+      { name: 'Exploring Society 8', price: 85 },
+      { name: 'Malhar 8 (Hindi)', price: 85 },
+    ],
+    pvt: [],
+    notebooks: [
+      { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 10 },
+      { name: 'Single-Line Inter Leaf Notebooks', unitPrice: 62, qty: 1 },
+    ],
+    stationery: [],
+  },
+  10: {
+    ncert: [
+      { name: 'First Flight', price: 95 },
+      { name: 'Footprints without Feet', price: 60 },
+      { name: 'Math - 10', price: 145 },
+      { name: 'Science - 10', price: 180 },
+      { name: 'India and Conte. World - 2', price: 125 },
+      { name: 'Democratic Pol. - 2', price: 85 },
+      { name: 'Contemporary India - 2', price: 95 },
+      { name: 'Economics - 10', price: 100 },
+      { name: 'Sparsh - 2', price: 90 },
+      { name: 'Sanchyan - 2', price: 55 },
+    ],
+    pvt: [],
+    notebooks: [
+      { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 10 },
+      { name: 'Registers (11")', unitPrice: 110, qty: 1 },
+    ],
+    stationery: [],
+  },
+}
+
+// All schools the price authority knows about. Validation is name-based and
+// scans every school, so an order's items are checked no matter which school.
+export const schools: Record<string, Record<number, Kit>> = {
+  'Shivalik Public School': kits,
+  'Delhi Public School': dpsKits,
+}
+
+
 // ── Binding charge ────────────────────────────────────────────────────────
 // Every NCERT book carries a compulsory binding charge. The bare prices in
 // `kits` above already include the OLD ₹20 binding. Binding is now ₹25, so we
@@ -327,8 +466,10 @@ export const kits: Record<number, Kit> = {
 // only BINDING_INCREASE here (and the identical block in school-sets/page.tsx).
 export const BINDING_CHARGE = 25
 const BINDING_INCREASE = 5
-for (const key of Object.keys(kits)) {
-  for (const it of kits[Number(key)].ncert) it.price += BINDING_INCREASE
+for (const _school of Object.values(schools)) {
+  for (const key of Object.keys(_school)) {
+    for (const it of _school[Number(key)].ncert) it.price += BINDING_INCREASE
+  }
 }
 
 // Legal notebook unit prices, derived from nbUnitPrice() in school-sets:
@@ -346,12 +487,14 @@ export function isRegister(name: string): boolean {
 // the same, but we use a Set to be safe).
 const flatPriceLookup: Map<string, Set<number>> = (() => {
   const m = new Map<string, Set<number>>()
-  for (const key of Object.keys(kits)) {
-    const kit = kits[Number(key)]
-    for (const section of ['ncert', 'pvt', 'stationery'] as const) {
-      for (const item of kit[section]) {
-        if (!m.has(item.name)) m.set(item.name, new Set())
-        m.get(item.name)!.add(item.price)
+  for (const _school of Object.values(schools)) {
+    for (const key of Object.keys(_school)) {
+      const kit = _school[Number(key)]
+      for (const section of ['ncert', 'pvt', 'stationery'] as const) {
+        for (const item of kit[section]) {
+          if (!m.has(item.name)) m.set(item.name, new Set())
+          m.get(item.name)!.add(item.price)
+        }
       }
     }
   }
@@ -361,8 +504,10 @@ const flatPriceLookup: Map<string, Set<number>> = (() => {
 // Every legitimate notebook name (across all classes).
 const notebookNames: Set<string> = (() => {
   const s = new Set<string>()
-  for (const key of Object.keys(kits)) {
-    for (const n of kits[Number(key)].notebooks) s.add(n.name)
+  for (const _school of Object.values(schools)) {
+    for (const key of Object.keys(_school)) {
+      for (const n of _school[Number(key)].notebooks) s.add(n.name)
+    }
   }
   return s
 })()
@@ -523,10 +668,12 @@ export function validateKitOrder(opts: {
 // Every unique item name across all classes (books, stationery, notebooks).
 export function allItemNames(): string[] {
   const s = new Set<string>()
-  for (const key of Object.keys(kits)) {
-    const kit = kits[Number(key)]
-    for (const it of [...kit.ncert, ...kit.pvt, ...kit.stationery]) s.add(it.name)
-    for (const nb of kit.notebooks) s.add(nb.name)
+  for (const _school of Object.values(schools)) {
+    for (const key of Object.keys(_school)) {
+      const kit = _school[Number(key)]
+      for (const it of [...kit.ncert, ...kit.pvt, ...kit.stationery]) s.add(it.name)
+      for (const nb of kit.notebooks) s.add(nb.name)
+    }
   }
   return Array.from(s).sort()
 }

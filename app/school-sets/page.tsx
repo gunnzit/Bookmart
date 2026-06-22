@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser, SignInButton, useClerk } from '@clerk/nextjs'
 
-const SCHOOL = 'Shivalik Public School'
 
 const kitPhotos: Record<number, string | null> = {
   1: null, 2: null, 3: null, 4: null, 5: null,
@@ -16,8 +15,8 @@ function getItemPhoto(name: string): string | null {
 }
 
 const kits: Record<number, {
-  ncert: { name: string; price: number }[]
-  pvt: { name: string; price: number }[]
+  ncert: { name: string; price: number; optional?: boolean }[]
+  pvt: { name: string; price: number; optional?: boolean }[]
   notebooks: { name: string; unitPrice: number; qty: number }[]
   stationery: { name: string; price: number }[]
 }> = {
@@ -330,14 +329,137 @@ const kits: Record<number, {
   },
 }
 
+// ── DPS Chandigarh (NCERT core + notebooks; optional/language books TBA) ──
+// Stored prices use the SAME convention as Shivalik (include OLD ₹20 binding);
+// the loop below adds ₹5 -> ₹25. MUST stay identical to lib/kit-prices.ts.
+const dpsKits: typeof kits = {
+  3: {
+    ncert: [
+      { name: 'Santoor', price: 85 },
+      { name: 'Maths Mela', price: 85 },
+      { name: 'Our Wondrous World', price: 85 },
+      { name: 'Veena (Hindi)', price: 85 },
+    ],
+    pvt: [],
+    notebooks: [
+      { name: 'Four-Lined Notebooks', unitPrice: 62, qty: 2 },
+      { name: 'Four-Line Inter Leaf Notebooks', unitPrice: 62, qty: 2 },
+      { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 4 },
+    ],
+    stationery: [],
+  },
+  4: {
+    ncert: [
+      { name: 'Santoor 4', price: 85 },
+      { name: 'Maths Mela 4', price: 85 },
+      { name: 'Our Wondrous World 4', price: 85 },
+      { name: 'Veena 4 (Hindi)', price: 85 },
+    ],
+    pvt: [],
+    notebooks: [
+      { name: 'Four-Lined Notebooks', unitPrice: 62, qty: 1 },
+      { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 8 },
+    ],
+    stationery: [],
+  },
+  5: {
+    ncert: [
+      { name: 'Santoor 5', price: 85 },
+      { name: 'Maths Mela 5', price: 85 },
+      { name: 'Our Wondrous World 5', price: 85 },
+      { name: 'Veena 5 (Hindi)', price: 85 },
+    ],
+    pvt: [],
+    notebooks: [
+      { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 5 },
+      { name: 'Single-Line Inter Leaf Notebooks', unitPrice: 62, qty: 3 },
+    ],
+    stationery: [],
+  },
+  6: {
+    ncert: [
+      { name: 'Poorvi', price: 85 },
+      { name: 'Ganita Prakash 6', price: 85 },
+      { name: 'Curiosity 6', price: 85 },
+      { name: 'Exploring Society India & Beyond 6', price: 85 },
+      { name: 'Malhar (Hindi)', price: 85 },
+    ],
+    pvt: [],
+    notebooks: [
+      { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 6 },
+      { name: 'Single-Line Inter Leaf Notebooks', unitPrice: 62, qty: 1 },
+    ],
+    stationery: [],
+  },
+  7: {
+    ncert: [
+      { name: 'Poorvi 7', price: 85 },
+      { name: 'Ganita Prakash 7', price: 85 },
+      { name: 'Curiosity 7', price: 85 },
+      { name: 'Exploring Society 7 (Part 1)', price: 85 },
+      { name: 'Exploring Society 7 (Part 2)', price: 85 },
+      { name: 'Malhar 7 (Hindi)', price: 85 },
+    ],
+    pvt: [],
+    notebooks: [
+      { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 6 },
+      { name: 'Single-Line Inter Leaf Notebooks', unitPrice: 62, qty: 2 },
+    ],
+    stationery: [],
+  },
+  8: {
+    ncert: [
+      { name: 'Poorvi 8', price: 85 },
+      { name: 'Ganita Prakash 8', price: 85 },
+      { name: 'Curiosity 8', price: 85 },
+      { name: 'Exploring Society 8', price: 85 },
+      { name: 'Malhar 8 (Hindi)', price: 85 },
+    ],
+    pvt: [],
+    notebooks: [
+      { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 10 },
+      { name: 'Single-Line Inter Leaf Notebooks', unitPrice: 62, qty: 1 },
+    ],
+    stationery: [],
+  },
+  10: {
+    ncert: [
+      { name: 'First Flight', price: 95 },
+      { name: 'Footprints without Feet', price: 60 },
+      { name: 'Math - 10', price: 145 },
+      { name: 'Science - 10', price: 180 },
+      { name: 'India and Conte. World - 2', price: 125 },
+      { name: 'Democratic Pol. - 2', price: 85 },
+      { name: 'Contemporary India - 2', price: 95 },
+      { name: 'Economics - 10', price: 100 },
+      { name: 'Sparsh - 2', price: 90 },
+      { name: 'Sanchyan - 2', price: 55 },
+    ],
+    pvt: [],
+    notebooks: [
+      { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 10 },
+      { name: 'Registers (11")', unitPrice: 110, qty: 1 },
+    ],
+    stationery: [],
+  },
+}
+
+const SCHOOLS: Record<string, typeof kits> = {
+  'Shivalik Public School': kits,
+  'Delhi Public School': dpsKits,
+}
+
+
 // ── Binding charge ────────────────────────────────────────────────────────
 // NCERT prices above already include the OLD ₹20 binding; it is now ₹25, so we
 // add ₹5 to every NCERT item — in ONE place. MUST stay identical to the block
 // in lib/kit-prices.ts so the displayed price matches the server price check.
 const BINDING_CHARGE = 25
 const BINDING_INCREASE = 5
-for (const _c of Object.keys(kits)) {
-  for (const _it of kits[Number(_c)].ncert) _it.price += BINDING_INCREASE
+for (const _school of Object.values(SCHOOLS)) {
+  for (const _c of Object.keys(_school)) {
+    for (const _it of _school[Number(_c)].ncert) _it.price += BINDING_INCREASE
+  }
 }
 
 type Section = 'ncert' | 'pvt' | 'notebooks' | 'stationery'
@@ -444,6 +566,7 @@ export default function SchoolSetsPage() {
   const { openSignIn } = useClerk()
 
   const [selectedClass, setSelectedClass] = useState<number>(1)
+  const [selectedSchool, setSelectedSchool] = useState<string>('Shivalik Public School')
   const [openSections, setOpenSections] = useState<Record<Section, boolean>>({ ncert: true, pvt: true, notebooks: true, stationery: true })
   const [checked, setChecked] = useState<Record<Section, boolean[]>>({} as any)
   const [nbQty, setNbQty] = useState<number[]>([])
@@ -498,10 +621,11 @@ export default function SchoolSetsPage() {
   }, [])
 
   useEffect(() => {
-    const kit = kits[selectedClass]
+    const kit = SCHOOLS[selectedSchool][selectedClass]
+    if (!kit) return
     setChecked({
-      ncert: kit.ncert.map(it => !oosItems.has(it.name)),
-      pvt: kit.pvt.map(it => !oosItems.has(it.name)),
+      ncert: kit.ncert.map(it => !oosItems.has(it.name) && !it.optional),
+      pvt: kit.pvt.map(it => !oosItems.has(it.name) && !it.optional),
       notebooks: kit.notebooks.map(it => !oosItems.has(it.name)),
       stationery: kit.stationery.map(it => !oosItems.has(it.name)),
     })
@@ -509,9 +633,11 @@ export default function SchoolSetsPage() {
     setNbBrand(kit.notebooks.map(() => 'buddy'))
     setNbRegType(kit.notebooks.map(() => 'slim'))
     setPhotoExpanded(false)
-  }, [selectedClass, oosItems])
+  }, [selectedClass, selectedSchool, oosItems])
 
-  const kit = kits[selectedClass]
+  const schoolKits = SCHOOLS[selectedSchool]
+  const availableClasses = Object.keys(schoolKits).map(Number).sort((a, b) => a - b)
+  const kit = schoolKits[selectedClass] || schoolKits[availableClasses[0]]
 
   function toggleSection(s: Section) {
     setOpenSections(prev => ({ ...prev, [s]: !prev[s] }))
@@ -659,7 +785,7 @@ export default function SchoolSetsPage() {
     setCart(newCart)
     sessionStorage.setItem('buddybooks_cart', JSON.stringify(newCart))
     const usedClasses = newCart.map(k => k.selectedClass)
-    const nextClass = [1,2,3,4,5,6,7,8,9,10].find(c => !usedClasses.includes(c)) || 1
+    const nextClass = availableClasses.find(c => !usedClasses.includes(c)) || availableClasses[0]
     setSelectedClass(nextClass)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -789,7 +915,7 @@ export default function SchoolSetsPage() {
             <div style={{ fontSize: '36px', marginBottom: '12px', textAlign: 'center' }}>⚠️</div>
             <h3 className="k" style={{ fontSize: '18px', color: 'var(--text)', marginBottom: '10px', textAlign: 'center' }}>Remove from kit?</h3>
             <p style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.6, marginBottom: '20px', textAlign: 'center' }}>
-              <strong style={{ color: 'var(--text)' }}>{warnItemName()}</strong> is in the official Shivalik book list. Remove it?
+              <strong style={{ color: 'var(--text)' }}>{warnItemName()}</strong> is in the official {selectedSchool} book list. Remove it?
             </p>
             <div style={{ display: 'flex', gap: '10px' }}>
               <button onClick={() => setWarnModal(null)} style={{ flex: 1, background: 'var(--bg)', color: 'var(--text-2)', border: '1.5px solid var(--border)', borderRadius: '10px', padding: '11px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', fontFamily: 'Poppins, sans-serif' }}>Keep it</button>
@@ -835,7 +961,7 @@ export default function SchoolSetsPage() {
           <div style={{ maxWidth: '700px', width: '100%', borderRadius: '16px', overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
             <img src={kitPhotos[selectedClass]!} alt={'Class ' + selectedClass + ' kit'} style={{ width: '100%', height: 'auto', display: 'block' }} />
             <div style={{ background: 'rgba(0,0,0,0.7)', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '13px', color: '#fff', fontWeight: '600' }}>Class {selectedClass} Kit — {SCHOOL}</span>
+              <span style={{ fontSize: '13px', color: '#fff', fontWeight: '600' }}>Class {selectedClass} Kit — {selectedSchool}</span>
               <button onClick={() => setPhotoExpanded(false)} style={{ background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: '8px', padding: '6px 12px', color: '#fff', cursor: 'pointer', fontSize: '12px' }}>Close ×</button>
             </div>
           </div>
@@ -867,7 +993,7 @@ export default function SchoolSetsPage() {
             </div>
             <h1 className="k" style={{ fontSize: 'clamp(26px, 5vw, 40px)', color: '#fff', marginBottom: '8px', lineHeight: 1.1, textShadow: '0 2px 20px rgba(0,0,0,0.15)' }}>School Sets 🎒</h1>
             <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.88)', lineHeight: 1.6, maxWidth: '480px', fontWeight: '500' }}>
-              Complete book + stationery kits for {SCHOOL}. All items from the official book list. Customise what you need and order in minutes.
+              Complete book + stationery kits for {selectedSchool}. All items from the official book list. Customise what you need and order in minutes.
             </p>
           </div>
         </div>
@@ -875,9 +1001,17 @@ export default function SchoolSetsPage() {
         {/* Class selector */}
         <div style={{ background: 'var(--white)', borderBottom: '1px solid var(--border)', padding: '16px 20px', position: 'sticky', top: '56px', zIndex: 40, boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
           <div style={{ maxWidth: '960px', margin: '0 auto' }}>
+            <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>Select School</div>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap' }}>
+              {Object.keys(SCHOOLS).map(sch => (
+                <button key={sch} className={'class-btn' + (selectedSchool === sch ? ' active' : '')}
+                  onClick={() => { const cls = Object.keys(SCHOOLS[sch]).map(Number).sort((a, b) => a - b); setSelectedSchool(sch); if (!cls.includes(selectedClass)) setSelectedClass(cls[0]) }}
+                  style={{ flex: '1 1 auto', minWidth: '150px', padding: '11px 16px' }}>{sch}</button>
+              ))}
+            </div>
             <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>Select Class</div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 1fr)', gap: '6px' }}>
-              {[1,2,3,4,5,6,7,8,9,10].map(c => (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(' + Math.min(availableClasses.length, 10) + ', 1fr)', gap: '6px' }}>
+              {availableClasses.map(c => (
                 <button key={c} className={'class-btn' + (selectedClass === c ? ' active' : '')} onClick={() => setSelectedClass(c)}>{c}</button>
               ))}
             </div>
@@ -909,7 +1043,7 @@ export default function SchoolSetsPage() {
                 <div style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border)', background: 'var(--card)' }}>
                   <div>
                     <div className="k" style={{ fontSize: '16px', color: 'var(--text)' }}>Class {selectedClass} Complete Kit</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '2px' }}>{SCHOOL} · Official book list</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '2px' }}>{selectedSchool} · Official book list</div>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <div className="k" style={{ fontSize: '20px', color: '#00B86B' }}>₹{bill.toLocaleString()}</div>
@@ -963,6 +1097,7 @@ export default function SchoolSetsPage() {
               {(['ncert', 'pvt', 'stationery'] as Section[]).map(s => {
                 const sec = sectionLabels[s]
                 const items = kit[s] as { name: string; price: number }[]
+                if (items.length === 0) return null
                 const checkedItems = checked[s] || []
                 const allChecked = checkedItems.every(Boolean)
                 const secTotal = items.reduce((sum, item, i) => sum + (checkedItems[i] && !isOOS(item.name) ? item.price : 0), 0)
@@ -1038,6 +1173,7 @@ export default function SchoolSetsPage() {
               {/* NOTEBOOKS */}
               {(() => {
                 const s: Section = 'notebooks'
+                if (kit.notebooks.length === 0) return null
                 const sec = sectionLabels[s]
                 const checkedItems = checked[s] || []
                 const isOpen = openSections[s]
