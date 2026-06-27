@@ -15,10 +15,10 @@ function getItemPhoto(name: string): string | null {
 }
 
 const kits: Record<number, {
-  ncert: { name: string; price: number; optional?: boolean }[]
-  pvt: { name: string; price: number; optional?: boolean }[]
-  notebooks: { name: string; unitPrice: number; qty: number }[]
-  stationery: { name: string; price: number }[]
+  ncert: { name: string; price: number; optional?: boolean; oos?: boolean }[]
+  pvt: { name: string; price: number; optional?: boolean; oos?: boolean }[]
+  notebooks: { name: string; unitPrice: number; qty: number; oos?: boolean }[]
+  stationery: { name: string; price: number; optional?: boolean; oos?: boolean }[]
 }> = {
   1: {
     ncert: [
@@ -333,6 +333,41 @@ const kits: Record<number, {
 // Stored prices use the SAME convention as Shivalik (include OLD ₹20 binding);
 // the loop below adds ₹5 -> ₹25. MUST stay identical to lib/kit-prices.ts.
 const dpsKits: typeof kits = {
+  1: {
+    ncert: [
+    ],
+    pvt: [
+      { name: 'New Communicate in English – 1', price: 514 },
+    ],
+    notebooks: [
+      { name: 'Four-Lined Notebooks', unitPrice: 62, qty: 2 },
+      { name: 'Four-Line Inter Leaf Notebooks', unitPrice: 62, qty: 1 },
+      { name: 'Square-Lined Notebooks', unitPrice: 62, qty: 2 },
+      { name: 'Five-Lined Notebooks', unitPrice: 62, qty: 2 },
+    ],
+    stationery: [
+      { name: 'Sketch Book', price: 0, oos: true },
+      { name: 'Chart Papers', price: 0, oos: true },
+    ],
+  },
+  2: {
+    ncert: [
+      { name: 'Sarangi 2 (Hindi)', price: 85 },
+    ],
+    pvt: [
+      { name: 'New Communicate in English – 2', price: 549 },
+    ],
+    notebooks: [
+      { name: 'Four-Lined Notebooks', unitPrice: 62, qty: 2 },
+      { name: 'Four-Line Inter Leaf Notebooks', unitPrice: 62, qty: 1 },
+      { name: 'Square-Lined Notebooks', unitPrice: 62, qty: 2 },
+      { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 2 },
+    ],
+    stationery: [
+      { name: 'Sketch Book', price: 0, oos: true },
+      { name: 'Chart Papers', price: 0, oos: true },
+    ],
+  },
   3: {
     ncert: [
       { name: 'Santoor', price: 85 },
@@ -340,13 +375,20 @@ const dpsKits: typeof kits = {
       { name: 'Our Wondrous World', price: 85 },
       { name: 'Veena (Hindi)', price: 85 },
     ],
-    pvt: [],
+    pvt: [
+      { name: 'Oxford Learners Dictionary', price: 1250, optional: true },
+      { name: 'Essentials of Grammar and Composition 3', price: 290, optional: true },
+    ],
     notebooks: [
       { name: 'Four-Lined Notebooks', unitPrice: 62, qty: 2 },
       { name: 'Four-Line Inter Leaf Notebooks', unitPrice: 62, qty: 2 },
       { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 4 },
     ],
-    stationery: [],
+    stationery: [
+      { name: 'Sketch Book', price: 0, oos: true },
+      { name: 'Plastic Crayons', price: 0, oos: true },
+      { name: 'Chart Papers', price: 0, oos: true },
+    ],
   },
   4: {
     ncert: [
@@ -355,12 +397,18 @@ const dpsKits: typeof kits = {
       { name: 'Our Wondrous World 4', price: 85 },
       { name: 'Veena 4 (Hindi)', price: 85 },
     ],
-    pvt: [],
+    pvt: [
+      { name: 'Oxford Learners Dictionary', price: 1250, optional: true },
+      { name: 'Essentials of Grammar and Composition 4', price: 320, optional: true },
+    ],
     notebooks: [
       { name: 'Four-Lined Notebooks', unitPrice: 62, qty: 1 },
       { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 8 },
     ],
-    stationery: [],
+    stationery: [
+      { name: 'Sketch Book', price: 0, oos: true },
+      { name: 'Chart Papers', price: 0, oos: true },
+    ],
   },
   5: {
     ncert: [
@@ -369,12 +417,17 @@ const dpsKits: typeof kits = {
       { name: 'Our Wondrous World 5', price: 85 },
       { name: 'Veena 5 (Hindi)', price: 85 },
     ],
-    pvt: [],
+    pvt: [
+      { name: 'Essentials of Grammar and Composition 5', price: 390, optional: true },
+    ],
     notebooks: [
       { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 5 },
       { name: 'Single-Line Inter Leaf Notebooks', unitPrice: 62, qty: 3 },
     ],
-    stationery: [],
+    stationery: [
+      { name: 'Sketch Book', price: 0, oos: true },
+      { name: 'Chart Papers', price: 0, oos: true },
+    ],
   },
   6: {
     ncert: [
@@ -383,13 +436,24 @@ const dpsKits: typeof kits = {
       { name: 'Curiosity 6', price: 85 },
       { name: 'Exploring Society India & Beyond 6', price: 85 },
       { name: 'Malhar (Hindi)', price: 85 },
+      { name: 'Ruchira Bhag 1 (Sanskrit)', price: 85, optional: true },
     ],
-    pvt: [],
+    pvt: [
+      { name: 'Punjabi Path Pustak 3', price: 0, optional: true, oos: true },
+      { name: 'Collins Cobuild Learner’s Illustrated Dictionary', price: 743, optional: true },
+      { name: 'Ramayana (Hindi)', price: 299, optional: true },
+      { name: 'Main Aur Mera Vyakaran 6', price: 530, optional: true },
+      { name: 'Punjabi Vyakaran & Lekh Rachna 1', price: 0, optional: true, oos: true },
+      { name: 'Essentials of Grammar and Composition 6', price: 445, optional: true },
+    ],
     notebooks: [
       { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 6 },
       { name: 'Single-Line Inter Leaf Notebooks', unitPrice: 62, qty: 1 },
     ],
-    stationery: [],
+    stationery: [
+      { name: 'Art File', price: 0, oos: true },
+      { name: 'Chart Papers', price: 0, oos: true },
+    ],
   },
   7: {
     ncert: [
@@ -399,13 +463,24 @@ const dpsKits: typeof kits = {
       { name: 'Exploring Society 7 (Part 1)', price: 85 },
       { name: 'Exploring Society 7 (Part 2)', price: 85 },
       { name: 'Malhar 7 (Hindi)', price: 85 },
+      { name: 'Ruchira Bhag 2 (Sanskrit)', price: 85, optional: true },
     ],
-    pvt: [],
+    pvt: [
+      { name: 'Punjabi Pustak 4', price: 0, optional: true, oos: true },
+      { name: 'Bal Mahabharat Katha (Hindi)', price: 299, optional: true },
+      { name: 'Main Aur Mera Vyakaran 7', price: 595, optional: true },
+      { name: 'Punjabi Vyakaran & Lekh Rachna 7', price: 0, optional: true, oos: true },
+      { name: 'Essentials of Grammar and Composition 7', price: 455, optional: true },
+    ],
     notebooks: [
       { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 6 },
       { name: 'Single-Line Inter Leaf Notebooks', unitPrice: 62, qty: 2 },
     ],
-    stationery: [],
+    stationery: [
+      { name: 'Art File', price: 0, oos: true },
+      { name: 'Maps', price: 0, oos: true },
+      { name: 'Chart Papers', price: 0, oos: true },
+    ],
   },
   8: {
     ncert: [
@@ -414,13 +489,51 @@ const dpsKits: typeof kits = {
       { name: 'Curiosity 8', price: 85 },
       { name: 'Exploring Society 8', price: 85 },
       { name: 'Malhar 8 (Hindi)', price: 85 },
+      { name: 'Ruchira Bhag 3 (Sanskrit)', price: 85, optional: true },
     ],
-    pvt: [],
+    pvt: [
+      { name: 'Punjabi Pustak 5', price: 0, optional: true, oos: true },
+      { name: 'Buddha Charit (Hindi)', price: 249, optional: true },
+      { name: 'Main Aur Mera Vyakaran 8', price: 595, optional: true },
+      { name: 'Punjabi Vyakaran & Lekh Rachna 8', price: 0, optional: true, oos: true },
+      { name: 'Essentials of Grammar and Composition 8', price: 465, optional: true },
+    ],
     notebooks: [
       { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 10 },
       { name: 'Single-Line Inter Leaf Notebooks', unitPrice: 62, qty: 1 },
     ],
-    stationery: [],
+    stationery: [
+      { name: 'Art File', price: 0, oos: true },
+      { name: 'Maps', price: 0, oos: true },
+      { name: 'Chart Papers', price: 0, oos: true },
+    ],
+  },
+  9: {
+    ncert: [
+      { name: 'Kaveri (English)', price: 0, oos: true },
+      { name: 'Ganita Manjari (Maths)', price: 0, oos: true },
+      { name: 'Exploration (Science)', price: 0, oos: true },
+      { name: 'Ganga (Hindi)', price: 0, oos: true },
+      { name: 'Sharda (Sanskrit)', price: 0, optional: true, oos: true },
+    ],
+    pvt: [
+      { name: 'Sahit Mala 9 (Punjabi)', price: 0, optional: true, oos: true },
+      { name: 'Tarangini 9 (Punjabi)', price: 0, optional: true, oos: true },
+      { name: 'Adhunik Punjabi Vyakaran te Lekh Rachna 9', price: 0, optional: true, oos: true },
+      { name: 'Vyakaran Darshika (Hindi)', price: 0, optional: true, oos: true },
+      { name: 'Science Lab Skills', price: 0, optional: true, oos: true },
+      { name: 'Mathematics Lab Manual (Together With)', price: 0, optional: true, oos: true },
+    ],
+    notebooks: [
+      { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 10 },
+      { name: 'Registers (11")', unitPrice: 110, qty: 1 },
+    ],
+    stationery: [
+      { name: 'Graph Notebook', price: 0, oos: true },
+      { name: 'Practical File', price: 0, oos: true },
+      { name: 'Maps', price: 0, oos: true },
+      { name: 'Chart Papers', price: 0, oos: true },
+    ],
   },
   10: {
     ncert: [
@@ -434,16 +547,30 @@ const dpsKits: typeof kits = {
       { name: 'Economics - 10', price: 100 },
       { name: 'Sparsh - 2', price: 90 },
       { name: 'Sanchyan - 2', price: 55 },
+      { name: 'Manika (Sanskrit)', price: 0, optional: true, oos: true },
     ],
-    pvt: [],
+    pvt: [
+      { name: 'Sahit Mala 10 (Punjabi)', price: 0, optional: true, oos: true },
+      { name: 'Tarangini 10 (Punjabi)', price: 0, optional: true, oos: true },
+      { name: 'Adhunik Punjabi Vyakaran te Lekh Rachna 10', price: 0, optional: true, oos: true },
+      { name: 'Entre Jeunes Part II (French)', price: 525, optional: true },
+      { name: 'Entre Jeunes-2 cahier (French)', price: 490, optional: true },
+      { name: 'Beste Freunde B1.1 (German, with Workbook + Get Ready)', price: 800, optional: true },
+      { name: 'Science Lab Skills', price: 579, optional: true },
+      { name: 'Mathematics Lab Manual (Together With)', price: 449, optional: true },
+    ],
     notebooks: [
       { name: 'Single-Lined Notebooks', unitPrice: 62, qty: 10 },
       { name: 'Registers (11")', unitPrice: 110, qty: 1 },
     ],
-    stationery: [],
+    stationery: [
+      { name: 'Graph Notebook', price: 0, oos: true },
+      { name: 'Practical File', price: 0, oos: true },
+      { name: 'Maps', price: 0, oos: true },
+      { name: 'Chart Papers', price: 0, oos: true },
+    ],
   },
 }
-
 const SCHOOLS: Record<string, typeof kits> = {
   'Shivalik Public School': kits,
   'Delhi Public School': dpsKits,
@@ -458,7 +585,7 @@ const BINDING_CHARGE = 25
 const BINDING_INCREASE = 5
 for (const _school of Object.values(SCHOOLS)) {
   for (const _c of Object.keys(_school)) {
-    for (const _it of _school[Number(_c)].ncert) _it.price += BINDING_INCREASE
+    for (const _it of _school[Number(_c)].ncert) if (!_it.oos) _it.price += BINDING_INCREASE
   }
 }
 
@@ -584,7 +711,8 @@ export default function SchoolSetsPage() {
   const [notifyBusy, setNotifyBusy] = useState(false)
   const [notifyDone, setNotifyDone] = useState(false)
 
-  function isOOS(name: string) { return oosItems.has(name) }
+  const dataOosNames = new Set<string>()
+  function isOOS(name: string) { return oosItems.has(name) || dataOosNames.has(name) }
 
   function openNotify(name: string) {
     setNotifyFor(name)
@@ -624,10 +752,10 @@ export default function SchoolSetsPage() {
     const kit = SCHOOLS[selectedSchool][selectedClass]
     if (!kit) return
     setChecked({
-      ncert: kit.ncert.map(it => !oosItems.has(it.name) && !it.optional),
-      pvt: kit.pvt.map(it => !oosItems.has(it.name) && !it.optional),
-      notebooks: kit.notebooks.map(it => !oosItems.has(it.name)),
-      stationery: kit.stationery.map(it => !oosItems.has(it.name)),
+      ncert: kit.ncert.map(it => !oosItems.has(it.name) && !it.optional && !it.oos),
+      pvt: kit.pvt.map(it => !oosItems.has(it.name) && !it.optional && !it.oos),
+      notebooks: kit.notebooks.map(it => !oosItems.has(it.name) && !it.oos),
+      stationery: kit.stationery.map(it => !oosItems.has(it.name) && !(it as any).oos),
     })
     setNbQty(kit.notebooks.map(n => n.qty))
     setNbBrand(kit.notebooks.map(() => 'buddy'))
@@ -638,6 +766,8 @@ export default function SchoolSetsPage() {
   const schoolKits = SCHOOLS[selectedSchool]
   const availableClasses = Object.keys(schoolKits).map(Number).sort((a, b) => a - b)
   const kit = schoolKits[selectedClass] || schoolKits[availableClasses[0]]
+  ;(['ncert', 'pvt', 'stationery'] as const).forEach(_sec => (kit[_sec] as any[]).forEach(_it => { if (_it.oos) dataOosNames.add(_it.name) }))
+  kit.notebooks.forEach((_it: any) => { if (_it.oos) dataOosNames.add(_it.name) })
 
   function toggleSection(s: Section) {
     setOpenSections(prev => ({ ...prev, [s]: !prev[s] }))
@@ -1151,7 +1281,7 @@ export default function SchoolSetsPage() {
                               <div className="prod-body">
                                 <div className="prod-name">{item.name}</div>
                                 <div className="prod-foot">
-                                  <span className="prod-price" style={{ color: oos ? 'var(--text-3)' : (isAdded ? sec.color : 'var(--text-3)') }}>₹{item.price}</span>
+                                  <span className="prod-price" style={{ color: oos ? 'var(--text-3)' : (isAdded ? sec.color : 'var(--text-3)') }}>{item.price > 0 ? '₹' + item.price : '—'}</span>
                                   {oos ? (
                                     <button className="notify-btn" onClick={() => openNotify(item.name)}>🔔 Notify me</button>
                                   ) : (
