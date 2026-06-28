@@ -368,6 +368,16 @@ export default function LandingPage() {
                   <span key={t} style={{ background: 'rgba(255,255,255,0.18)', borderRadius: '99px', padding: '7px 14px', fontSize: '12px', fontWeight: '700', backdropFilter: 'blur(6px)' }}>{t}</span>
                 ))}
               </div>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '20px', flexWrap: 'wrap' }}>
+                {[
+                  'https://xoiqfpnshawgjlxmdzuy.supabase.co/storage/v1/object/public/Listings/WhatsApp%20Image%202026-06-28%20at%206.35.07%20PM.jpeg',
+                  'https://xoiqfpnshawgjlxmdzuy.supabase.co/storage/v1/object/public/Listings/WhatsApp%20Image%202026-06-28%20at%206.35.08%20PM%20(3).jpeg',
+                  'https://xoiqfpnshawgjlxmdzuy.supabase.co/storage/v1/object/public/Listings/WhatsApp%20Image%202026-06-28%20at%206.35.07%20PM%20(1).jpeg',
+                ].map((u, i) => (
+                  <img key={i} src={u} alt="Project we built" style={{ width: '88px', height: '88px', objectFit: 'cover', borderRadius: '14px', border: '2px solid rgba(255,255,255,0.4)', boxShadow: '0 4px 14px rgba(0,0,0,0.2)' }} />
+                ))}
+                <div style={{ display: 'flex', alignItems: 'center', fontSize: '12px', fontWeight: '700', opacity: 0.85 }}>…and more →</div>
+              </div>
               <button onClick={e => { e.stopPropagation(); router.push('/projects') }} style={{ marginTop: '22px', background: '#fff', color: '#7C5CFC', border: 'none', borderRadius: '14px', padding: '13px 26px', fontSize: '15px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', boxShadow: '0 4px 0 rgba(0,0,0,0.15)' }}>
                 Request a quote →
               </button>

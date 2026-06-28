@@ -13,15 +13,15 @@ const CATEGORIES: { name: string; emoji: string }[] = [
 ]
 
 // ── Past projects gallery ─────────────────────────────────────────────────
-// When you have real photos, paste the Supabase image URL into `url`.
-// Leave url: null to show a nice placeholder tile.
+// When you have the Supabase URLs, paste each into `url` (replacing null).
+// Public URL looks like: https://xxxx.supabase.co/storage/v1/object/public/project-photos/yourfile.jpg
 const PAST_PROJECTS: { title: string; category: string; emoji: string; c: string; url: string | null }[] = [
-  { title: 'Working volcano model', category: 'Working model', emoji: '🌋', c: '#FF6B2C', url: null },
-  { title: 'Solar system display', category: 'Display board', emoji: '🪐', c: '#7C5CFC', url: null },
-  { title: 'Electric motor model', category: 'Working model', emoji: '⚙️', c: '#2D7FF9', url: null },
-  { title: 'Human digestive system chart', category: 'Chart / poster', emoji: '📊', c: '#00B86B', url: null },
-  { title: 'Hydraulic lift model', category: 'Working model', emoji: '🏗️', c: '#E0A800', url: null },
-  { title: 'Physics practical file', category: 'Project file / report', emoji: '📁', c: '#FF3D81', url: null },
+  { title: 'Trash to Treasure eco-maker', category: 'Working model', emoji: '♻️', c: '#00B86B', url: 'https://xoiqfpnshawgjlxmdzuy.supabase.co/storage/v1/object/public/Listings/WhatsApp%20Image%202026-06-28%20at%206.35.07%20PM.jpeg' },
+  { title: 'Rainwater harvesting house', category: 'Working model', emoji: '🏠', c: '#2D7FF9', url: 'https://xoiqfpnshawgjlxmdzuy.supabase.co/storage/v1/object/public/Listings/WhatsApp%20Image%202026-06-28%20at%206.35.07%20PM%20(1).jpeg' },
+  { title: 'Solar window energy model', category: 'Working model', emoji: '☀️', c: '#E0A800', url: 'https://xoiqfpnshawgjlxmdzuy.supabase.co/storage/v1/object/public/Listings/WhatsApp%20Image%202026-06-28%20at%206.35.08%20PM%20(2).jpeg' },
+  { title: 'Sensō-ji Temple replica', category: 'Static model', emoji: '⛩️', c: '#FF6B2C', url: 'https://xoiqfpnshawgjlxmdzuy.supabase.co/storage/v1/object/public/Listings/WhatsApp%20Image%202026-06-28%20at%206.35.08%20PM%20(3).jpeg' },
+  { title: 'Save the Earth climate poster', category: 'Chart / poster', emoji: '🌍', c: '#7C5CFC', url: 'https://xoiqfpnshawgjlxmdzuy.supabase.co/storage/v1/object/public/Listings/WhatsApp%20Image%202026-06-28%20at%206.35.08%20PM.jpeg' },
+  { title: 'Handmade clay face masks', category: 'Other', emoji: '🎭', c: '#FF3D81', url: 'https://xoiqfpnshawgjlxmdzuy.supabase.co/storage/v1/object/public/Listings/WhatsApp%20Image%202026-06-28%20at%206.35.09%20PM.jpeg' },
 ]
 
 // ── Reviews ───────────────────────────────────────────────────────────────
