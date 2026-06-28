@@ -31,6 +31,7 @@ const testimonials = [
 const faqs = [
   { q: 'Is BuddyBooks free?', a: 'Yes! 100% free. Listing, browsing, and contacting sellers costs nothing. We never take commission.' },
   { q: 'How do school kits work?', a: 'Pick your class, customise which books you need, pay via Razorpay, and choose pickup from Sector-40C or home delivery (+₹99).' },
+  { q: 'Can you make my school project or model?', a: 'Yes! Working models, charts, project files and display boards — built to order. Send your topic on the Projects page, get a price, pay a 50% advance to start.' },
   { q: 'How do I contact a seller?', a: 'Every listing has a WhatsApp button. One tap opens a chat directly with the seller.' },
   { q: 'Can I pay 30% now for a kit?', a: 'Yes! Pay just 30% upfront to confirm. The rest is due at pickup or delivery.' },
   { q: 'What areas do you cover?', a: 'Chandigarh, Mohali, Panchkula and tricity for listings. Kits deliver anywhere.' },
@@ -154,6 +155,7 @@ export default function LandingPage() {
           <div className="nav-links" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             <button className="btn-ghost" onClick={() => router.push('/marketplace')}>🛒 Browse</button>
             <button className="btn-kits" onClick={() => router.push('/school-sets')}>🎒 School Sets</button>
+            <button className="btn-ghost" onClick={() => router.push('/projects')}>🛠️ Projects</button>
             <button className="btn-ghost" onClick={() => router.push('/requests')}>📋 Requests</button>
             {isSignedIn
               ? <button className="btn-pop" onClick={() => router.push('/sell')}>+ Sell</button>
@@ -169,6 +171,7 @@ export default function LandingPage() {
         <div className="nav2">
           <button className="pill" onClick={() => router.push('/marketplace')}>🛒 Browse</button>
           <button className="pill" style={{ background: 'linear-gradient(135deg,#FFF6DD,#FFEDE2)', color: '#FF6B2C', borderColor: '#FFCB94' }} onClick={() => router.push('/school-sets')}>🎒 School Sets</button>
+          <button className="pill" style={{ background: '#EFEAFF', color: '#7C5CFC', borderColor: '#DDD6FE' }} onClick={() => router.push('/projects')}>🛠️ Projects</button>
           <button className="pill" onClick={() => router.push('/requests')}>📋 Requests</button>
           {isSignedIn && <button className="pill" onClick={() => router.push('/my-orders')}>📦 My Orders</button>}
           <button className="pill" style={{ background: '#DFFFEF', color: '#00B86B', borderColor: '#9DEAC4' }} onClick={() => router.push('/contact')}>📍 Contact</button>
@@ -178,7 +181,7 @@ export default function LandingPage() {
         <div className="ticker-wrap">
           <div className="ticker-track">
             {[...Array(3)].map((_, j) =>
-              ['🔥 Save up to 60% on books', '🎒 School kits Class 1–10', '⚡ Same-day pickup', '📍 Chandigarh · Mohali · Panchkula', '✅ 100% free · No commission', '🚚 Home delivery available', '💬 Direct WhatsApp contact', '🤑 Avg saving ₹250'].map((t, i) => (
+              ['🔥 Save up to 60% on books', '🎒 School kits Class 1–10', '🛠️ Custom models & projects made', '⚡ Same-day pickup', '📍 Chandigarh · Mohali · Panchkula', '✅ 100% free · No commission', '🚚 Home delivery available', '💬 Direct WhatsApp contact'].map((t, i) => (
                 <span key={j + '-' + i} className="ticker-item">{t}</span>
               )))}
           </div>
@@ -201,7 +204,7 @@ export default function LandingPage() {
           </h1>
 
           <p className="su d2" style={{ fontSize: 'clamp(15px,2.5vw,18px)', color: 'var(--text-2)', lineHeight: 1.6, marginBottom: '28px', maxWidth: '560px', margin: '0 auto 28px', fontWeight: '500' }}>
-            Buy & sell second-hand books with students nearby, or order a ready-made school kit delivered to your door. 100% free.
+            Buy & sell second-hand books, order a ready-made school kit, or get a custom project made for you. 100% free to browse.
           </p>
 
           <form className="su d3" onSubmit={handleSearch} style={{ maxWidth: '520px', margin: '0 auto' }}>
@@ -221,7 +224,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* ─── TWO PATH CARDS ─── */}
+        {/* ─── PATH CARDS ─── */}
         <section style={{ padding: '0 20px clamp(40px,5vw,64px)', maxWidth: '900px', margin: '0 auto' }}>
           <div className="paths" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px' }}>
 
@@ -247,13 +250,27 @@ export default function LandingPage() {
               style={{ background: 'linear-gradient(135deg,#FF6B2C,#FFC83D)' }}>
               <div className="floaty" style={{ position: 'absolute', top: '-10px', right: '-10px', fontSize: '90px', opacity: 0.18, animationDelay: '0.8s' }}>🎒</div>
               <div style={{ position: 'relative', zIndex: 1 }}>
-                <div style={{ fontSize: '13px', fontWeight: '700', opacity: 0.9, marginBottom: '6px' }}>🆕 SHIVALIK PUBLIC SCHOOL</div>
+                <div style={{ fontSize: '13px', fontWeight: '700', opacity: 0.9, marginBottom: '6px' }}>🆕 SHIVALIK & DPS</div>
                 <h2 style={{ fontSize: 'clamp(22px,4vw,28px)', fontWeight: '800', lineHeight: 1.15, marginBottom: '8px' }}>Order a school kit 🎒</h2>
                 <p style={{ fontSize: '14px', opacity: 0.95, lineHeight: 1.55, maxWidth: '320px' }}>Complete book + stationery kits for Class 1–10. Customise, pay 30%, delivered.</p>
               </div>
               <div style={{ display: 'flex', gap: '10px', marginTop: '20px', position: 'relative', zIndex: 1, flexWrap: 'wrap' }}>
                 <span style={{ background: '#fff', color: '#FF6B2C', borderRadius: '12px', padding: '10px 18px', fontSize: '14px', fontWeight: '800' }}>Order now →</span>
                 <span onClick={e => { e.stopPropagation(); router.push('/my-orders') }} style={{ background: 'rgba(255,255,255,0.2)', color: '#fff', borderRadius: '12px', padding: '10px 18px', fontSize: '14px', fontWeight: '700', backdropFilter: 'blur(6px)' }}>📦 Track order</span>
+              </div>
+            </div>
+
+            {/* Custom Projects path — full width */}
+            <div className="path-card su d4 grad-animate" onClick={() => router.push('/projects')}
+              style={{ background: 'linear-gradient(135deg,#7C5CFC,#FF3D81)', gridColumn: '1 / -1' }}>
+              <div className="floaty" style={{ position: 'absolute', top: '-10px', right: '-10px', fontSize: '90px', opacity: 0.18, animationDelay: '0.5s' }}>🛠️</div>
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{ fontSize: '13px', fontWeight: '700', opacity: 0.9, marginBottom: '6px' }}>MADE BY US · MODELS & PROJECTS</div>
+                <h2 style={{ fontSize: 'clamp(22px,4vw,28px)', fontWeight: '800', lineHeight: 1.15, marginBottom: '8px' }}>Get a project made 🛠️</h2>
+                <p style={{ fontSize: '14px', opacity: 0.92, lineHeight: 1.55, maxWidth: '420px' }}>Working models, charts, project files & display boards — built to order. Send your topic, get a price, pay 50% to start.</p>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '20px', position: 'relative', zIndex: 1, flexWrap: 'wrap' }}>
+                <span style={{ background: '#fff', color: '#7C5CFC', borderRadius: '12px', padding: '10px 18px', fontSize: '14px', fontWeight: '800' }}>Request a quote →</span>
               </div>
             </div>
           </div>
@@ -280,13 +297,13 @@ export default function LandingPage() {
           <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
             <div style={{ textAlign: 'center', marginBottom: '36px' }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg,#FFF6DD,#FFEDE2)', color: '#FF6B2C', fontSize: '11px', fontWeight: '800', padding: '6px 16px', borderRadius: '99px', marginBottom: '14px', border: '2px solid #FFCB94', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                🏫 For Parents · Shivalik Public School
+                🏫 For Parents · Shivalik & DPS
               </div>
               <h2 style={{ fontSize: 'clamp(24px,4vw,36px)', fontWeight: '800', lineHeight: 1.15, marginBottom: '12px' }}>
                 Child's books sorted in<br />3 minutes. From home! 🏠
               </h2>
               <p style={{ fontSize: '15px', color: 'var(--text-2)', lineHeight: 1.65, maxWidth: '520px', margin: '0 auto', fontWeight: '500' }}>
-                No more market hunting. Every book on the official Shivalik list, assembled & delivered — or ready for pickup at Sector-40C.
+                No more market hunting. Every book on the official school list, assembled & delivered — or ready for pickup at Sector-40C.
               </p>
             </div>
             <div className="parent-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '12px', marginBottom: '36px' }}>
@@ -331,6 +348,29 @@ export default function LandingPage() {
                   Order your kit now →
                 </button>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CUSTOM PROJECTS BANNER */}
+        <section style={{ padding: 'clamp(40px,5vw,64px) 20px', maxWidth: '1000px', margin: '0 auto' }}>
+          <div className="grad-animate" onClick={() => router.push('/projects')} style={{ cursor: 'pointer', background: 'linear-gradient(135deg,#7C5CFC,#2D7FF9,#FF3D81)', backgroundSize: '300% 300%', borderRadius: '24px', padding: 'clamp(28px,5vw,44px)', position: 'relative', overflow: 'hidden', color: '#fff' }}>
+            <div className="floaty" style={{ position: 'absolute', top: '-20px', right: '-10px', fontSize: '120px', opacity: 0.16 }}>🛠️</div>
+            <div className="floaty" style={{ position: 'absolute', bottom: '-30px', right: '22%', fontSize: '70px', opacity: 0.14, animationDelay: '1s' }}>📐</div>
+            <div style={{ position: 'relative', zIndex: 1, maxWidth: '560px' }}>
+              <div style={{ fontSize: '12px', fontWeight: '800', opacity: 0.85, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '10px' }}>🆕 New · Made by us</div>
+              <h2 style={{ fontSize: 'clamp(24px,4.5vw,36px)', fontWeight: '800', lineHeight: 1.12, marginBottom: '12px' }}>Need a model, chart or project file made? 🛠️</h2>
+              <p style={{ fontSize: '15px', opacity: 0.92, lineHeight: 1.6, marginBottom: '20px', fontWeight: '500' }}>
+                Tell us your topic and deadline — we build working models, static models, charts, posters, project files and display boards. We&apos;ll send you a price; pay 50% to start and the rest on handover.
+              </p>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                {['⚙️ Working models', '📊 Charts & posters', '📁 Project files', '🪧 Display boards'].map(t => (
+                  <span key={t} style={{ background: 'rgba(255,255,255,0.18)', borderRadius: '99px', padding: '7px 14px', fontSize: '12px', fontWeight: '700', backdropFilter: 'blur(6px)' }}>{t}</span>
+                ))}
+              </div>
+              <button onClick={e => { e.stopPropagation(); router.push('/projects') }} style={{ marginTop: '22px', background: '#fff', color: '#7C5CFC', border: 'none', borderRadius: '14px', padding: '13px 26px', fontSize: '15px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', boxShadow: '0 4px 0 rgba(0,0,0,0.15)' }}>
+                Request a quote →
+              </button>
             </div>
           </div>
         </section>
@@ -419,7 +459,7 @@ export default function LandingPage() {
             </div>
             <span style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: '500' }}>Student marketplace · Chandigarh · Free 💛</span>
             <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-              {[['Browse', '/marketplace'], ['School Sets', '/school-sets'], ['Sell', '/sell'], ['Requests', '/requests'], ['My Orders', '/my-orders'], ['Contact', '/contact']].map(([l, h]) => (
+              {[['Browse', '/marketplace'], ['School Sets', '/school-sets'], ['Projects', '/projects'], ['Sell', '/sell'], ['Requests', '/requests'], ['My Orders', '/my-orders'], ['Contact', '/contact']].map(([l, h]) => (
                 <span key={l} onClick={() => router.push(h)} style={{ fontSize: '12px', color: 'var(--text-3)', cursor: 'pointer', fontWeight: '600' }}
                   onMouseEnter={e => (e.currentTarget.style.color = '#FF6B2C')}
                   onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-3)')}>{l}</span>

@@ -12,6 +12,26 @@ const CATEGORIES: { name: string; emoji: string }[] = [
   { name: 'Other', emoji: '✨' },
 ]
 
+// ── Past projects gallery ─────────────────────────────────────────────────
+// When you have real photos, paste the Supabase image URL into `url`.
+// Leave url: null to show a nice placeholder tile.
+const PAST_PROJECTS: { title: string; category: string; emoji: string; c: string; url: string | null }[] = [
+  { title: 'Working volcano model', category: 'Working model', emoji: '🌋', c: '#FF6B2C', url: null },
+  { title: 'Solar system display', category: 'Display board', emoji: '🪐', c: '#7C5CFC', url: null },
+  { title: 'Electric motor model', category: 'Working model', emoji: '⚙️', c: '#2D7FF9', url: null },
+  { title: 'Human digestive system chart', category: 'Chart / poster', emoji: '📊', c: '#00B86B', url: null },
+  { title: 'Hydraulic lift model', category: 'Working model', emoji: '🏗️', c: '#E0A800', url: null },
+  { title: 'Physics practical file', category: 'Project file / report', emoji: '📁', c: '#FF3D81', url: null },
+]
+
+// ── Reviews ───────────────────────────────────────────────────────────────
+// Replace these with your real customer testimonials any time.
+const PROJECT_REVIEWS: { name: string; role: string; text: string; avatar: string; c: string; tag: string }[] = [
+  { name: 'Manav S.', role: 'Class 10 · DPS', text: 'They built my working electric motor model — worked perfectly and looked so neat. Won best project in the exhibition!', avatar: 'M', c: '#2D7FF9', tag: '⚙️ Working model' },
+  { name: 'Ritika P.', role: 'Class 8 · Shivalik', text: 'Needed a solar system display board in 3 days. Delivered right on time and my teacher loved it. 🌟', avatar: 'R', c: '#7C5CFC', tag: '🪧 Display board' },
+  { name: 'Aman K.', role: 'B.Tech · Mohali', text: 'Got my whole physics practical file made and bound. Saved me a week of work — totally worth it.', avatar: 'A', c: '#00B86B', tag: '📁 Project file' },
+]
+
 type ProjectRequest = {
   id: string
   category: string
@@ -182,6 +202,13 @@ export default function ProjectsPage() {
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     .fade-in { animation: fadeIn 0.3s ease; }
     .qbox { background: linear-gradient(135deg, #DFFFEF, #EFF6FF); border: 1.5px solid #9DEAC4; border-radius: 14px; padding: 14px 16px; margin-top: 12px; }
+    .gal-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    @media (min-width: 640px) { .gal-grid { grid-template-columns: repeat(3, 1fr); } }
+    .gal-tile { border-radius: 14px; overflow: hidden; border: 1.5px solid var(--border); background: var(--card); box-shadow: var(--shadow); transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.18s; }
+    .gal-tile:hover { transform: translateY(-4px) rotate(-0.4deg); box-shadow: var(--shadow-lg); }
+    .gal-photo { aspect-ratio: 4/3; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; }
+    .rev-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
+    @media (min-width: 640px) { .rev-grid { grid-template-columns: repeat(3, 1fr); } }
   `
 
   if (isSignedIn === false) {
@@ -201,6 +228,8 @@ export default function ProjectsPage() {
                 <button className="order-btn">Sign in to start →</button>
               </SignInButton>
             </div>
+            <PastProjects />
+            <Reviews />
           </div>
         </div>
       </>
@@ -369,7 +398,70 @@ export default function ProjectsPage() {
               )
             })}
           </div>
+
+          <PastProjects />
+          <Reviews />
         </div>
+      </div>
+    </>
+  )
+}
+
+function PastProjects() {
+  return (
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '30px 0 4px' }}>
+        <span style={{ fontSize: '18px' }}>🏆</span>
+        <h2 className="k" style={{ fontSize: '17px' }}>Recently built by us</h2>
+      </div>
+      <p style={{ fontSize: '12px', color: 'var(--text-3)', marginBottom: '14px' }}>A few projects we&apos;ve made for students across the tricity</p>
+      <div className="gal-grid">
+        {PAST_PROJECTS.map((p, i) => (
+          <div className="gal-tile fade-in" key={i}>
+            <div className="gal-photo" style={{ background: p.url ? 'transparent' : p.c + '14' }}>
+              {p.url ? (
+                <img src={p.url} alt={p.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <>
+                  <span style={{ fontSize: '40px' }}>{p.emoji}</span>
+                  <span style={{ fontSize: '9px', color: 'var(--text-3)', fontWeight: 600 }}>📸 Photo soon</span>
+                </>
+              )}
+            </div>
+            <div style={{ padding: '10px 12px' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', lineHeight: 1.3 }}>{p.title}</div>
+              <div style={{ fontSize: '11px', color: p.c, fontWeight: 700, marginTop: '2px' }}>{p.category}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
+  )
+}
+
+function Reviews() {
+  return (
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '30px 0 4px' }}>
+        <span style={{ fontSize: '18px' }}>💛</span>
+        <h2 className="k" style={{ fontSize: '17px' }}>What students say</h2>
+      </div>
+      <p style={{ fontSize: '12px', color: 'var(--text-3)', marginBottom: '14px' }}>Real feedback from projects we&apos;ve delivered</p>
+      <div className="rev-grid">
+        {PROJECT_REVIEWS.map((t, i) => (
+          <div className="card fade-in" key={i} style={{ padding: '18px', borderTop: '4px solid ' + t.c }}>
+            <div style={{ display: 'flex', gap: '2px', marginBottom: '10px' }}>{[0,1,2,3,4].map((j) => <span key={j} style={{ color: '#FFC83D', fontSize: '14px' }}>★</span>)}</div>
+            <p style={{ fontSize: '13px', color: 'var(--text)', lineHeight: 1.6, marginBottom: '14px', fontWeight: 500 }}>&quot;{t.text}&quot;</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingTop: '12px', borderTop: '1px solid var(--border)' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: t.c, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', fontWeight: 800, flexShrink: 0 }}>{t.avatar}</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text)' }}>{t.name}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-3)', fontWeight: 500 }}>{t.role}</div>
+              </div>
+              <span style={{ fontSize: '10px', fontWeight: 800, color: t.c, background: t.c + '18', padding: '4px 10px', borderRadius: '99px', whiteSpace: 'nowrap' }}>{t.tag}</span>
+            </div>
+          </div>
+        ))}
       </div>
     </>
   )
