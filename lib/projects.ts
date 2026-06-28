@@ -126,7 +126,7 @@ export async function uploadProjectPhoto(
       'Content-Type': contentType || 'application/octet-stream',
       'x-upsert': 'true',
     },
-    body: bytes,
+    body: new Uint8Array(bytes),
   })
   if (!res.ok) return null
   return url + '/storage/v1/object/public/' + bucket + '/' + path

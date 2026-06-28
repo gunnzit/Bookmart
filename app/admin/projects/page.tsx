@@ -58,7 +58,10 @@ export default function AdminProjectsPage() {
   useEffect(() => { refresh() }, [refresh])
 
   function setDraftField(id: string, k: 'price' | 'advance' | 'note', v: string) {
-    setDraft((prev) => ({ ...prev, [id]: { price: '', advance: '', note: '', ...prev[id], [k]: v } }))
+    setDraft((prev) => {
+      const cur = prev[id] || { price: '', advance: '', note: '' }
+      return { ...prev, [id]: { ...cur, [k]: v } }
+    })
   }
 
   async function sendQuote(it: ProjectRequest) {
