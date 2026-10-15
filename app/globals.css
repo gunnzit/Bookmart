@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -10,6 +11,150 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+}
+
+/* ── Pageplus design tokens (from DESIGN.md) ───────────────────────────── */
+@theme {
+  --color-surface: #fef8f4;
+  --color-surface-dim: #dfd9d5;
+  --color-surface-bright: #fef8f4;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f9f2ef;
+  --color-surface-container: #f3ede9;
+  --color-surface-container-high: #ede7e3;
+  --color-surface-container-highest: #e7e1de;
+  --color-surface-variant: #e7e1de;
+  --color-surface-tint: #a63b01;
+  --color-on-surface: #1d1b19;
+  --color-on-surface-variant: #58423a;
+  --color-inverse-surface: #32302e;
+  --color-inverse-on-surface: #f6f0ec;
+  --color-outline: #8b7168;
+  --color-outline-variant: #dfc0b5;
+  --color-primary: #a23900;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #c4501a;
+  --color-on-primary-container: #fffbff;
+  --color-inverse-primary: #ffb599;
+  --color-primary-fixed: #ffdbce;
+  --color-primary-fixed-dim: #ffb599;
+  --color-on-primary-fixed: #370e00;
+  --color-on-primary-fixed-variant: #7f2b00;
+  --color-secondary: #a83900;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #ff743b;
+  --color-on-secondary-container: #631e00;
+  --color-secondary-fixed: #ffdbcf;
+  --color-secondary-fixed-dim: #ffb59a;
+  --color-on-secondary-fixed: #380d00;
+  --color-on-secondary-fixed-variant: #802900;
+  --color-tertiary: #68594d;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #827165;
+  --color-on-tertiary-container: #fffbff;
+  --color-tertiary-fixed: #f4ded0;
+  --color-tertiary-fixed-dim: #d7c3b4;
+  --color-on-tertiary-fixed: #241910;
+  --color-on-tertiary-fixed-variant: #524439;
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+
+  --spacing-margin: 1rem;
+  --spacing-margin-desktop: 2.5rem;
+  --spacing-gutter: 1rem;
+  --spacing-gutter-desktop: 1.5rem;
+  --spacing-space-xs: 0.25rem;
+  --spacing-space-sm: 0.5rem;
+  --spacing-space-md: 1rem;
+  --spacing-space-lg: 1.5rem;
+  --spacing-space-xl: 2rem;
+
+  --font-display: "Newsreader", serif;
+  --font-display-mobile: "Newsreader", serif;
+  --font-headline-lg: "Newsreader", serif;
+  --font-headline-lg-mobile: "Newsreader", serif;
+  --font-headline-md: "Newsreader", serif;
+  --font-headline-sm: "Newsreader", serif;
+  --font-body-lg: "DM Sans", sans-serif;
+  --font-body-md: "DM Sans", sans-serif;
+  --font-body-sm: "DM Sans", sans-serif;
+  --font-label-lg: "DM Sans", sans-serif;
+  --font-label-md: "DM Sans", sans-serif;
+  --font-label-micro: "DM Sans", sans-serif;
+
+  --text-display: 40px;
+  --text-display--line-height: 48px;
+  --text-display--letter-spacing: -0.02em;
+  --text-display--font-weight: 600;
+  --text-display-mobile: 30px;
+  --text-display-mobile--line-height: 36px;
+  --text-display-mobile--letter-spacing: -0.01em;
+  --text-display-mobile--font-weight: 600;
+  --text-headline-lg: 32px;
+  --text-headline-lg--line-height: 40px;
+  --text-headline-lg--letter-spacing: -0.01em;
+  --text-headline-lg--font-weight: 600;
+  --text-headline-lg-mobile: 24px;
+  --text-headline-lg-mobile--line-height: 30px;
+  --text-headline-lg-mobile--font-weight: 600;
+  --text-headline-md: 22px;
+  --text-headline-md--line-height: 28px;
+  --text-headline-md--font-weight: 500;
+  --text-headline-sm: 18px;
+  --text-headline-sm--line-height: 24px;
+  --text-headline-sm--font-weight: 500;
+  --text-body-lg: 17px;
+  --text-body-lg--line-height: 26px;
+  --text-body-lg--font-weight: 400;
+  --text-body-md: 15px;
+  --text-body-md--line-height: 22px;
+  --text-body-md--font-weight: 400;
+  --text-body-sm: 13px;
+  --text-body-sm--line-height: 18px;
+  --text-body-sm--font-weight: 400;
+  --text-label-lg: 15px;
+  --text-label-lg--line-height: 20px;
+  --text-label-lg--font-weight: 600;
+  --text-label-md: 13px;
+  --text-label-md--line-height: 16px;
+  --text-label-md--font-weight: 500;
+  --text-label-micro: 11px;
+  --text-label-micro--line-height: 14px;
+  --text-label-micro--letter-spacing: 0.08em;
+  --text-label-micro--font-weight: 700;
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
 }
 
 @media (prefers-color-scheme: dark) {
