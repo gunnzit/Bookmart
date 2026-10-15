@@ -3,6 +3,11 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useUser, useClerk } from '@clerk/nextjs'
 
+// ── Contact / links (change here only) ────────────────────────────────────
+const ADMIN_WA = '919914735738'
+const SHARE_BASE = 'https://buddybooks.in' // switch to https://pageplus.in once the domain is verified
+const WA_HELP_LINK = 'https://wa.me/' + ADMIN_WA + '?text=' + encodeURIComponent('Hi, I need help on Pageplus')
+
 const conditions = ['New', 'Good', 'Fair']
 
 const TIERS = [
@@ -13,9 +18,9 @@ const TIERS = [
 
 function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
   return (
-    <span style={{ display: 'inline-flex', gap: '1px' }}>
-      {[1,2,3,4,5].map(i => (
-        <span key={i} style={{ fontSize: size, color: i <= Math.round(rating) ? '#FFC83D' : '#D1D5DB' }}>★</span>
+    <span className="inline-flex gap-px">
+      {[1, 2, 3, 4, 5].map(i => (
+        <span key={i} style={{ fontSize: size, color: i <= Math.round(rating) ? '#E0A100' : '#D9CFC2' }}>★</span>
       ))}
     </span>
   )
@@ -27,6 +32,8 @@ export default function ListingPage() {
   const router = useRouter()
   const { isSignedIn, user } = useUser()
   const { openSignIn } = useClerk()
+
+  const [logoOk, setLogoOk] = useState(true)
   const [listing, setListing] = useState<any>(null)
   const [related, setRelated] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -120,19 +127,33 @@ export default function ListingPage() {
   }
 
   function shareOnWhatsApp() {
-    const url = 'https://buddybooks.in/listing/' + id
-    const text = listing ? ('Check out this listing on BuddyBooks: ' + listing.title + ' — ' + url) : url
+    const url = SHARE_BASE + '/listing/' + id
+    const text = listing ? ('Check out this listing on Pageplus: ' + listing.title + ' — ' + url) : url
     window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank')
   }
 
   function reportListing() {
-    const text = 'REPORT: Listing "' + (listing?.title || '') + '" (ID: ' + id + ') at https://buddybooks.in/listing/' + id + ' — Reason: '
-    window.open('https://wa.me/919914735738?text=' + encodeURIComponent(text), '_blank')
+    const text = 'REPORT: Listing "' + (listing?.title || '') + '" (ID: ' + id + ') at ' + SHARE_BASE + '/listing/' + id + ' — Reason: '
+    window.open('https://wa.me/' + ADMIN_WA + '?text=' + encodeURIComponent(text), '_blank')
     setReported(true)
+  }
+
+  // ── Chat with seller ─────────────────────────────────────────────────────
+  // One place to change when Pageplus gets its own messaging: replace the body
+  // of this function. For now it opens WhatsApp with the seller.
+  function openChat() {
+    if (!isSignedIn) { openSignIn(); return }
+    const phone = String(listing?.seller?.phone || '').replace(/\D/g, '').slice(-10)
+    const text = 'Hi, I am interested in your listing on Pageplus: ' + listing.title + ' for Rs.' + listing.price
+    const link = phone.length === 10
+      ? 'https://wa.me/91' + phone + '?text=' + encodeURIComponent(text)
+      : 'https://wa.me/?text=' + encodeURIComponent(text)
+    window.open(link, '_blank')
   }
 
   async function handleFeaturePayment(tier: string, price: number) {
     if (!isSignedIn) { openSignIn(); return }
+    if (!(window as any).Razorpay) { alert('Payment is still loading. Please try again in a moment.'); return }
     setPaymentLoading(true)
     try {
       const res = await fetch('/api/payment/create-order', {
@@ -146,9 +167,9 @@ export default function ListingPage() {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: order.amount,
         currency: 'INR',
-        name: 'BuddyBooks',
+        name: 'Pageplus',
         description: 'Feature listing — ' + (TIERS.find(t => t.tier === tier)?.desc || ''),
-        image: '/logo.png',
+        image: '/pageplus-logo.png',
         order_id: order.id,
         handler: async (response: any) => {
           const verify = await fetch('/api/payment/verify', {
@@ -161,7 +182,7 @@ export default function ListingPage() {
           else alert('Payment verification failed. Contact support.')
         },
         prefill: { name: user?.fullName, email: user?.primaryEmailAddress?.emailAddress },
-        theme: { color: '#00B86B' },
+        theme: { color: '#C4501A' },
         modal: { ondismiss: () => setPaymentLoading(false) },
       }
       const rzp = new (window as any).Razorpay(options)
@@ -191,521 +212,491 @@ export default function ListingPage() {
     setSubmittingReview(false)
   }
 
-  const css = `
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap');
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #FFF9F0; --bg-card: #fff; --bg-img: #FFF3E0; --bg-input: #FFF9F0;
-      --bg-tag: #FFF3E0; --nav-bg: #fff; --border: #FFE2C2; --border-strong: #FFCB94;
-      --text-primary: #1A1330; --text-secondary: #6B6280; --text-muted: #A89FC0; --text-label: #A89FC0;
-      --shadow-nav: 0 2px 12px rgba(124,92,252,0.06);
-      --shadow-card: 0 2px 16px rgba(124,92,252,0.08);
-      --shadow-strong: 0 12px 40px rgba(124,92,252,0.16);
-      --condition-bg: #fff; --condition-active: #DFFFEF;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #14101F; --bg-card: #221C3A; --bg-img: #2A2342; --bg-input: #1C1730;
-        --bg-tag: #2A2342; --nav-bg: #1C1730; --border: #352C52; --border-strong: #463A6B;
-        --text-primary: #F3EEFF; --text-secondary: #B0A8CC; --text-muted: #6E6590; --text-label: #6E6590;
-        --shadow-nav: 0 2px 12px rgba(0,0,0,0.3);
-        --shadow-card: 0 2px 16px rgba(0,0,0,0.25);
-        --shadow-strong: 0 12px 40px rgba(0,0,0,0.4);
-        --condition-bg: #221C3A; --condition-active: #0A3A26;
-      }
-    }
-    body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--text-primary); -webkit-font-smoothing: antialiased; }
-    .kalam { font-family: 'Poppins', sans-serif; font-weight: 800; letter-spacing: -0.02em; }
-    input, textarea { color: var(--text-primary) !important; font-weight: 500; font-family: 'Poppins', sans-serif; }
-    input::placeholder, textarea::placeholder { color: var(--text-muted) !important; font-weight: 400; }
-    input:focus, textarea:focus { outline: none !important; border-color: #00B86B !important; box-shadow: 0 0 0 3px rgba(0,184,107,0.12) !important; }
-    .main-img { transition: transform 0.3s ease; cursor: zoom-in; }
-    .main-img:hover { transform: scale(1.01); }
-    .thumb { cursor: pointer; border-radius: 10px; transition: all 0.15s; }
-    .thumb:hover { transform: scale(1.05); opacity: 1 !important; }
-    .wa-btn { display: flex; align-items: center; justify-content: center; gap: 10px; background: #25D366; color: #fff; border-radius: 16px; padding: 16px; font-size: 16px; font-weight: 800; text-decoration: none; box-shadow: 0 4px 0 #1da851, 0 8px 24px rgba(37,211,102,0.35); font-family: 'Poppins', sans-serif; transition: transform 0.12s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.12s; }
-    .wa-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #1da851, 0 12px 32px rgba(37,211,102,0.48) !important; }
-    .wa-btn:active { transform: translateY(2px); box-shadow: 0 1px 0 #1da851; }
-    .sticky-cta { display: none; position: fixed; bottom: 0; left: 0; right: 0; padding: 12px 16px; background: var(--nav-bg); border-top: 2px solid var(--border); z-index: 60; box-shadow: 0 -4px 20px rgba(0,0,0,0.1); }
-    @media (max-width: 640px) { .sticky-cta { display: block; } .hide-mobile { display: none !important; } .breadcrumb { display: none !important; } .nav-actions { margin-left: 0 !important; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; flex: 1; justify-content: flex-end; } .nav-actions::-webkit-scrollbar { display: none; } .btn-label-hide { display: none !important; } }
-    .icon-btn { background: var(--bg-card); border: 2px solid var(--border); border-radius: 10px; padding: 7px 13px; font-size: 12px; font-weight: 700; cursor: pointer; color: var(--text-secondary); transition: all 0.15s; display: flex; align-items: center; gap: 5px; }
-    .icon-btn:hover { background: var(--bg-img) !important; border-color: var(--border-strong); }
-    .share-wa-btn { background: #DFFFEF; border: 2px solid #9DEAC4; border-radius: 10px; padding: 7px 13px; font-size: 12px; font-weight: 700; cursor: pointer; color: #00B86B; transition: all 0.15s; display: flex; align-items: center; gap: 5px; }
-    .share-wa-btn:hover { background: #B6F5D8 !important; }
-    .report-btn { background: var(--bg-card); border: 2px solid var(--border); border-radius: 10px; padding: 7px 13px; font-size: 12px; font-weight: 700; cursor: pointer; color: var(--text-secondary); transition: all 0.15s; display: flex; align-items: center; gap: 5px; }
-    .report-btn:hover { background: #FEF2F2 !important; border-color: #FCA5A5 !important; color: #E24B4A !important; }
-    .report-btn.reported { background: #FEF2F2; border-color: #FCA5A5; color: #E24B4A; }
-    .tag { font-size: 12px; color: var(--text-secondary); background: var(--bg-tag); padding: 5px 12px; border-radius: 99px; display: inline-flex; align-items: center; gap: 5px; border: 2px solid var(--border); font-weight: 600; }
-    .rel-card { background: var(--bg-card); border-radius: 16px; border: 2px solid var(--border); overflow: hidden; cursor: pointer; transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s, border-color 0.2s; box-shadow: var(--shadow-card); }
-    .rel-card:hover { transform: translateY(-5px) rotate(-0.5deg); box-shadow: var(--shadow-strong) !important; border-color: #7C5CFC; }
-    .rel-img { transition: transform 0.3s ease; }
-    .rel-card:hover .rel-img { transform: scale(1.07); }
-    .listing-layout { display: grid; grid-template-columns: 1fr; gap: 20px; }
-    @media (min-width: 900px) { .listing-layout { grid-template-columns: 1fr 420px; align-items: start; } }
-    @keyframes fadeIn { from { opacity: 0; transform: scale(0.97); } to { opacity: 1; transform: scale(1); } }
-    .img-fade { animation: fadeIn 0.2s ease; }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
-    .s1 { animation: slideUp 0.4s cubic-bezier(0.22,1,0.36,1) both; }
-    .s2 { animation: slideUp 0.4s 0.06s cubic-bezier(0.22,1,0.36,1) both; }
-    .s3 { animation: slideUp 0.4s 0.12s cubic-bezier(0.22,1,0.36,1) both; }
-    .s4 { animation: slideUp 0.4s 0.18s cubic-bezier(0.22,1,0.36,1) both; }
-    .s5 { animation: slideUp 0.4s 0.24s cubic-bezier(0.22,1,0.36,1) both; }
-    @keyframes heartPop { 0% { transform: scale(1); } 40% { transform: scale(1.4); } 100% { transform: scale(1); } }
-    .heart-pop { animation: heartPop 0.32s ease; }
-    .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,0.92); z-index: 200; display: flex; align-items: center; justify-content: center; cursor: zoom-out; }
-    .lightbox img { max-width: 92vw; max-height: 88vh; object-fit: contain; border-radius: 8px; }
-    .tier-btn { width: 100%; border-radius: 12px; padding: 13px 16px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; transition: all 0.15s cubic-bezier(0.34,1.56,0.64,1); border: 2px solid var(--border); background: var(--bg-card); }
-    .tier-btn:hover { border-color: #FFC83D; transform: translateY(-2px); }
-    .tier-btn.popular { background: linear-gradient(135deg, #FFC83D, #FF6B2C); border: none; box-shadow: 0 4px 0 #E0851F; }
-    .tier-btn.popular:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #E0851F; }
-    .tier-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-    @keyframes slideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-    .tiers-list { animation: slideDown 0.2s ease; }
-    .star-btn { background: none; border: none; cursor: pointer; font-size: 28px; padding: 2px; transition: transform 0.1s; line-height: 1; }
-    .star-btn:hover { transform: scale(1.2); }
-    .review-card { background: var(--bg); border-radius: 14px; padding: 14px 16px; border: 2px solid var(--border); }
-  `
-
-  if (loading) return (
-    <>
-      <style>{css}</style>
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
-          <div style={{ fontSize: '52px', marginBottom: '14px' }}>📚</div>
-          <div style={{ fontSize: '14px' }}>Loading…</div>
+  // ── Loading / not found ──────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="bg-surface text-on-surface font-body-md min-h-screen flex items-center justify-center">
+        <div className="text-center text-outline">
+          <span className="material-symbols-outlined text-[48px] text-primary animate-pulse">menu_book</span>
+          <div className="font-body-sm text-body-sm mt-2">Loading…</div>
         </div>
       </div>
-    </>
-  )
+    )
+  }
 
-  if (!listing || listing.error) return (
-    <>
-      <style>{css}</style>
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '52px', marginBottom: '14px' }}>📭</div>
-          <div className="kalam" style={{ fontSize: '22px', color: 'var(--text-primary)', marginBottom: '8px' }}>Listing not found</div>
-          <button onClick={() => router.push('/marketplace')} style={{ background: 'linear-gradient(135deg,#00B86B,#2D7FF9)', color: '#fff', border: 'none', borderRadius: '12px', padding: '12px 28px', cursor: 'pointer', fontSize: '14px', fontWeight: '800', fontFamily: 'Poppins, sans-serif', marginTop: '12px', boxShadow: '0 4px 0 #009957' }}>Browse marketplace</button>
+  if (!listing || listing.error) {
+    return (
+      <div className="bg-surface text-on-surface font-body-md min-h-screen flex items-center justify-center p-5">
+        <div className="text-center">
+          <span className="material-symbols-outlined text-[48px] text-primary">search_off</span>
+          <h1 className="font-headline-md text-headline-md text-on-surface mt-2 mb-1">Listing not found</h1>
+          <p className="font-body-sm text-body-sm text-on-surface-variant mb-4">It may have been removed by the seller.</p>
+          <button onClick={() => router.push('/marketplace')} className="bg-primary-container text-on-primary font-label-lg text-label-lg font-bold px-6 py-3 rounded-xl shadow-md active:scale-[0.98] transition-transform">Browse marketplace</button>
         </div>
       </div>
-    </>
-  )
+    )
+  }
 
+  // ── Derived values ───────────────────────────────────────────────────────
   const discount = listing.origPrice ? Math.round((1 - listing.price / listing.origPrice) * 100) : 0
-  const waText = 'Hi, I am interested in your listing on BuddyBooks: ' + listing.title + ' for Rs.' + listing.price
-  const phone = listing.seller?.phone?.replace(/\D/g, '') || ''
-  const waLink = phone ? ('https://wa.me/91' + phone + '?text=' + encodeURIComponent(waText)) : ('https://wa.me/?text=' + encodeURIComponent(waText))
   const hasImages = listing.images?.length > 0
+  const isVerified = !listing.status || listing.status === 'active'
+  const sellerName: string = listing.seller?.name || 'Seller'
+  const sellerInitial = sellerName.charAt(0).toUpperCase()
+  const canChat = !isOwner && !listing.sold
 
-  const WaButton = () => (
-    <a href={waLink} target="_blank" rel="noopener noreferrer" className="wa-btn">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-      Contact on WhatsApp
-    </a>
+  const condClass =
+    listing.condition === 'New' ? 'text-[#2E8B57]'
+    : listing.condition === 'Fair' ? 'text-[#9A6B00]'
+    : 'text-primary'
+
+  const iconBtn = 'h-10 px-3 rounded-full bg-surface-container-lowest border border-[#EADFCC] text-on-surface-variant font-label-md text-label-md flex items-center gap-1.5 hover:bg-surface-container-low active:scale-95 transition'
+  const inputCls = 'w-full px-4 py-3 rounded-xl bg-white font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-[#E8632B]/20 focus:border-[#E8632B] border border-[#EADFCC]'
+
+  const chatButton = (extra: string) => (
+    <button onClick={openChat}
+      className={'min-h-[48px] px-space-lg rounded-xl bg-primary-container text-on-primary font-label-lg text-label-lg font-bold shadow-[0_4px_14px_rgba(196,80,26,0.3)] active:scale-[0.98] transition-all flex items-center justify-center gap-2 ' + extra}>
+      <span className="material-symbols-outlined text-[20px]">forum</span>
+      <span>{isSignedIn ? 'Chat to buy' : 'Sign in to chat with seller'}</span>
+    </button>
   )
 
   return (
-    <>
-      <style>{css}</style>
-      <script src="https://checkout.razorpay.com/v1/checkout.js" async />
+    <div className="bg-surface text-on-surface font-body-md antialiased flex flex-col min-h-screen">
 
+      {/* Lightbox */}
       {lightbox && hasImages && (
-        <div className="lightbox" onClick={() => setLightbox(false)}>
-          <img src={listing.images[activeImg]} alt={listing.title} />
+        <div className="fixed inset-0 z-[80] bg-black/90 flex items-center justify-center cursor-zoom-out p-4" onClick={() => setLightbox(false)}>
+          <img src={listing.images[activeImg]} alt={listing.title} className="max-w-full max-h-[88vh] object-contain rounded-lg" />
         </div>
       )}
 
-      <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-
-        {/* Nav */}
-        <nav style={{ background: 'var(--nav-bg)', borderBottom: '2px solid var(--border)', padding: '0 20px', height: '60px', display: 'flex', alignItems: 'center', gap: '12px', position: 'sticky', top: 0, zIndex: 50, boxShadow: 'var(--shadow-nav)' }}>
-          <button className="icon-btn" style={{ padding: '7px 10px' }} onClick={() => window.location.href = '/marketplace'}>
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-          </button>
-          <div className="breadcrumb" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-muted)', flex: 1, minWidth: 0 }}>
-            <span style={{ cursor: 'pointer', color: '#00B86B', flexShrink: 0, fontWeight: '700' }} onClick={() => router.push('/marketplace')}>Marketplace</span>
-            <span>›</span>
-            <span style={{ textTransform: 'capitalize', flexShrink: 0 }}>{listing.category}</span>
-            <span>›</span>
-            <span style={{ color: 'var(--text-primary)', fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{listing.title}</span>
+      {/* Header */}
+      <header className="fixed top-0 inset-x-0 z-50 pt-safe bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(45,30,18,0.04)]">
+        <div className="h-16 px-margin md:px-margin-desktop flex items-center justify-between gap-2 max-w-md mx-auto md:max-w-[1100px]">
+          <div className="flex items-center gap-space-sm min-w-0">
+            <button aria-label="Back to marketplace" onClick={() => router.push('/marketplace')} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container active:scale-95 transition-transform">
+              <span className="material-symbols-outlined text-[24px]">arrow_back</span>
+            </button>
+            {logoOk ? (
+              <img alt="Pageplus" className="h-8 w-auto object-contain cursor-pointer" src="/pageplus-logo.png" onError={() => setLogoOk(false)} onClick={() => router.push('/')} />
+            ) : (
+              <span className="font-headline-sm text-headline-sm text-on-surface cursor-pointer" onClick={() => router.push('/')}>Page<span className="text-secondary-container">plus</span></span>
+            )}
+            <div className="hidden lg:flex items-center gap-1.5 font-body-sm text-body-sm text-outline min-w-0 ml-2">
+              <button onClick={() => router.push('/marketplace')} className="text-primary font-semibold">Marketplace</button>
+              <span>›</span>
+              <span className="capitalize">{listing.category}</span>
+              <span>›</span>
+              <span className="text-on-surface font-semibold truncate max-w-[260px]">{listing.title}</span>
+            </div>
           </div>
-          <div className="nav-actions" style={{ marginLeft: 'auto', display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
+
+          <div className="flex items-center gap-1.5 shrink-0">
             {!isOwner && (
-              <button onClick={toggleWishlist} disabled={savingWishlist}
-                style={{ background: saved ? '#FEF2F2' : 'var(--bg-card)', border: '2px solid ' + (saved ? '#FCA5A5' : 'var(--border)'), borderRadius: '10px', padding: '7px 12px', fontSize: '15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.15s' }}>
-                <span className={saved ? 'heart-pop' : ''}>{saved ? '❤️' : '🤍'}</span>
-                <span className="btn-label-hide" style={{ fontSize: '11px', color: saved ? '#E24B4A' : 'var(--text-secondary)', fontWeight: '700' }}>{saved ? 'Saved' : 'Save'}</span>
+              <button onClick={toggleWishlist} disabled={savingWishlist} aria-label={saved ? 'Remove from saved' : 'Save listing'}
+                className={iconBtn + (saved ? ' !bg-error-container !text-on-error-container' : '')}>
+                <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: saved ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
+                <span className="hidden sm:inline">{saved ? 'Saved' : 'Save'}</span>
               </button>
             )}
-            <button className="icon-btn" onClick={copyLink} style={{ background: copied ? '#DFFFEF' : 'var(--bg-card)', color: copied ? '#009957' : 'var(--text-secondary)', borderColor: copied ? '#9DEAC4' : 'var(--border)' }}>
-              {copied ? '✅' : '🔗'} <span className="btn-label-hide">{copied ? 'Copied!' : 'Copy link'}</span>
+            <button onClick={copyLink} aria-label="Copy link" className={iconBtn + (copied ? ' !text-[#2E8B57]' : '')}>
+              <span className="material-symbols-outlined text-[18px]">{copied ? 'check' : 'link'}</span>
+              <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy link'}</span>
             </button>
-            <button className="share-wa-btn" onClick={shareOnWhatsApp}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-              <span className="btn-label-hide">Share</span>
+            <button onClick={shareOnWhatsApp} aria-label="Share on WhatsApp" className={iconBtn}>
+              <span className="material-symbols-outlined text-[18px] text-[#25D366]">share</span>
+              <span className="hidden sm:inline">Share</span>
             </button>
             {!isOwner && (
-              <button className={'report-btn' + (reported ? ' reported' : '')} onClick={reportListing}>
-                🚩 <span className="btn-label-hide">{reported ? 'Reported' : 'Report'}</span>
+              <button onClick={reportListing} aria-label="Report listing" className={iconBtn + (reported ? ' !bg-error-container !text-on-error-container' : '')}>
+                <span className="material-symbols-outlined text-[18px]">flag</span>
+                <span className="hidden sm:inline">{reported ? 'Reported' : 'Report'}</span>
               </button>
             )}
             {isOwner && !editing && (
               <>
-                <button className="icon-btn" onClick={() => setEditing(true)} style={{ background: '#E3F0FF', color: '#1D4ED8', border: 'none' }}>✏️ Edit</button>
-                <button className="icon-btn" onClick={handleDelete} disabled={deleting} style={{ background: '#FEF2F2', color: '#E24B4A', border: 'none' }}>{deleting ? '…' : '🗑️'}</button>
+                <button onClick={() => setEditing(true)} className={iconBtn}>
+                  <span className="material-symbols-outlined text-[18px]">edit</span>
+                  <span className="hidden sm:inline">Edit</span>
+                </button>
+                <button onClick={handleDelete} disabled={deleting} aria-label="Delete listing" className={iconBtn + ' !text-error'}>
+                  <span className="material-symbols-outlined text-[18px]">{deleting ? 'hourglass_empty' : 'delete'}</span>
+                </button>
               </>
             )}
           </div>
-        </nav>
+        </div>
+      </header>
 
-        <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '24px 16px 80px' }}>
+      <main className="flex-1 w-full max-w-md mx-auto md:max-w-[1100px] pt-16 pb-32 md:pb-16 px-margin md:px-margin-desktop">
+        <div className="pt-space-md lg:pt-6">
 
           {editing ? (
-            <div style={{ maxWidth: '560px', margin: '0 auto' }}>
-              <div style={{ background: 'var(--bg-card)', borderRadius: '20px', border: '2px solid #00B86B', padding: '28px', boxShadow: 'var(--shadow-card)' }}>
-                <div className="kalam" style={{ fontSize: '18px', color: '#00B86B', marginBottom: '20px' }}>✏️ Edit listing</div>
-                {(['title', 'subtitle', 'price', 'origPrice', 'location'] as const).map(field => (
-                  <div key={field} style={{ marginBottom: '14px' }}>
-                    <label style={{ fontSize: '11px', color: 'var(--text-label)', display: 'block', marginBottom: '6px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{field === 'origPrice' ? 'Original Price' : field === 'price' ? 'Price' : field.charAt(0).toUpperCase() + field.slice(1)}</label>
-                    <input type={['price', 'origPrice'].includes(field) ? 'number' : 'text'} value={form[field]}
-                      onChange={e => setForm({ ...form, [field]: e.target.value })}
-                      style={{ width: '100%', padding: '11px 14px', borderRadius: '12px', border: '2px solid var(--border)', fontSize: '14px', fontFamily: 'Poppins, sans-serif', background: 'var(--bg-input)', transition: 'all 0.15s' }} />
-                  </div>
-                ))}
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={{ fontSize: '11px', color: 'var(--text-label)', display: 'block', marginBottom: '8px', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Condition</label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    {conditions.map(c => (
-                      <button key={c} onClick={() => setForm({ ...form, condition: c })} style={{ flex: 1, padding: '10px', borderRadius: '12px', border: form.condition === c ? '2px solid #00B86B' : '2px solid var(--border)', background: form.condition === c ? 'var(--condition-active)' : 'var(--condition-bg)', cursor: 'pointer', fontSize: '13px', color: form.condition === c ? '#009957' : 'var(--text-secondary)', fontWeight: form.condition === c ? '700' : '500', transition: 'all 0.15s', fontFamily: 'Poppins, sans-serif' }}>{c}</button>
-                    ))}
-                  </div>
+            /* ── Edit form ── */
+            <div className="max-w-xl mx-auto bg-surface-container-lowest rounded-2xl p-space-md md:p-6 shadow-sm">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                  <span className="material-symbols-outlined text-[20px]">edit</span>
                 </div>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={handleSave} disabled={saving} style={{ flex: 1, background: 'linear-gradient(135deg,#00B86B,#2D7FF9)', color: '#fff', border: 'none', borderRadius: '12px', padding: '13px', fontSize: '14px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', boxShadow: '0 4px 0 #009957' }}>{saving ? 'Saving…' : '✅ Save changes'}</button>
-                  <button onClick={() => setEditing(false)} style={{ flex: 1, background: 'var(--bg-input)', color: 'var(--text-secondary)', border: '2px solid var(--border)', borderRadius: '12px', padding: '13px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
+                <h2 className="font-headline-sm text-headline-sm text-on-surface font-semibold">Edit listing</h2>
+              </div>
+              {(['title', 'subtitle', 'price', 'origPrice', 'location'] as const).map(field => (
+                <div key={field} className="mb-3.5">
+                  <label className="font-label-micro text-label-micro uppercase text-on-surface-variant block mb-1.5">
+                    {field === 'origPrice' ? 'Original price' : field === 'price' ? 'Price' : field.charAt(0).toUpperCase() + field.slice(1)}
+                  </label>
+                  <input type={['price', 'origPrice'].includes(field) ? 'number' : 'text'} value={form[field]}
+                    onChange={e => setForm({ ...form, [field]: e.target.value })} className={inputCls} />
                 </div>
+              ))}
+              <div className="mb-5">
+                <label className="font-label-micro text-label-micro uppercase text-on-surface-variant block mb-1.5">Condition</label>
+                <div className="flex gap-2">
+                  {conditions.map(c => (
+                    <button key={c} onClick={() => setForm({ ...form, condition: c })}
+                      className={'flex-1 py-2.5 rounded-xl font-label-md text-label-md transition-colors ' + (form.condition === c ? 'bg-[#FDE7D8] border-[1.5px] border-[#E8632B] text-[#C4501A] font-semibold' : 'bg-white border border-[#EADFCC] text-[#6B6560]')}>
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-2.5">
+                <button onClick={handleSave} disabled={saving} className="flex-1 bg-primary-container text-on-primary font-label-lg text-label-lg font-bold py-3.5 rounded-xl shadow-md active:scale-[0.98] transition-transform disabled:opacity-60">{saving ? 'Saving…' : 'Save changes'}</button>
+                <button onClick={() => setEditing(false)} className="flex-1 bg-surface-container-low text-on-surface font-label-lg text-label-lg font-semibold py-3.5 rounded-xl border border-[#EADFCC]">Cancel</button>
               </div>
             </div>
           ) : (
             <>
-              <div className="listing-layout">
-                {/* LEFT — Images */}
-                <div className="s1">
-                  <div style={{ borderRadius: '20px', overflow: 'hidden', background: 'var(--bg-img)', boxShadow: 'var(--shadow-strong)', position: 'relative', marginBottom: '10px' }}>
-                    <div style={{ paddingTop: '72%', position: 'relative', overflow: 'hidden' }}>
-                      <div style={{ position: 'absolute', inset: 0 }}>
-                        {hasImages
-                          ? <img key={activeImg} className="img-fade main-img" src={listing.images[activeImg]} onClick={() => setLightbox(true)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                          : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '96px' }}>{listing.emoji}</div>}
-                      </div>
+              <div className="flex flex-col gap-space-md lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
+
+                {/* LEFT: gallery */}
+                <div className="lg:col-span-6 lg:sticky lg:top-24">
+                  <div className="relative rounded-2xl overflow-hidden bg-primary-fixed/50 shadow-sm">
+                    <div className="relative w-full aspect-[4/3]">
+                      {hasImages ? (
+                        <img key={activeImg} src={listing.images[activeImg]} alt={listing.title} onClick={() => setLightbox(true)} className="w-full h-full object-cover cursor-zoom-in" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[88px]">{listing.emoji || '📚'}</div>
+                      )}
                     </div>
-                    <span style={{ position: 'absolute', top: '14px', left: '14px', fontSize: '12px', fontWeight: '800', background: listing.condition === 'New' ? 'rgba(223,255,239,0.96)' : listing.condition === 'Fair' ? 'rgba(255,246,221,0.96)' : 'rgba(227,240,255,0.96)', color: listing.condition === 'New' ? '#009957' : listing.condition === 'Fair' ? '#B8860B' : '#1D4ED8', padding: '5px 13px', borderRadius: '99px', backdropFilter: 'blur(6px)', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>{listing.condition}</span>
+                    {listing.condition && (
+                      <span className={'absolute top-3 left-3 px-2.5 py-1 rounded-full bg-surface-container-lowest/90 backdrop-blur-md font-label-micro text-label-micro font-bold shadow-sm ' + condClass}>{listing.condition}</span>
+                    )}
                     {discount >= 15 && !listing.sold && (
-                      <span style={{ position: 'absolute', top: '14px', right: '14px', fontSize: '12px', fontWeight: '800', background: 'linear-gradient(135deg, #FF6B2C, #FF3D81)', color: '#fff', padding: '5px 13px', borderRadius: '99px', boxShadow: '0 2px 8px rgba(255,61,129,0.3)' }}>-{discount}% OFF</span>
+                      <span className="absolute top-3 right-3 px-2 py-1 rounded-md bg-primary-container text-on-primary font-label-micro text-label-micro font-bold">-{discount}% OFF</span>
                     )}
                     {listing.featured && !listing.sold && (
-                      <span style={{ position: 'absolute', bottom: '14px', left: '14px', fontSize: '11px', fontWeight: '900', background: 'linear-gradient(135deg, #FFC83D, #FF6B2C)', color: '#fff', padding: '5px 13px', borderRadius: '99px', boxShadow: '0 2px 8px rgba(255,107,44,0.4)' }}>⭐ FEATURED</span>
+                      <span className="absolute bottom-3 left-3 px-2.5 py-1 rounded-full bg-[#E0A100] text-white font-label-micro text-label-micro font-bold flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>Featured
+                      </span>
                     )}
+                    {hasImages && <span className="absolute bottom-3 right-3 px-2.5 py-1 rounded-full bg-inverse-surface/70 text-inverse-on-surface font-label-micro text-[10px]">Tap to zoom</span>}
                     {listing.sold && (
-                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(26,19,48,0.7)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(3px)' }}>
-                        <span className="kalam" style={{ color: '#fff', fontSize: '36px', letterSpacing: '8px', display: 'block' }}>SOLD</span>
-                        <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: '13px', marginTop: '6px' }}>No longer available</span>
+                      <div className="absolute inset-0 bg-inverse-surface/65 flex flex-col items-center justify-center">
+                        <span className="text-white font-headline-lg text-headline-lg tracking-[0.25em]">SOLD</span>
+                        <span className="text-white/70 font-body-sm text-body-sm mt-1">No longer available</span>
                       </div>
                     )}
-                    {hasImages && <div style={{ position: 'absolute', bottom: '12px', right: '12px', background: 'rgba(0,0,0,0.5)', color: '#fff', fontSize: '11px', padding: '4px 10px', borderRadius: '99px', backdropFilter: 'blur(4px)' }}>Tap to zoom</div>}
                   </div>
                   {hasImages && listing.images.length > 1 && (
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div className="flex gap-2 mt-2.5 overflow-x-auto scrollbar-none">
                       {listing.images.map((img: string, i: number) => (
-                        <img key={i} className="thumb" src={img} onClick={() => setActiveImg(i)}
-                          style={{ width: '72px', height: '72px', objectFit: 'cover', border: activeImg === i ? '3px solid #00B86B' : '2px solid var(--border)', opacity: activeImg === i ? 1 : 0.55, boxShadow: activeImg === i ? '0 4px 12px rgba(0,184,107,0.25)' : 'none' }} />
+                        <img key={i} src={img} alt="" onClick={() => setActiveImg(i)}
+                          className={'w-16 h-16 rounded-lg object-cover cursor-pointer shrink-0 transition ' + (activeImg === i ? 'ring-2 ring-primary-container' : 'opacity-60 hover:opacity-100')} />
                       ))}
                     </div>
                   )}
                 </div>
 
-                {/* RIGHT */}
-                <div>
-                  {/* Title & Price */}
-                  <div className="s2" style={{ background: 'var(--bg-card)', borderRadius: '20px', border: listing.featured ? '2px solid #FFC83D' : '2px solid var(--border)', padding: '24px', marginBottom: '12px', boxShadow: listing.featured ? '0 4px 20px rgba(255,200,61,0.18)' : 'var(--shadow-card)' }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px', marginBottom: '6px' }}>
-                      <h1 style={{ fontSize: '22px', fontWeight: '800', color: listing.sold ? 'var(--text-muted)' : 'var(--text-primary)', lineHeight: 1.3, flex: 1, letterSpacing: '-0.02em' }}>{listing.title}</h1>
-                      <div style={{ display: 'flex', gap: '6px', flexShrink: 0, marginTop: '4px' }}>
-                        {listing.featured && <span style={{ background: 'linear-gradient(135deg, #FFC83D, #FF6B2C)', color: '#fff', fontSize: '10px', fontWeight: '900', padding: '4px 10px', borderRadius: '6px' }}>⭐ FEATURED</span>}
-                        {listing.sold && <span style={{ background: '#E24B4A', color: '#fff', fontSize: '10px', fontWeight: '900', padding: '4px 10px', borderRadius: '6px', letterSpacing: '1px' }}>SOLD</span>}
-                      </div>
-                    </div>
-                    {listing.subtitle && <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px', lineHeight: 1.6, fontWeight: '500' }}>{listing.subtitle}</p>}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px', flexWrap: 'wrap' }}>
-                      <span className="kalam" style={{ fontSize: '40px', color: listing.sold ? 'var(--text-muted)' : '#00B86B', fontWeight: '900', lineHeight: 1 }}>₹{listing.price}</span>
-                      {listing.origPrice && <span style={{ fontSize: '18px', color: 'var(--text-muted)', textDecoration: 'line-through' }}>₹{listing.origPrice}</span>}
+                {/* RIGHT: details */}
+                <div className="lg:col-span-6 flex flex-col gap-space-md">
+
+                  {/* Item card */}
+                  <section className={'bg-surface-container-lowest rounded-2xl p-space-md md:p-5 shadow-sm flex flex-col gap-3 ' + (listing.featured ? 'ring-2 ring-[#E0A100]/50' : '')}>
+                    {isVerified && (
+                      <span className="self-start inline-flex items-center gap-1 bg-[#2E8B57]/10 text-[#2E8B57] px-2 py-0.5 rounded-full font-label-micro text-label-micro font-bold">
+                        <span className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                        Verified
+                      </span>
+                    )}
+                    <h1 className={'font-headline-md md:font-headline-lg text-headline-md md:text-headline-lg font-semibold leading-snug ' + (listing.sold ? 'text-outline' : 'text-on-surface')}>{listing.title}</h1>
+                    {listing.subtitle && <p className="font-body-md text-body-md text-on-surface-variant -mt-1">{listing.subtitle}</p>}
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className={'font-display-mobile md:font-display text-[32px] font-bold ' + (listing.sold ? 'text-outline' : 'text-primary')}>₹{listing.price}</span>
+                      {listing.origPrice && <span className="font-body-md text-body-md text-outline line-through">₹{listing.origPrice}</span>}
                       {discount > 0 && !listing.sold && (
-                        <span style={{ fontSize: '13px', color: '#fff', background: 'linear-gradient(135deg, #00B86B, #009957)', padding: '5px 14px', borderRadius: '99px', fontWeight: '800', boxShadow: '0 3px 10px rgba(0,184,107,0.25)' }}>Save ₹{listing.origPrice - listing.price}</span>
+                        <span className="bg-primary-fixed text-on-primary-fixed-variant px-2 py-0.5 rounded font-label-micro text-label-micro font-bold">Save ₹{listing.origPrice - listing.price}</span>
                       )}
                     </div>
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                      <span className="tag">
-                        <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M6 1C4.34 1 3 2.34 3 4c0 2.5 3 7 3 7s3-4.5 3-7c0-1.66-1.34-3-3-3z" fill="var(--text-secondary)"/><circle cx="6" cy="4" r="1" fill="var(--bg-card)"/></svg>
-                        {listing.location}
+                    <div className="flex gap-2 flex-wrap">
+                      {listing.location && (
+                        <span className="inline-flex items-center gap-1 bg-surface-container px-2.5 py-1 rounded-full font-label-md text-label-md text-on-surface-variant">
+                          <span className="material-symbols-outlined text-[15px] text-primary">location_on</span>{listing.location}
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1 bg-surface-container px-2.5 py-1 rounded-full font-label-md text-label-md text-on-surface-variant capitalize">
+                        <span className="material-symbols-outlined text-[15px] text-primary">sell</span>{listing.category}
                       </span>
-                      <span className="tag" style={{ textTransform: 'capitalize' }}>🏷️ {listing.category}</span>
-                      <span className="tag">👁️ {listing.views || 0} views</span>
+                      <span className="inline-flex items-center gap-1 bg-surface-container px-2.5 py-1 rounded-full font-label-md text-label-md text-on-surface-variant">
+                        <span className="material-symbols-outlined text-[15px] text-primary">visibility</span>{listing.views || 0} views
+                      </span>
                       {reviewTotal > 0 && (
-                        <span className="tag">
-                          <Stars rating={reviewAvg} size={11} />
-                          <span style={{ fontWeight: '700' }}>{reviewAvg}</span>
-                          <span style={{ color: 'var(--text-muted)' }}>({reviewTotal})</span>
+                        <span className="inline-flex items-center gap-1 bg-surface-container px-2.5 py-1 rounded-full font-label-md text-label-md text-on-surface-variant">
+                          <Stars rating={reviewAvg} size={11} /><b>{reviewAvg}</b><span className="text-outline">({reviewTotal})</span>
                         </span>
                       )}
                     </div>
-                  </div>
 
-                  {/* Seller + CTA */}
-                  <div className="s3" style={{ background: 'var(--bg-card)', borderRadius: '20px', border: '2px solid var(--border)', padding: '22px', marginBottom: '12px', boxShadow: 'var(--shadow-card)' }}>
-                    <div style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-label)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '14px' }}>Seller</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', padding: '12px', background: 'var(--bg)', borderRadius: '14px', border: '2px solid var(--border)' }}>
-                      <div className="kalam" style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #00B86B, #2D7FF9)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', flexShrink: 0 }}>
-                        {listing.seller?.name?.charAt(0).toUpperCase()}
+                    {/* Seller row */}
+                    <div className="bg-surface-container-low rounded-xl p-2.5 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="w-9 h-9 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-label-lg font-bold shrink-0">{sellerInitial}</div>
+                        <div className="min-w-0">
+                          <div className="font-label-lg text-label-lg font-semibold text-on-surface truncate">{sellerName}</div>
+                          <div className="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1.5 flex-wrap">
+                            {reviewTotal > 0 ? (<><Stars rating={reviewAvg} size={11} /><span>{reviewAvg} ({reviewTotal} review{reviewTotal !== 1 ? 's' : ''})</span></>) : <span>No reviews yet</span>}
+                          </div>
+                        </div>
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' }}>{listing.seller?.name}</div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '3px', flexWrap: 'wrap' }}>
-                          {reviewTotal > 0 ? (
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              <Stars rating={reviewAvg} size={12} />
-                              <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>{reviewAvg}</span>
-                              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>({reviewTotal} review{reviewTotal !== 1 ? 's' : ''})</span>
-                            </span>
-                          ) : (
-                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>No reviews yet</span>
+                      {isVerified && <span className="material-symbols-outlined text-[#2E8B57] text-[22px] shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>}
+                    </div>
+                  </section>
+
+                  {/* Verified card */}
+                  {isVerified && (
+                    <section className="bg-surface-container-low rounded-2xl p-space-md flex flex-col gap-2.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-[#2E8B57] text-white flex items-center justify-center">
+                          <span className="material-symbols-outlined text-[18px]">verified_user</span>
+                        </div>
+                        <span className="font-label-lg text-label-lg font-semibold text-on-surface">Verified listing</span>
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-1.5 text-on-surface-variant">
+                          <span className="material-symbols-outlined text-[#2E8B57] text-[16px]">check</span>
+                          <span className="font-body-sm text-body-sm">Seller&apos;s phone number verified</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-on-surface-variant">
+                          <span className="material-symbols-outlined text-[#2E8B57] text-[16px]">check</span>
+                          <span className="font-body-sm text-body-sm">Listing approved by Pageplus</span>
+                        </div>
+                      </div>
+                    </section>
+                  )}
+
+                  {/* Action area */}
+                  {isOwner ? (
+                    <section className="bg-surface-container-lowest rounded-2xl p-space-md shadow-sm flex flex-col gap-2.5">
+                      <div className="bg-[#2E8B57]/10 text-[#2E8B57] rounded-xl p-3 text-center font-label-lg text-label-lg font-bold flex items-center justify-center gap-1.5">
+                        <span className="material-symbols-outlined text-[18px]">check_circle</span>This is your listing
+                      </div>
+                      {listing.status && listing.status !== 'active' && (
+                        <div className={'rounded-xl p-2.5 text-center font-label-md text-label-md font-semibold ' + (listing.status === 'rejected' ? 'bg-error-container text-on-error-container' : 'bg-[#E0A100]/15 text-[#9A6B00]')}>
+                          {listing.status === 'rejected' ? 'Not approved — please check your photos and list again.' : 'Waiting for approval — it will go live once checked.'}
+                        </div>
+                      )}
+                      {listing.featured ? (
+                        <div className="bg-[#E0A100]/10 border border-[#E0A100] rounded-xl p-3 text-center font-label-md text-label-md font-bold text-[#9A6B00] flex items-center justify-center gap-1.5">
+                          <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>Featured — showing at the top of the marketplace
+                        </div>
+                      ) : !listing.sold ? (
+                        <div>
+                          <button onClick={() => setShowTiers(s => !s)}
+                            className={'w-full rounded-xl px-4 py-3 font-label-lg text-label-lg font-bold flex items-center justify-between transition-colors ' + (showTiers ? 'bg-surface-container-low text-on-surface' : 'bg-primary-container text-on-primary shadow-md')}>
+                            <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-[18px]">star</span>Feature this listing</span>
+                            <span className="material-symbols-outlined text-[20px] transition-transform" style={{ transform: showTiers ? 'rotate(180deg)' : 'none' }}>expand_more</span>
+                          </button>
+                          {showTiers && (
+                            <div className="mt-2 flex flex-col gap-2">
+                              <p className="font-body-sm text-body-sm text-on-surface-variant">Choose a plan — your listing appears at the top:</p>
+                              {TIERS.map(t => (
+                                <button key={t.tier} onClick={() => handleFeaturePayment(t.tier, t.price)} disabled={paymentLoading}
+                                  className={'w-full rounded-xl px-4 py-3 flex items-center justify-between text-left transition active:scale-[0.99] disabled:opacity-50 ' + (t.popular ? 'bg-[#FDE7D8] border-[1.5px] border-[#E8632B]' : 'bg-white border border-[#EADFCC]')}>
+                                  <div>
+                                    <div className="font-label-lg text-label-lg font-bold text-on-surface flex items-center gap-2">
+                                      {t.label}
+                                      {t.popular && <span className="bg-primary-container text-on-primary font-label-micro text-label-micro px-1.5 py-0.5 rounded-full">Popular</span>}
+                                    </div>
+                                    <div className="font-body-sm text-body-sm text-on-surface-variant">{t.desc}</div>
+                                  </div>
+                                  <span className="font-headline-sm text-headline-sm font-bold text-primary shrink-0">₹{t.price}</span>
+                                </button>
+                              ))}
+                            </div>
                           )}
                         </div>
+                      ) : null}
+                      <button onClick={() => router.push('/marketplace')} className="w-full rounded-xl py-3 border border-[#EADFCC] text-on-surface font-label-lg text-label-lg font-semibold hover:bg-surface-container-low">Back to listings</button>
+                    </section>
+                  ) : listing.sold ? (
+                    <section className="bg-surface-container-lowest rounded-2xl p-space-md shadow-sm flex flex-col gap-2.5">
+                      <div className="bg-surface-container rounded-xl p-3 text-center font-label-md text-label-md text-on-surface-variant flex items-center justify-center gap-1.5">
+                        <span className="material-symbols-outlined text-[18px]">lock</span>This item has been sold
                       </div>
-                      <div style={{ fontSize: '11px', color: '#00B86B', background: '#DFFFEF', padding: '4px 10px', borderRadius: '99px', fontWeight: '700' }}>Active seller</div>
-                    </div>
-
-                    {isOwner ? (
-                      <div>
-                        <div style={{ background: 'linear-gradient(135deg, #DFFFEF, #B6F5D8)', borderRadius: '14px', padding: '14px', fontSize: '14px', color: '#009957', textAlign: 'center', fontWeight: '800', fontFamily: 'Poppins, sans-serif', border: '2px solid rgba(0,184,107,0.2)', marginBottom: '10px' }}>
-                          ✅ This is your listing
-                        </div>
-                        {listing.featured ? (
-                          <div style={{ background: 'rgba(255,200,61,0.1)', border: '2px solid #FFC83D', borderRadius: '14px', padding: '13px 16px', textAlign: 'center', fontSize: '13px', color: '#B8860B', fontWeight: '800', fontFamily: 'Poppins, sans-serif' }}>
-                            ⭐ Featured — showing at the top of marketplace!
-                          </div>
-                        ) : !listing.sold ? (
-                          <div>
-                            <button onClick={() => setShowTiers(!showTiers)}
-                              style={{ width: '100%', background: showTiers ? 'var(--bg)' : 'linear-gradient(135deg, #FFC83D, #FF6B2C)', color: showTiers ? 'var(--text-primary)' : '#fff', border: showTiers ? '2px solid var(--border)' : 'none', borderRadius: '12px', padding: '13px 16px', fontSize: '14px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'space-between', transition: 'all 0.2s', boxShadow: showTiers ? 'none' : '0 4px 0 #E0851F' }}>
-                              <span>⭐ Feature this listing</span>
-                              <span style={{ fontSize: '18px', transform: showTiers ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', display: 'inline-block' }}>›</span>
-                            </button>
-                            {showTiers && (
-                              <div className="tiers-list" style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px', paddingLeft: '2px' }}>Choose a plan — your listing appears at the top:</div>
-                                {TIERS.map(t => (
-                                  <button key={t.tier} className={'tier-btn' + (t.popular ? ' popular' : '')} onClick={() => handleFeaturePayment(t.tier, t.price)} disabled={paymentLoading}>
-                                    <div style={{ textAlign: 'left' }}>
-                                      <div style={{ fontSize: '13px', fontWeight: '800', color: t.popular ? '#fff' : 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                        {t.label}
-                                        {t.popular && <span style={{ fontSize: '9px', background: 'rgba(255,255,255,0.25)', color: '#fff', padding: '2px 7px', borderRadius: '99px', fontWeight: '800' }}>POPULAR</span>}
-                                      </div>
-                                      <div style={{ fontSize: '11px', color: t.popular ? 'rgba(255,255,255,0.85)' : 'var(--text-muted)', marginTop: '2px' }}>{t.desc}</div>
-                                    </div>
-                                    <div className="kalam" style={{ fontSize: '20px', color: t.popular ? '#fff' : '#FF6B2C', flexShrink: 0 }}>₹{t.price}</div>
-                                  </button>
-                                ))}
+                      <button onClick={() => router.push('/marketplace')} className="w-full rounded-xl py-3 border border-[#EADFCC] text-on-surface font-label-lg text-label-lg font-semibold hover:bg-surface-container-low">Back to listings</button>
+                    </section>
+                  ) : (
+                    <>
+                      {/* How buying works */}
+                      <section className="bg-surface-container rounded-2xl p-space-md flex flex-col gap-3">
+                        <h2 className="font-label-lg text-label-lg font-semibold text-on-surface">How buying works</h2>
+                        <div className="grid grid-cols-3 gap-2 text-center">
+                          {[
+                            { icon: 'forum', t: '1. Chat', s: 'Message the seller' },
+                            { icon: 'event_available', t: '2. Decide', s: 'Agree time & place' },
+                            { icon: 'handshake', t: '3. Meet & pay', s: 'Check, then pay' },
+                          ].map(x => (
+                            <div key={x.t} className="flex flex-col items-center">
+                              <div className="w-10 h-10 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-sm mb-1.5 text-primary">
+                                <span className="material-symbols-outlined text-[20px]">{x.icon}</span>
                               </div>
-                            )}
-                          </div>
-                        ) : null}
-                        <button onClick={() => window.location.href = '/marketplace'}
-                          style={{ width: '100%', background: 'transparent', color: '#00B86B', border: '2px solid #00B86B', borderRadius: '14px', padding: '12px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', marginTop: '10px', transition: 'all 0.15s' }}>
-                          ← Back to listings
-                        </button>
-                      </div>
-                    ) : listing.sold ? (
-                      <div>
-                        <div style={{ background: 'var(--bg)', borderRadius: '14px', padding: '14px', fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', border: '2px solid var(--border)' }}>🔒 Item already sold</div>
-                        <button onClick={() => window.location.href = '/marketplace'}
-                          style={{ width: '100%', background: 'transparent', color: 'var(--text-secondary)', border: '2px solid var(--border)', borderRadius: '14px', padding: '12px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', marginTop: '10px' }}>
-                          ← Back to listings
-                        </button>
-                      </div>
-                    ) : isSignedIn ? (
-                      <div>
-                        <div className="hide-mobile"><WaButton /></div>
-                        <button onClick={() => window.location.href = '/marketplace'}
-                          style={{ width: '100%', background: 'transparent', color: 'var(--text-secondary)', border: '2px solid var(--border)', borderRadius: '14px', padding: '12px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', marginTop: '10px', transition: 'all 0.15s' }}
-                          onMouseEnter={e => (e.currentTarget.style.borderColor = '#00B86B')} onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}>
-                          ← Back to listings
-                        </button>
-                      </div>
-                    ) : (
-                      <div>
-                        <button onClick={() => openSignIn()} style={{ width: '100%', background: 'linear-gradient(135deg,#00B86B,#2D7FF9)', color: '#fff', border: 'none', borderRadius: '16px', padding: '16px', fontSize: '15px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', boxShadow: '0 4px 0 #009957' }}>
-                          Sign in to contact seller
-                        </button>
-                        <button onClick={() => window.location.href = '/marketplace'}
-                          style={{ width: '100%', background: 'transparent', color: 'var(--text-secondary)', border: '2px solid var(--border)', borderRadius: '14px', padding: '12px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', marginTop: '10px' }}>
-                          ← Back to listings
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                              <span className="font-label-md text-[12px] text-on-surface font-semibold">{x.t}</span>
+                              <span className="font-body-sm text-[11px] text-outline leading-tight mt-0.5">{x.s}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                      <div className="hidden md:block">{chatButton('w-full')}</div>
+                    </>
+                  )}
 
                   {/* Safety tip */}
-                  <div className="s4" style={{ borderRadius: '16px', padding: '16px 18px', display: 'flex', gap: '14px', background: 'linear-gradient(135deg, #FFF6DD, #FFEDE2)', border: '2px solid #FFCB94', alignItems: 'flex-start' }}>
-                    <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#FFF6DD', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>🛡️</div>
-                    <div>
-                      <div className="kalam" style={{ fontSize: '13px', color: '#92400E', marginBottom: '4px' }}>Stay safe when buying</div>
-                      <div style={{ fontSize: '12px', color: '#A16207', lineHeight: 1.7, fontWeight: '500' }}>
-                        Meet in a <strong>public place</strong> · Inspect before paying · <strong>Never share OTP</strong> or bank details
-                      </div>
+                  <section className="bg-primary-fixed/40 rounded-2xl p-space-md flex gap-3 items-start">
+                    <div className="w-9 h-9 rounded-xl bg-surface-container-lowest text-primary flex items-center justify-center shrink-0 shadow-sm">
+                      <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>security</span>
                     </div>
-                  </div>
+                    <div>
+                      <h2 className="font-label-md text-label-md font-semibold text-on-surface">Stay safe when buying</h2>
+                      <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Meet in a <strong className="text-on-surface">public place</strong>, check the book before you pay, and <strong className="text-on-surface">never share an OTP</strong> or bank details.</p>
+                    </div>
+                  </section>
                 </div>
               </div>
 
-              {/* REVIEWS SECTION */}
-              <div className="s5" style={{ marginTop: '32px', background: 'var(--bg-card)', borderRadius: '20px', border: '2px solid var(--border)', padding: '24px', boxShadow: 'var(--shadow-card)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+              {/* Seller reviews */}
+              <section className="mt-space-lg bg-surface-container-lowest rounded-2xl p-space-md md:p-6 shadow-sm">
+                <div className="flex items-start justify-between gap-3 flex-wrap mb-4">
                   <div>
-                    <h2 className="kalam" style={{ fontSize: '18px', color: 'var(--text-primary)', marginBottom: '4px' }}>Seller reviews</h2>
+                    <h2 className="font-headline-sm md:font-headline-md text-headline-sm md:text-headline-md text-on-surface mb-1">Seller reviews</h2>
                     {reviewTotal > 0 ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div className="flex items-center gap-2">
                         <Stars rating={reviewAvg} size={16} />
-                        <span style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)' }}>{reviewAvg}</span>
-                        <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>from {reviewTotal} review{reviewTotal !== 1 ? 's' : ''}</span>
+                        <span className="font-label-lg text-label-lg font-bold text-on-surface">{reviewAvg}</span>
+                        <span className="font-body-sm text-body-sm text-outline">from {reviewTotal} review{reviewTotal !== 1 ? 's' : ''}</span>
                       </div>
                     ) : (
-                      <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No reviews yet — be the first!</span>
+                      <span className="font-body-sm text-body-sm text-outline">No reviews yet — be the first!</span>
                     )}
                   </div>
                   {!isOwner && isSignedIn && !reviewDone && (
-                    <button onClick={() => setShowReviewForm(!showReviewForm)}
-                      style={{ background: showReviewForm ? 'var(--bg)' : 'linear-gradient(135deg,#00B86B,#2D7FF9)', color: showReviewForm ? 'var(--text-primary)' : '#fff', border: showReviewForm ? '2px solid var(--border)' : 'none', borderRadius: '10px', padding: '9px 16px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'Poppins, sans-serif' }}>
-                      {showReviewForm ? 'Cancel' : '✍️ Leave a review'}
+                    <button onClick={() => setShowReviewForm(s => !s)} className={'rounded-full px-4 py-2 font-label-md text-label-md font-bold transition-colors ' + (showReviewForm ? 'bg-surface-container-low text-on-surface' : 'bg-primary-container text-on-primary shadow-sm')}>
+                      {showReviewForm ? 'Cancel' : 'Leave a review'}
                     </button>
                   )}
                   {!isOwner && !isSignedIn && (
-                    <button onClick={() => openSignIn()} style={{ background: 'var(--bg)', color: 'var(--text-secondary)', border: '2px solid var(--border)', borderRadius: '10px', padding: '9px 16px', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}>
-                      Sign in to review
-                    </button>
+                    <button onClick={() => openSignIn()} className="rounded-full px-4 py-2 bg-surface-container-low text-on-surface font-label-md text-label-md font-semibold">Sign in to review</button>
                   )}
                 </div>
 
                 {reviewDone && (
-                  <div style={{ background: '#DFFFEF', borderRadius: '12px', padding: '14px 16px', marginBottom: '16px', fontSize: '13px', color: '#009957', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px', border: '2px solid rgba(0,184,107,0.2)' }}>
-                    ✅ Thanks for your review! It helps other buyers.
+                  <div className="bg-[#2E8B57]/10 text-[#2E8B57] rounded-xl p-3 mb-4 font-label-md text-label-md font-semibold flex items-center gap-2">
+                    <span className="material-symbols-outlined text-[18px]">check_circle</span>Thanks for your review! It helps other buyers.
                   </div>
                 )}
 
                 {showReviewForm && !reviewDone && (
-                  <div style={{ background: 'var(--bg)', borderRadius: '16px', padding: '20px', marginBottom: '20px', border: '2px solid #00B86B' }}>
-                    <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '12px' }}>Rate your experience with this seller:</div>
-                    <div style={{ display: 'flex', gap: '4px', marginBottom: '14px' }}>
-                      {[1,2,3,4,5].map(i => (
-                        <button key={i} className="star-btn"
-                          onMouseEnter={() => setHoverRating(i)}
-                          onMouseLeave={() => setHoverRating(0)}
-                          onClick={() => setReviewRating(i)}>
-                          <span style={{ color: i <= (hoverRating || reviewRating) ? '#FFC83D' : '#D1D5DB' }}>★</span>
+                  <div className="bg-surface-container-low rounded-xl p-4 mb-4 border border-[#E8632B]/40">
+                    <p className="font-label-lg text-label-lg font-semibold text-on-surface mb-2">Rate your experience with this seller</p>
+                    <div className="flex items-center gap-1 mb-3">
+                      {[1, 2, 3, 4, 5].map(i => (
+                        <button key={i} aria-label={i + ' star'} onMouseEnter={() => setHoverRating(i)} onMouseLeave={() => setHoverRating(0)} onClick={() => setReviewRating(i)} className="text-[28px] leading-none p-0.5 hover:scale-110 transition-transform">
+                          <span style={{ color: i <= (hoverRating || reviewRating) ? '#E0A100' : '#D9CFC2' }}>★</span>
                         </button>
                       ))}
-                      {reviewRating > 0 && (
-                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)', alignSelf: 'center', marginLeft: '6px' }}>
-                          {['', 'Poor', 'Fair', 'Good', 'Very good', 'Excellent'][reviewRating]}
-                        </span>
-                      )}
+                      {reviewRating > 0 && <span className="font-body-sm text-body-sm text-on-surface-variant ml-1.5">{['', 'Poor', 'Fair', 'Good', 'Very good', 'Excellent'][reviewRating]}</span>}
                     </div>
-                    <textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)}
-                      placeholder="Share your experience (optional)…" rows={3}
-                      style={{ width: '100%', padding: '11px 14px', borderRadius: '12px', border: '2px solid var(--border)', fontSize: '13px', fontFamily: 'Poppins, sans-serif', background: 'var(--bg-input)', resize: 'none', marginBottom: '12px', transition: 'all 0.15s' }} />
-                    <button onClick={submitReview} disabled={submittingReview || reviewRating === 0}
-                      style={{ background: reviewRating > 0 ? 'linear-gradient(135deg,#00B86B,#2D7FF9)' : '#ccc', color: '#fff', border: 'none', borderRadius: '10px', padding: '11px 24px', fontSize: '14px', fontWeight: '800', cursor: reviewRating === 0 ? 'not-allowed' : 'pointer', fontFamily: 'Poppins, sans-serif', transition: 'all 0.2s', boxShadow: reviewRating > 0 ? '0 4px 0 #009957' : 'none' }}>
+                    <textarea value={reviewComment} onChange={e => setReviewComment(e.target.value)} placeholder="Share your experience (optional)…" rows={3} className={inputCls + ' resize-none mb-3'} />
+                    <button onClick={submitReview} disabled={submittingReview || reviewRating === 0} className="bg-primary-container text-on-primary font-label-lg text-label-lg font-bold px-6 py-2.5 rounded-xl shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
                       {submittingReview ? 'Submitting…' : 'Submit review'}
                     </button>
                   </div>
                 )}
 
                 {reviews.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div className="flex flex-col gap-2.5">
                     {reviews.map((r: any) => (
-                      <div key={r.id} className="review-card">
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '6px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div className="kalam" style={{ width: '30px', height: '30px', borderRadius: '50%', background: 'linear-gradient(135deg, #00B86B, #2D7FF9)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', flexShrink: 0 }}>
-                              {r.reviewer?.name?.charAt(0).toUpperCase() || '?'}
-                            </div>
+                      <div key={r.id} className="bg-surface-container-low rounded-xl p-3.5">
+                        <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-label-md font-bold shrink-0">{r.reviewer?.name?.charAt(0).toUpperCase() || '?'}</div>
                             <div>
-                              <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)' }}>{r.reviewer?.name || 'Anonymous'}</div>
+                              <div className="font-label-md text-label-md font-semibold text-on-surface">{r.reviewer?.name || 'Anonymous'}</div>
                               <Stars rating={r.rating} size={11} />
                             </div>
                           </div>
-                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                            {new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </span>
+                          <span className="font-body-sm text-[12px] text-outline">{new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                         </div>
-                        {r.comment && <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginTop: '6px', fontWeight: '500' }}>{r.comment}</p>}
+                        {r.comment && <p className="font-body-sm text-body-sm text-on-surface-variant leading-relaxed mt-1">{r.comment}</p>}
                       </div>
                     ))}
                   </div>
                 ) : (
                   !showReviewForm && (
-                    <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)', fontSize: '13px' }}>
-                      <div style={{ fontSize: '32px', marginBottom: '8px' }}>⭐</div>
-                      No reviews yet for this seller
+                    <div className="text-center py-6 text-outline">
+                      <span className="material-symbols-outlined text-[32px]">star</span>
+                      <p className="font-body-sm text-body-sm mt-1">No reviews yet for this seller</p>
                     </div>
                   )
                 )}
-              </div>
+              </section>
 
-              {/* Related listings */}
+              {/* Related */}
               {related.length > 0 && (
-                <div style={{ marginTop: '40px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <h2 className="kalam" style={{ fontSize: '20px', color: 'var(--text-primary)' }}>More {listing.category}s you might like</h2>
-                    <button onClick={() => router.push('/marketplace')} style={{ fontSize: '12px', color: '#00B86B', background: 'none', border: 'none', cursor: 'pointer', fontWeight: '700' }}>See all →</button>
+                <section className="mt-space-lg">
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="font-headline-sm md:font-headline-md text-headline-sm md:text-headline-md text-on-surface capitalize">More {listing.category}s you might like</h2>
+                    <button onClick={() => router.push('/marketplace')} className="font-label-md text-label-md text-primary font-semibold">See all</button>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: '14px' }}>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
                     {related.map(l => {
                       const d = l.origPrice ? Math.round((1 - l.price / l.origPrice) * 100) : 0
                       return (
-                        <div key={l.id} className="rel-card" onClick={() => { window.location.href = '/listing/' + l.id }}>
-                          <div style={{ height: '130px', background: 'var(--bg-img)', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px' }}>
-                            {l.images?.[0] ? <img className="rel-img" src={l.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span>{l.emoji}</span>}
-                            <span style={{ position: 'absolute', top: '8px', left: '8px', fontSize: '9px', background: l.condition === 'New' ? 'rgba(223,255,239,0.95)' : 'rgba(227,240,255,0.95)', color: l.condition === 'New' ? '#009957' : '#1D4ED8', padding: '2px 7px', borderRadius: '99px', fontWeight: '800' }}>{l.condition}</span>
-                            {d >= 15 && <span style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '9px', background: 'linear-gradient(135deg,#FF6B2C,#FF3D81)', color: '#fff', padding: '2px 7px', borderRadius: '99px', fontWeight: '800' }}>-{d}%</span>}
+                        <div key={l.id} onClick={() => router.push('/listing/' + l.id)} className="bg-surface-container-lowest rounded-2xl p-2.5 shadow-sm hover:shadow-md transition cursor-pointer">
+                          <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden bg-primary-fixed/50 mb-2 flex items-center justify-center text-[36px]">
+                            {l.images?.[0] ? <img src={l.images[0]} alt={l.title} className="w-full h-full object-cover" /> : <span>{l.emoji || '📚'}</span>}
+                            {l.condition && <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-surface-container-lowest/90 text-primary font-label-micro text-[10px] font-bold">{l.condition}</span>}
+                            {d >= 15 && <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-md bg-primary-container text-on-primary font-label-micro text-[10px] font-bold">-{d}%</span>}
                           </div>
-                          <div style={{ padding: '11px 13px' }}>
-                            <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.title}</div>
-                            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: '500' }}>{l.location}</div>
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px' }}>
-                              <span className="kalam" style={{ fontSize: '17px', color: '#00B86B' }}>₹{l.price}</span>
-                              {l.origPrice && <span style={{ fontSize: '10px', color: 'var(--text-muted)', textDecoration: 'line-through' }}>₹{l.origPrice}</span>}
-                            </div>
+                          <h3 className="font-label-lg text-label-lg font-semibold text-on-surface line-clamp-1">{l.title}</h3>
+                          {l.location && <p className="font-body-sm text-[12px] text-outline truncate">{l.location}</p>}
+                          <div className="flex items-baseline gap-1.5 mt-0.5">
+                            <span className="font-headline-sm text-[17px] font-bold text-primary">₹{l.price}</span>
+                            {l.origPrice && <span className="font-body-sm text-[12px] text-outline line-through">₹{l.origPrice}</span>}
                           </div>
                         </div>
                       )
                     })}
                   </div>
-                </div>
+                </section>
               )}
             </>
           )}
         </div>
+      </main>
 
-        {/* Sticky mobile WhatsApp CTA */}
-        {!editing && !isOwner && !listing.sold && (
-          <div className="sticky-cta">
-            {isSignedIn
-              ? <WaButton />
-              : <button onClick={() => openSignIn()} style={{ width: '100%', background: 'linear-gradient(135deg,#00B86B,#2D7FF9)', color: '#fff', border: 'none', borderRadius: '14px', padding: '15px', fontSize: '15px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Poppins, sans-serif' }}>Sign in to contact seller</button>
-            }
+      {/* Sticky chat bar (phones) */}
+      {!editing && canChat && (
+        <aside className="md:hidden fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-8px_24px_rgba(45,30,18,0.08)]">
+          <div className="max-w-md mx-auto px-margin py-space-sm flex items-center justify-between gap-space-md">
+            <div className="flex flex-col shrink-0">
+              <span className="font-label-md text-label-md text-on-surface-variant">Price</span>
+              <span className="font-headline-md text-headline-md text-on-surface">₹{listing.price}</span>
+            </div>
+            {chatButton('flex-1')}
           </div>
-        )}
-      </div>
-    </>
+        </aside>
+      )}
+    </div>
   )
 }

@@ -2,19 +2,19 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser, SignInButton } from '@clerk/nextjs'
+import { DELIVERY_FEE } from '@/lib/kit-prices'
 
 const SCHOOL = 'Shivalik Public School'
 const ADMIN_WA = '919914735738'
-
-const steps = ['Summary', 'Details', 'Delivery', 'Payment']
 
 function CheckoutInner() {
   const router = useRouter()
   const { isSignedIn, user } = useUser()
 
-  const [step, setStep] = useState(0)
+  const [logoOk, setLogoOk] = useState(true)
   const [ordering, setOrdering] = useState(false)
   const [ordered, setOrdered] = useState(false)
+  const [touched, setTouched] = useState(false)
   const [paymentMode, setPaymentMode] = useState<'full' | 'partial'>('full')
   const [deliveryMode, setDeliveryMode] = useState<'pickup' | 'delivery'>('pickup')
   const [address, setAddress] = useState('')
@@ -27,33 +27,61 @@ function CheckoutInner() {
   useEffect(() => {
     const raw = sessionStorage.getItem('buddybooks_kit_order')
     if (!raw) { router.push('/school-sets'); return }
-    const parsed = JSON.parse(raw)
-    // Support both old single-object format and new array format
-    setKits(Array.isArray(parsed) ? parsed : [parsed])
+    try {
+      const parsed = JSON.parse(raw)
+      // Support both old single-object format and new array format
+      setKits(Array.isArray(parsed) ? parsed : [parsed])
+    } catch {
+      router.push('/school-sets')
+      return
+    }
     if (user?.fullName) setName(user.fullName)
   }, [user])
 
   if (!kits || kits.length === 0) return null
 
+  const schoolOf = (k: any): string => k.school || SCHOOL
+  const schoolLabel = Array.from(new Set(kits.map(schoolOf))).join(' + ')
+
   // Combine all kits
-  const allItems = kits.flatMap((k: any) => k.items)
+  const allItems: string[] = kits.flatMap((k: any) => k.items)
   const kitsSubtotal = kits.reduce((sum: number, k: any) => sum + k.kitSubtotal, 0)
   const isMultiKit = kits.length >= 2
   const siblingDiscount = isMultiKit ? Math.round(kitsSubtotal * 0.05) : 0
-  const kitSubtotal = kitsSubtotal - siblingDiscount  // after sibling discount
+  const kitSubtotal = kitsSubtotal - siblingDiscount // after sibling discount
 
-  const deliveryFee = deliveryMode === 'delivery' ? 99 : 0
+  const deliveryFee = deliveryMode === 'delivery' ? DELIVERY_FEE : 0
   const total = kitSubtotal + deliveryFee
   const upfront = Math.ceil(kitSubtotal * 0.3) + deliveryFee
   const payLater = kitSubtotal - Math.ceil(kitSubtotal * 0.3)
   const payNow = paymentMode === 'full' ? total : upfront
   const classLabel = kits.map((k: any) => k.selectedClass).join(', ')
+  const handoverWord = deliveryMode === 'pickup' ? 'pickup' : 'delivery'
+
+  // Form checks
+  const nameOk = name.trim().length > 0
+  const phoneOk = phone.length === 10
+  const addressOk = deliveryMode === 'pickup' || address.trim().length > 0
+  const formOk = nameOk && phoneOk && addressOk
+
+  function startPayment() {
+    if (!formOk) {
+      setTouched(true)
+      document.getElementById('details-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
+    handleOrder()
+  }
 
   async function handleOrder() {
+    if (!(window as any).Razorpay) {
+      alert('Payment is still loading. Please try again in a moment.')
+      return
+    }
     setOrdering(true)
     const numKits = kits!.length
     try {
-       const res = await fetch('/api/payment/create-order', {
+      const res = await fetch('/api/payment/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -73,9 +101,9 @@ function CheckoutInner() {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: order.amount,
         currency: 'INR',
-        name: 'BuddyBooks',
-        description: 'School Kit — Class ' + classLabel + ' (' + SCHOOL + ')',
-        image: '/logo.png',
+        name: 'Pageplus',
+        description: 'School Kit — Class ' + classLabel + ' (' + schoolLabel + ')',
+        image: '/pageplus-logo.png',
         order_id: order.id,
         handler: async (response: any) => {
           try {
@@ -87,7 +115,7 @@ function CheckoutInner() {
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
                 kitData: {
-                  school: SCHOOL, class: classLabel, items: allItems,
+                  school: schoolLabel, class: classLabel, items: allItems,
                   kitSubtotal, deliveryFee, totalAmount: total,
                   siblingDiscount, numKits,
                   paidNow: payNow, payLater: paymentMode === 'full' ? 0 : payLater,
@@ -99,7 +127,7 @@ function CheckoutInner() {
               }),
             })
             const result = await verifyRes.json().catch(() => ({}))
- 
+
             // Payment already succeeded at Razorpay. If verify did NOT confirm,
             // do not fake success — give the customer their Payment ID to follow up.
             if (!verifyRes.ok || !result.success) {
@@ -112,9 +140,9 @@ function CheckoutInner() {
               setOrdering(false)
               return
             }
- 
+
             // Verified + saved — now it's safe to notify the store and show success.
-            const msg = '📦 NEW KIT ORDER\n' + (isMultiKit ? numKits + ' KITS — Classes ' + classLabel : 'Class ' + classLabel) + ' — ' + SCHOOL
+            const msg = '📦 NEW KIT ORDER\n' + (isMultiKit ? numKits + ' KITS — Classes ' + classLabel : 'Class ' + classLabel) + ' — ' + schoolLabel
               + '\nName: ' + name + '\nPhone: ' + phone
               + '\nDelivery: ' + deliveryMode + (deliveryMode === 'delivery' ? '\nAddress: ' + address : '')
               + (siblingDiscount > 0 ? '\nSibling discount: −₹' + siblingDiscount : '')
@@ -135,7 +163,7 @@ function CheckoutInner() {
           }
         },
         prefill: { name, email: user?.primaryEmailAddress?.emailAddress, contact: phone },
-        theme: { color: '#00B86B' },
+        theme: { color: '#C4501A' },
         modal: { ondismiss: () => setOrdering(false) },
       }
       const rzp = new (window as any).Razorpay(options)
@@ -144,322 +172,344 @@ function CheckoutInner() {
     setOrdering(false)
   }
 
-  const css = `
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap');
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #FFF9F0; --white: #fff; --card: #fff; --border: #FFE2C2; --border-strong: #FFCB94;
-      --text: #1A1330; --text-2: #6B6280; --text-3: #A89FC0;
-      --green: #00B86B; --green-dark: #009957; --green-bg: #DFFFEF; --green-border: #9DEAC4;
-      --shadow: 0 2px 14px rgba(124,92,252,0.08); --shadow-lg: 0 12px 40px rgba(124,92,252,0.16); --r: 18px;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root { --bg: #14101F; --white: #1C1730; --card: #221C3A; --border: #352C52; --border-strong: #463A6B; --text: #F3EEFF; --text-2: #B0A8CC; --text-3: #6E6590; --green-bg: #0A3A26; --green-border: #0F5538; --shadow: 0 2px 14px rgba(0,0,0,0.4); --shadow-lg: 0 12px 40px rgba(0,0,0,0.5); }
-    }
-    body { background: var(--bg); font-family: 'Poppins', sans-serif; color: var(--text); -webkit-font-smoothing: antialiased; }
-    .k { font-family: 'Poppins', sans-serif; font-weight: 800; letter-spacing: -0.02em; }
-    input, textarea { color: var(--text) !important; background: var(--bg) !important; border: 2px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 14px; font-family: 'Poppins', sans-serif; width: 100%; outline: none; transition: border 0.15s; }
-    input:focus, textarea:focus { border-color: var(--green) !important; box-shadow: 0 0 0 3px rgba(0,184,107,0.12); }
-    .step-bar-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-    .step-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; transition: all 0.3s; }
-    .step-line { flex: 1; height: 2px; border-radius: 99px; }
-    .pay-card { width: 100%; border-radius: 14px; padding: 16px; cursor: pointer; display: flex; align-items: center; gap: 14px; transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1), border-color 0.15s, background 0.15s, box-shadow 0.15s; border: 2px solid var(--border); background: var(--card); text-align: left; font-family: 'Poppins', sans-serif; margin-bottom: 10px; }
-    .pay-card:hover { transform: translateY(-3px); }
-    .pay-card.active-full { border-color: #00B86B; background: #DFFFEF; box-shadow: 0 6px 20px rgba(0,184,107,0.18); }
-    .pay-card.active-partial { border-color: #2D7FF9; background: #E3F0FF; box-shadow: 0 6px 20px rgba(45,127,249,0.18); }
-    .delivery-btn { flex: 1; padding: 14px; border-radius: 14px; border: 2px solid var(--border); background: var(--card); color: var(--text-2); font-size: 14px; font-weight: 700; cursor: pointer; transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1), border-color 0.15s, background 0.15s; font-family: 'Poppins', sans-serif; }
-    .delivery-btn:hover { transform: translateY(-2px); }
-    .delivery-btn:active { transform: scale(0.97); }
-    .delivery-btn.active { border-color: var(--green); background: var(--green-bg); color: var(--green-dark); }
-    .btn-3d { transition: transform 0.12s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.12s; }
-    .btn-3d:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 6px 0 var(--green-dark) !important; }
-    .btn-3d:not(:disabled):active { transform: translateY(2px); box-shadow: 0 1px 0 var(--green-dark) !important; }
-    @keyframes slideIn { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
-    .slide-in { animation: slideIn 0.25s ease both; }
-    @keyframes pop { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: none; } }
-    .pop { animation: pop 0.3s ease both; }
-  `
+  const inputBase = 'w-full px-4 py-3 rounded-xl bg-white font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-[#E8632B]/20 focus:border-[#E8632B] border '
+  const inputOk = 'border-[#EADFCC]'
+  const inputBad = 'border-error'
 
-  if (ordered) return (
-    <>
-      <style>{css}</style>
-      <script src="https://checkout.razorpay.com/v1/checkout.js" async />
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-        <div className="pop" style={{ background: 'var(--card)', borderRadius: '24px', padding: '40px 32px', maxWidth: '400px', width: '100%', textAlign: 'center', border: '2px solid #00B86B', boxShadow: 'var(--shadow-lg)' }}>
-          <div style={{ fontSize: '56px', marginBottom: '16px' }}>🎉</div>
-          <h2 className="k" style={{ fontSize: '26px', color: '#00B86B', marginBottom: '8px' }}>Order Confirmed!</h2>
-          <p style={{ fontSize: '14px', color: 'var(--text-2)', lineHeight: 1.7, marginBottom: '24px', fontWeight: '500' }}>
-            Your Class {classLabel} kit is confirmed. We've opened WhatsApp to send the details to the store.
+  // ── Order confirmed screen ───────────────────────────────────────────────
+  if (ordered) {
+    return (
+      <div className="bg-surface text-on-surface font-body-md antialiased min-h-screen flex items-center justify-center p-5">
+        <div className="bg-surface-container-lowest rounded-2xl p-8 max-w-sm w-full text-center shadow-[0_8px_20px_-4px_rgba(45,30,18,0.10)] border border-[#EADFCC]">
+          <div className="w-16 h-16 rounded-full bg-[#2E8B57]/15 text-[#2E8B57] flex items-center justify-center mx-auto mb-4">
+            <span className="material-symbols-outlined text-[36px]">check_circle</span>
+          </div>
+          <h2 className="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mb-2">Order Confirmed!</h2>
+          <p className="font-body-md text-body-md text-on-surface-variant mb-6">
+            Your Class {classLabel} kit is confirmed. We&apos;ve opened WhatsApp to send the details to the store.
           </p>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button onClick={() => router.push('/my-orders')} className="btn-3d" style={{ flex: 1, background: 'linear-gradient(135deg,#00B86B,#2D7FF9)', color: '#fff', border: 'none', borderRadius: '14px', padding: '14px', fontSize: '14px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', boxShadow: '0 4px 0 #009957' }}>
-              Track order →
-            </button>
-            <button onClick={() => router.push('/school-sets')} style={{ flex: 1, background: 'var(--green-bg)', color: '#009957', border: '2px solid var(--green-border)', borderRadius: '14px', padding: '14px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', fontFamily: 'Poppins, sans-serif' }}>
-              Order another
-            </button>
+          <div className="flex gap-2.5">
+            <button onClick={() => router.push('/my-orders')} className="flex-1 bg-primary-container text-on-primary font-label-lg text-label-lg font-bold py-3.5 rounded-xl shadow-md active:scale-[0.98] transition-transform">Track order</button>
+            <button onClick={() => router.push('/school-sets')} className="flex-1 bg-surface-container-low text-on-surface font-label-lg text-label-lg font-bold py-3.5 rounded-xl border border-[#EADFCC] active:scale-[0.98] transition-transform">Order another</button>
           </div>
         </div>
       </div>
-    </>
+    )
+  }
+
+  // ── Pay button (used in the phone bar and the desktop card) ─────────────
+  const payButton = isSignedIn ? (
+    <button onClick={startPayment} disabled={ordering}
+      className="flex-1 min-h-[48px] px-space-lg rounded-xl bg-primary-container text-on-primary font-label-lg text-label-lg font-bold shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-space-xs disabled:opacity-60 disabled:cursor-not-allowed w-full">
+      <span>{ordering ? 'Opening payment…' : 'Pay Securely'}</span>
+      {!ordering && <span className="material-symbols-outlined text-[20px]">lock</span>}
+    </button>
+  ) : (
+    <SignInButton mode="modal">
+      <button className="flex-1 min-h-[48px] px-space-lg rounded-xl bg-primary-container text-on-primary font-label-lg text-label-lg font-bold shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-space-xs w-full">
+        <span>Sign in to pay</span>
+        <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+      </button>
+    </SignInButton>
   )
 
   return (
-    <>
-      <style>{css}</style>
-      <script src="https://checkout.razorpay.com/v1/checkout.js" async />
+    <div className="bg-surface text-on-surface font-body-md antialiased flex flex-col min-h-screen">
 
-      {/* Nav */}
-      <nav style={{ background: 'var(--white)', borderBottom: '2px solid var(--border)', padding: '0 20px', height: '56px', display: 'flex', alignItems: 'center', gap: '12px', position: 'sticky', top: 0, zIndex: 50, boxShadow: 'var(--shadow)' }}>
-        <button onClick={() => step > 0 ? setStep(step - 1) : router.push('/school-sets')}
-          style={{ background: 'none', border: '2px solid var(--border)', borderRadius: '10px', padding: '6px 10px', cursor: 'pointer', color: 'var(--text-2)', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        </button>
-        <span className="k" style={{ fontSize: '17px', color: 'var(--text)' }}>Checkout · Class {classLabel}</span>
-        <div style={{ marginLeft: 'auto', fontSize: '12px', color: 'var(--text-3)', fontWeight: '700' }}>🏫 {SCHOOL}</div>
-      </nav>
-
-      {/* Progress stepper */}
-      <div style={{ background: 'var(--white)', borderBottom: '2px solid var(--border)', padding: '14px 20px' }}>
-        <div style={{ maxWidth: '560px', margin: '0 auto', display: 'flex', alignItems: 'center' }}>
-          {steps.map((s, i) => (
-            <div key={s} style={{ display: 'flex', alignItems: 'center', flex: i < steps.length - 1 ? 1 : 'none' }}>
-              <div className="step-bar-item" style={{ flex: 'none' }}>
-                <div className="step-dot" style={{
-                  background: i <= step ? '#00B86B' : 'var(--border)',
-                  color: i <= step ? '#fff' : 'var(--text-3)',
-                  boxShadow: i === step ? '0 0 0 4px rgba(0,184,107,0.2)' : 'none',
-                }}>
-                  {i < step ? '✓' : i + 1}
-                </div>
-                <div style={{ fontSize: '10px', fontWeight: i === step ? '800' : '500', color: i === step ? 'var(--green)' : 'var(--text-3)', whiteSpace: 'nowrap' }}>{s}</div>
-              </div>
-              {i < steps.length - 1 && (
-                <div className="step-line" style={{ background: i < step ? '#00B86B' : 'var(--border)', margin: '0 6px', marginBottom: '16px' }} />
-              )}
+      {/* Header */}
+      <header className="fixed top-0 inset-x-0 z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(45,30,18,0.04)]">
+        <div className="h-16 px-margin md:px-margin-desktop flex items-center justify-between max-w-md mx-auto md:max-w-[1100px]">
+          <div className="flex items-center gap-space-sm">
+            <button aria-label="Go back" onClick={() => router.push('/school-sets')} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container active:scale-95 transition-transform">
+              <span className="material-symbols-outlined text-[24px]">arrow_back</span>
+            </button>
+            <div className="flex flex-col">
+              <h1 className="font-headline-sm text-headline-sm text-on-surface">Checkout</h1>
+              <span className="font-label-micro text-label-micro text-tertiary uppercase tracking-wider">Secure Checkout</span>
             </div>
-          ))}
+          </div>
+          {logoOk ? (
+            <img alt="Pageplus" className="h-9 w-auto object-contain cursor-pointer" src="/pageplus-logo.png" onError={() => setLogoOk(false)} onClick={() => router.push('/')} />
+          ) : (
+            <span className="font-headline-md text-headline-md text-on-surface cursor-pointer" onClick={() => router.push('/')}>Page<span className="text-secondary-container">plus</span></span>
+          )}
         </div>
-      </div>
+      </header>
 
-      <div style={{ maxWidth: '560px', margin: '0 auto', padding: '24px 20px 60px' }}>
+      <main className="flex-1 w-full max-w-md mx-auto md:max-w-[1100px] pt-16 pb-32 lg:pb-12 px-margin md:px-margin-desktop">
+        <div className="pt-space-sm lg:pt-6 lg:grid lg:grid-cols-12 lg:gap-6 lg:items-start">
 
-        {/* STEP 0 — Summary */}
-        {step === 0 && (
-          <div className="slide-in">
-            <h2 className="k" style={{ fontSize: '22px', color: 'var(--text)', marginBottom: '16px' }}>Order Summary</h2>
+          {/* LEFT: delivery, details, kits, payment */}
+          <div className="lg:col-span-7">
 
-            {/* Kit badge */}
-            <div style={{ background: 'linear-gradient(135deg, #00B86B, #2D7FF9)', borderRadius: '18px', padding: '16px 20px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', flexShrink: 0 }}>🎒</div>
-              <div style={{ flex: 1 }}>
-                <div className="k" style={{ fontSize: '18px', color: '#fff' }}>{isMultiKit ? kits.length + " Kits · Classes " + classLabel : "Class " + classLabel + " School Kit"}</div>
-                <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.85)', marginTop: '2px', fontWeight: '500' }}>{SCHOOL} · {allItems.length} items</div>
-              </div>
-              <div className="k" style={{ fontSize: '24px', color: '#fff' }}>₹{kitSubtotal.toLocaleString()}</div>
-            </div>
-
-            {/* Items list — grouped by kit */}
-            <div style={{ background: 'var(--card)', borderRadius: 'var(--r)', border: '2px solid var(--border)', overflow: 'hidden', marginBottom: '16px', boxShadow: 'var(--shadow)' }}>
-              <div style={{ padding: '12px 16px', borderBottom: '2px solid var(--border)', fontSize: '12px', fontWeight: '800', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                {isMultiKit ? 'Items in your kits' : 'Items in your kit'}
-              </div>
-              <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
-                {kits.map((kit: any, ki: number) => (
-                  <div key={ki}>
-                    {isMultiKit && (
-                      <div style={{ padding: '8px 16px', background: 'var(--bg)', fontSize: '12px', fontWeight: '800', color: '#00B86B', borderBottom: '2px solid var(--border)' }}>
-                        🎒 Class {kit.selectedClass} · ₹{kit.kitSubtotal.toLocaleString()}
-                      </div>
-                    )}
-                    {kit.items.map((item: string, i: number) => (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 16px', borderBottom: '1px solid var(--border)', gap: '8px' }}>
-                        <div style={{ fontSize: '13px', color: 'var(--text-2)', flex: 1, fontWeight: '500' }}>{item.split(' ₹')[0]}</div>
-                        <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text)', flexShrink: 0 }}>₹{item.split(' ₹')[1]}</div>
-                      </div>
-                    ))}
+            {/* Delivery mode */}
+            <section className="mb-space-md">
+              <div className="bg-surface-container p-space-xs rounded-xl flex flex-col gap-space-xs shadow-sm">
+                <div className="grid grid-cols-2 gap-space-xs">
+                  <button onClick={() => setDeliveryMode('pickup')} className={'flex flex-col items-start p-space-sm rounded-lg text-left transition-all ' + (deliveryMode === 'pickup' ? 'bg-surface-container-lowest shadow-sm' : 'hover:bg-surface-container-low')}>
+                    <div className="flex items-center justify-between w-full mb-1">
+                      <span className={'flex items-center gap-1 font-label-md text-label-md font-semibold ' + (deliveryMode === 'pickup' ? 'text-primary' : 'text-tertiary')}>
+                        <span className="material-symbols-outlined text-[18px]">storefront</span>
+                        Store Pickup
+                      </span>
+                      <span className="font-label-micro text-label-micro px-1.5 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-bold uppercase">Free</span>
+                    </div>
+                    <span className="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">Sector 40-C store</span>
+                  </button>
+                  <button onClick={() => setDeliveryMode('delivery')} className={'flex flex-col items-start p-space-sm rounded-lg text-left transition-all ' + (deliveryMode === 'delivery' ? 'bg-surface-container-lowest shadow-sm' : 'hover:bg-surface-container-low')}>
+                    <div className="flex items-center justify-between w-full mb-1">
+                      <span className={'flex items-center gap-1 font-label-md text-label-md font-semibold ' + (deliveryMode === 'delivery' ? 'text-primary' : 'text-tertiary')}>
+                        <span className="material-symbols-outlined text-[18px]">local_shipping</span>
+                        Home Delivery
+                      </span>
+                      <span className="font-label-micro text-label-micro px-1.5 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-bold uppercase">₹{DELIVERY_FEE}</span>
+                    </div>
+                    <span className="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">Within 24 hours • Tricity</span>
+                  </button>
+                </div>
+                <div className="flex items-center justify-between bg-primary-fixed/60 px-space-sm py-1.5 rounded-lg text-on-primary-fixed">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="material-symbols-outlined text-[17px] text-primary shrink-0">{deliveryMode === 'delivery' ? 'schedule' : 'store'}</span>
+                    <span className="font-label-md text-label-md font-semibold truncate">
+                      {deliveryMode === 'delivery' ? 'Delivered within 24 hours' : 'Collect from Booth 48, Sector 40-C'}
+                    </span>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Price summary */}
-            <div style={{ background: 'var(--card)', borderRadius: 'var(--r)', border: '2px solid var(--border)', padding: '16px', marginBottom: '20px', boxShadow: 'var(--shadow)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '14px', color: 'var(--text-2)', fontWeight: '500' }}>{isMultiKit ? kits.length + ' kits subtotal' : 'Kit subtotal'}</span>
-                <span style={{ fontSize: '14px', fontWeight: '700' }}>₹{kitsSubtotal.toLocaleString()}</span>
-              </div>
-              {siblingDiscount > 0 && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '14px', color: '#7C5CFC', fontWeight: '700' }}>🎉 Sibling discount (5%)</span>
-                  <span style={{ fontSize: '14px', fontWeight: '800', color: '#7C5CFC' }}>−₹{siblingDiscount.toLocaleString()}</span>
+                  <span className="font-label-micro text-label-micro uppercase tracking-wider text-primary font-bold shrink-0 pl-2">
+                    {deliveryMode === 'delivery' ? 'Tricity' : 'Mon–Sat 9–7'}
+                  </span>
                 </div>
-              )}
-              <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '10px', borderTop: '2px solid var(--border)' }}>
-                <span className="k" style={{ fontSize: '18px' }}>Total</span>
-                <span className="k" style={{ fontSize: '24px', color: '#00B86B' }}>₹{kitSubtotal.toLocaleString()}</span>
               </div>
-              <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '6px', fontWeight: '500' }}>+ delivery fee added at next step</div>
-            </div>
+            </section>
 
-            <button onClick={() => setStep(1)} className="btn-3d"
-              style={{ width: '100%', background: 'linear-gradient(135deg,#00B86B,#2D7FF9)', color: '#fff', border: 'none', borderRadius: '14px', padding: '16px', fontSize: '16px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', boxShadow: '0 4px 0 #009957' }}>
-              Continue → Add details
-            </button>
-          </div>
-        )}
-
-        {/* STEP 1 — Details */}
-        {step === 1 && (
-          <div className="slide-in">
-            <h2 className="k" style={{ fontSize: '22px', color: 'var(--text)', marginBottom: '6px' }}>Your details</h2>
-            <p style={{ fontSize: '13px', color: 'var(--text-3)', marginBottom: '20px', fontWeight: '500' }}>We'll use this to confirm your order and contact you.</p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>Full name *</label>
-                <input value={name} onChange={e => setName(e.target.value)} placeholder="Your full name" />
-              </div>
-              <div>
-                <label style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>WhatsApp number *</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg)', border: '2px solid var(--border)', borderRadius: '10px', padding: '0 12px', fontSize: '13px', color: 'var(--text-3)', flexShrink: 0, gap: '4px', fontWeight: '600' }}>🇮🇳 +91</div>
-                  <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="98765 43210" style={{ border: `2px solid ${phone.length === 10 ? '#00B86B' : 'var(--border)'}` }} />
+            {/* Your details */}
+            <section id="details-card" className="mb-space-md">
+              <div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-sm">
+                <div className="flex items-center gap-space-sm">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary">
+                    <span className="material-symbols-outlined text-[20px]">person</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-label-lg text-label-lg text-on-surface font-semibold">Your details</span>
+                    <span className="font-body-sm text-body-sm text-on-surface-variant">We use these to confirm your order.</span>
+                  </div>
                 </div>
-                {phone.length > 0 && phone.length < 10 && <div style={{ fontSize: '11px', color: '#E24B4A', marginTop: '4px', fontWeight: '600' }}>⚠️ Enter 10-digit number</div>}
-              </div>
-            </div>
 
-            <button onClick={() => { if (!name.trim()) { alert('Please enter your name'); return } if (phone.length < 10) { alert('Please enter a valid WhatsApp number'); return } setStep(2) }} className="btn-3d"
-              style={{ width: '100%', background: name && phone.length === 10 ? 'linear-gradient(135deg,#00B86B,#2D7FF9)' : '#ccc', color: '#fff', border: 'none', borderRadius: '14px', padding: '16px', fontSize: '16px', fontWeight: '800', cursor: name && phone.length === 10 ? 'pointer' : 'not-allowed', fontFamily: 'Poppins, sans-serif', boxShadow: name && phone.length === 10 ? '0 4px 0 #009957' : 'none' }}>
-              Continue → Delivery
-            </button>
-          </div>
-        )}
-
-        {/* STEP 2 — Delivery */}
-        {step === 2 && (
-          <div className="slide-in">
-            <h2 className="k" style={{ fontSize: '22px', color: 'var(--text)', marginBottom: '6px' }}>Delivery option</h2>
-            <p style={{ fontSize: '13px', color: 'var(--text-3)', marginBottom: '20px', fontWeight: '500' }}>Choose how you want to receive your kit.</p>
-
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '16px' }}>
-              <button className={'delivery-btn' + (deliveryMode === 'pickup' ? ' active' : '')} onClick={() => setDeliveryMode('pickup')}>
-                <div style={{ fontSize: '22px', marginBottom: '4px' }}>🏪</div>
-                <div style={{ fontSize: '14px', fontWeight: '800' }}>Pickup</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '2px', fontWeight: '500' }}>Free · Sec-40C store</div>
-              </button>
-              <button className={'delivery-btn' + (deliveryMode === 'delivery' ? ' active' : '')} onClick={() => setDeliveryMode('delivery')}>
-                <div style={{ fontSize: '22px', marginBottom: '4px' }}>🚚</div>
-                <div style={{ fontSize: '14px', fontWeight: '800' }}>Home delivery</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '2px', fontWeight: '500' }}>+₹99 · Chandigarh tricity</div>
-              </button>
-            </div>
-
-            {deliveryMode === 'pickup' && (
-              <div style={{ background: '#DFFFEF', border: '2px solid #9DEAC4', borderRadius: '14px', padding: '14px 16px', marginBottom: '20px', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                <span style={{ fontSize: '20px', flexShrink: 0 }}>📍</span>
                 <div>
-                  <div style={{ fontSize: '13px', fontWeight: '800', color: '#009957', marginBottom: '2px' }}>Bedi Book Store</div>
-                  <div style={{ fontSize: '12px', color: '#065F46', lineHeight: 1.6, fontWeight: '500' }}>Booth No. 48, Sector-40C, Chandigarh<br />Mon–Sat · 9am–7pm</div>
+                  <label className="font-label-micro text-label-micro uppercase text-on-surface-variant block mb-1.5">Full name *</label>
+                  <input value={name} onChange={e => setName(e.target.value)} placeholder="Your full name" type="text" className={inputBase + (touched && !nameOk ? inputBad : inputOk)} />
+                  {touched && !nameOk && <p className="font-body-sm text-body-sm text-error mt-1">Please enter your name.</p>}
+                </div>
+
+                <div>
+                  <label className="font-label-micro text-label-micro uppercase text-on-surface-variant block mb-1.5">WhatsApp number *</label>
+                  <div className="flex gap-2">
+                    <div className="flex items-center px-3 rounded-xl bg-surface-container-low border border-[#EADFCC] font-label-md text-label-md text-on-surface-variant shrink-0">+91</div>
+                    <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="98765 43210" type="text" inputMode="numeric" className={inputBase + (phone.length === 10 ? 'border-[#2E8B57]' : (touched && !phoneOk ? inputBad : inputOk))} />
+                  </div>
+                  {((phone.length > 0 && phone.length < 10) || (touched && phone.length === 0)) && <p className="font-body-sm text-body-sm text-error mt-1">Enter a 10-digit number.</p>}
+                </div>
+
+                {deliveryMode === 'delivery' ? (
+                  <div>
+                    <label className="font-label-micro text-label-micro uppercase text-on-surface-variant block mb-1.5">Delivery address *</label>
+                    <textarea value={address} onChange={e => setAddress(e.target.value)} placeholder="House/flat no., street, sector, city…" rows={3} className={inputBase + 'resize-none ' + (touched && !addressOk ? inputBad : inputOk)} />
+                    {touched && !addressOk && <p className="font-body-sm text-body-sm text-error mt-1">Please enter your delivery address.</p>}
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-space-sm bg-surface-container-low p-3 rounded-lg">
+                    <span className="material-symbols-outlined text-[20px] text-primary mt-0.5 shrink-0">location_on</span>
+                    <div className="flex flex-col">
+                      <span className="font-label-md text-label-md text-on-surface font-semibold">Bedi Book Store</span>
+                      <span className="font-body-sm text-body-sm text-on-surface-variant">Booth No. 48, Sector-40C, Chandigarh • Mon–Sat, 9am–7pm</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </section>
+
+            {/* Kits */}
+            {kits.map((kit: any, ki: number) => (
+              <section key={ki} className="mb-space-md">
+                <div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-xs">
+                  <div className="flex items-center justify-between gap-2 pb-1">
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-headline-sm text-headline-sm text-on-surface font-semibold truncate">{schoolOf(kit)} · Class {kit.selectedClass}</span>
+                      <span className="font-label-md text-label-md text-tertiary">{kit.items.length} items · ₹{kit.kitSubtotal.toLocaleString('en-IN')}</span>
+                    </div>
+                    <button onClick={() => router.push('/school-sets')} className="font-label-md text-label-md text-primary font-semibold px-2 py-1 rounded-lg hover:bg-primary-fixed/40 transition-colors shrink-0">Edit</button>
+                  </div>
+                  <div className="flex flex-col max-h-72 overflow-y-auto">
+                    {kit.items.map((item: string, i: number) => {
+                      const cut = item.lastIndexOf(' ₹')
+                      const itemName = cut > -1 ? item.slice(0, cut) : item
+                      const itemPrice = cut > -1 ? item.slice(cut + 2) : ''
+                      return (
+                        <div key={i} className="flex items-center justify-between gap-3 py-2 border-b border-[#EADFCC]/70 last:border-0">
+                          <span className="font-label-md text-label-md text-on-surface-variant flex-1 min-w-0">{itemName}</span>
+                          {itemPrice && <span className="font-label-lg text-label-lg text-on-surface font-semibold shrink-0">₹{itemPrice}</span>}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              </section>
+            ))}
+
+            {/* Payment option */}
+            <section className="mb-space-md">
+              <div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-sm">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-headline-sm text-headline-sm text-on-surface font-semibold">Payment Option</h2>
+                  <span className="font-label-micro text-label-micro text-primary uppercase font-bold tracking-wider">Safe &amp; Secure</span>
+                </div>
+                <div className="flex flex-col gap-space-xs">
+                  <button onClick={() => setPaymentMode('full')} className={'w-full flex items-center justify-between gap-2 p-space-sm rounded-xl text-left transition-colors ' + (paymentMode === 'full' ? 'bg-surface-container-low' : 'hover:bg-surface-container-low')}>
+                    <div className="flex items-center gap-space-sm min-w-0">
+                      <span className={'w-5 h-5 rounded-full flex items-center justify-center shrink-0 ' + (paymentMode === 'full' ? 'bg-primary text-on-primary' : 'bg-surface-container-highest')}>
+                        {paymentMode === 'full' && <span className="material-symbols-outlined text-[14px]">done</span>}
+                      </span>
+                      <div className="flex flex-col min-w-0">
+                        <span className="font-label-lg text-label-lg text-on-surface font-semibold">Pay full amount</span>
+                        <span className="font-body-sm text-body-sm text-tertiary">Nothing left to pay at {handoverWord}.</span>
+                      </div>
+                    </div>
+                    <span className="font-headline-sm text-headline-sm text-on-surface font-bold shrink-0">₹{total.toLocaleString('en-IN')}</span>
+                  </button>
+
+                  <button onClick={() => setPaymentMode('partial')} className={'w-full flex items-center justify-between gap-2 p-space-sm rounded-xl text-left transition-colors ' + (paymentMode === 'partial' ? 'bg-surface-container-low' : 'hover:bg-surface-container-low')}>
+                    <div className="flex items-center gap-space-sm min-w-0">
+                      <span className={'w-5 h-5 rounded-full flex items-center justify-center shrink-0 ' + (paymentMode === 'partial' ? 'bg-primary text-on-primary' : 'bg-surface-container-highest')}>
+                        {paymentMode === 'partial' && <span className="material-symbols-outlined text-[14px]">done</span>}
+                      </span>
+                      <div className="flex flex-col min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-label-lg text-label-lg text-on-surface font-semibold">Pay 30% now</span>
+                          <span className="bg-primary-fixed text-primary font-label-micro text-label-micro px-1.5 py-0.5 rounded-full font-bold">Popular</span>
+                        </div>
+                        <span className="font-body-sm text-body-sm text-tertiary">₹{payLater.toLocaleString('en-IN')} to pay at {handoverWord}.</span>
+                      </div>
+                    </div>
+                    <span className="font-headline-sm text-headline-sm text-on-surface font-bold shrink-0">₹{upfront.toLocaleString('en-IN')}</span>
+                  </button>
+                </div>
+                <div className="flex items-start gap-2 bg-surface-container-low p-2.5 rounded-lg">
+                  <span className="material-symbols-outlined text-[18px] text-primary shrink-0">lock</span>
+                  <span className="font-body-sm text-body-sm text-on-surface-variant">Secure payment via Razorpay. UPI, cards and netbanking are available on the payment screen.</span>
                 </div>
               </div>
-            )}
-
-            {deliveryMode === 'delivery' && (
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ fontSize: '11px', fontWeight: '800', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'block', marginBottom: '6px' }}>Delivery address *</label>
-                <textarea value={address} onChange={e => setAddress(e.target.value)} placeholder="House/flat no., street, sector, city…" rows={3} style={{ resize: 'none' }} />
-              </div>
-            )}
-
-            {/* Order total preview */}
-            <div style={{ background: 'var(--card)', borderRadius: '14px', border: '2px solid var(--border)', padding: '14px 16px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontSize: '12px', color: 'var(--text-3)', fontWeight: '500' }}>Kit ₹{kitSubtotal.toLocaleString()} {deliveryMode === 'delivery' ? '+ delivery ₹99' : '+ free pickup'}</div>
-                <div className="k" style={{ fontSize: '20px', color: '#00B86B', marginTop: '2px' }}>Total ₹{total.toLocaleString()}</div>
-              </div>
-              <span style={{ fontSize: '20px' }}>{deliveryMode === 'pickup' ? '🏪' : '🚚'}</span>
-            </div>
-
-            <button onClick={() => { if (deliveryMode === 'delivery' && !address.trim()) { alert('Please enter delivery address'); return } setStep(3) }} className="btn-3d"
-              style={{ width: '100%', background: 'linear-gradient(135deg,#00B86B,#2D7FF9)', color: '#fff', border: 'none', borderRadius: '14px', padding: '16px', fontSize: '16px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', boxShadow: '0 4px 0 #009957' }}>
-              Continue → Payment
-            </button>
+            </section>
           </div>
-        )}
 
-        {/* STEP 3 — Payment */}
-        {step === 3 && (
-          <div className="slide-in">
-            <h2 className="k" style={{ fontSize: '22px', color: 'var(--text)', marginBottom: '6px' }}>Choose payment</h2>
-            <p style={{ fontSize: '13px', color: 'var(--text-3)', marginBottom: '20px', fontWeight: '500' }}>Secure payment via Razorpay.</p>
+          {/* RIGHT: price details, trust, policy, store */}
+          <aside className="lg:col-span-5 lg:sticky lg:top-24 self-start">
+            <section className="mb-space-md">
+              <div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-xs">
+                <h3 className="font-headline-sm text-headline-sm text-on-surface font-semibold mb-1">Price Details</h3>
+                <div className="flex items-center justify-between py-1">
+                  <span className="font-body-md text-body-md text-on-surface-variant">{isMultiKit ? kits.length + ' kits' : 'Kit'} ({allItems.length} items)</span>
+                  <span className="font-body-md text-body-md text-on-surface">₹{kitsSubtotal.toLocaleString('en-IN')}</span>
+                </div>
+                {siblingDiscount > 0 && (
+                  <div className="flex items-center justify-between py-1">
+                    <span className="font-body-md text-body-md text-on-surface-variant">Sibling discount (5%)</span>
+                    <span className="font-body-md text-body-md text-[#2E8B57] font-medium">−₹{siblingDiscount.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between py-1">
+                  <span className="font-body-md text-body-md text-on-surface-variant">{deliveryMode === 'delivery' ? 'Home delivery' : 'Store pickup'}</span>
+                  {deliveryFee > 0
+                    ? <span className="font-body-md text-body-md text-on-surface">₹{deliveryFee}</span>
+                    : <span className="font-label-md text-label-md text-primary font-bold">FREE</span>}
+                </div>
+                <div className="my-1.5 h-px bg-surface-container" />
+                <div className="flex items-center justify-between pt-1">
+                  <span className="font-label-lg text-label-lg text-on-surface font-bold">Total</span>
+                  <span className="font-headline-md text-headline-md text-on-surface font-bold">₹{total.toLocaleString('en-IN')}</span>
+                </div>
+                {paymentMode === 'partial' && (
+                  <div className="mt-1 bg-surface-container-low rounded-lg p-2.5 flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-label-md text-label-md text-on-surface font-semibold">Pay now (30%)</span>
+                      <span className="font-label-lg text-label-lg text-primary font-bold">₹{upfront.toLocaleString('en-IN')}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-body-sm text-body-sm text-on-surface-variant">Pay at {handoverWord}</span>
+                      <span className="font-body-sm text-body-sm text-on-surface-variant">₹{payLater.toLocaleString('en-IN')}</span>
+                    </div>
+                  </div>
+                )}
 
-            {/* Full payment */}
-            <button className={'pay-card' + (paymentMode === 'full' ? ' active-full' : '')} onClick={() => setPaymentMode('full')}>
-              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: paymentMode === 'full' ? '#00B86B' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0, transition: 'background 0.15s' }}>💳</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '14px', fontWeight: '800', color: paymentMode === 'full' ? '#009957' : 'var(--text)', marginBottom: '3px' }}>Pay full amount</div>
-                <div style={{ fontSize: '12px', color: 'var(--text-3)', fontWeight: '500' }}>Pay ₹{total.toLocaleString()} now. Kit assembled immediately.</div>
+                {/* Desktop pay button */}
+                <div className="hidden lg:flex mt-3">{payButton}</div>
               </div>
-              <div className="k" style={{ fontSize: '20px', color: paymentMode === 'full' ? '#00B86B' : 'var(--text-3)', flexShrink: 0 }}>₹{total.toLocaleString()}</div>
-            </button>
+            </section>
 
-            {/* 30% upfront */}
-            <button className={'pay-card' + (paymentMode === 'partial' ? ' active-partial' : '')} onClick={() => setPaymentMode('partial')} style={{ position: 'relative' }}>
-              <div style={{ position: 'absolute', top: '-8px', right: '12px', background: 'linear-gradient(135deg, #2D7FF9, #7C5CFC)', color: '#fff', fontSize: '10px', fontWeight: '900', padding: '3px 10px', borderRadius: '99px' }}>POPULAR</div>
-              <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: paymentMode === 'partial' ? '#2D7FF9' : 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0, transition: 'background 0.15s' }}>🤝</div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '14px', fontWeight: '800', color: paymentMode === 'partial' ? '#2D7FF9' : 'var(--text)', marginBottom: '3px' }}>Pay 30% now</div>
-                <div style={{ fontSize: '12px', color: 'var(--text-3)', lineHeight: 1.5, fontWeight: '500' }}>Pay ₹{upfront.toLocaleString()} now. ₹{payLater.toLocaleString()} at {deliveryMode === 'pickup' ? 'pickup' : 'delivery'}.</div>
+            {/* Trust strip */}
+            <section className="mb-space-md">
+              <div className="grid grid-cols-3 gap-space-xs text-center">
+                <div className="bg-surface-container-low p-space-sm rounded-xl flex flex-col items-center justify-center gap-1">
+                  <span className="material-symbols-outlined text-[20px] text-primary">verified</span>
+                  <span className="font-label-micro text-label-micro text-on-surface leading-tight font-semibold">100% Correct Syllabus</span>
+                </div>
+                <div className="bg-surface-container-low p-space-sm rounded-xl flex flex-col items-center justify-center gap-1">
+                  <span className="material-symbols-outlined text-[20px] text-primary">published_with_changes</span>
+                  <span className="font-label-micro text-label-micro text-on-surface leading-tight font-semibold">24h Exchange</span>
+                </div>
+                <div className="bg-surface-container-low p-space-sm rounded-xl flex flex-col items-center justify-center gap-1">
+                  <span className="material-symbols-outlined text-[20px] text-primary">support_agent</span>
+                  <span className="font-label-micro text-label-micro text-on-surface leading-tight font-semibold">WhatsApp Support</span>
+                </div>
               </div>
-              <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                <div className="k" style={{ fontSize: '18px', color: paymentMode === 'partial' ? '#2D7FF9' : 'var(--text-3)' }}>₹{upfront.toLocaleString()}</div>
-                <div style={{ fontSize: '10px', color: 'var(--text-3)', fontWeight: '500' }}>now</div>
+            </section>
+
+            {/* Policy note */}
+            <section className="mb-space-md">
+              <div className="bg-surface-container-low p-3 rounded-xl flex items-start gap-2">
+                <span className="material-symbols-outlined text-[18px] text-tertiary shrink-0 mt-0.5">info</span>
+                <p className="font-body-sm text-body-sm text-on-surface-variant leading-snug">
+                  Once your kit has been picked up or delivered, there is no cancellation or refund. After that, exchange is available within 24 hours.
+                </p>
               </div>
-            </button>
+            </section>
 
-            {/* Summary box */}
-            <div style={{ background: paymentMode === 'full' ? '#DFFFEF' : '#E3F0FF', borderRadius: '14px', padding: '14px 16px', marginBottom: '20px', border: '2px solid ' + (paymentMode === 'full' ? '#9DEAC4' : '#BFDBFE') }}>
-              <div style={{ fontSize: '12px', color: paymentMode === 'full' ? '#065F46' : '#1E40AF', lineHeight: 1.6, fontWeight: '500' }}>
-                {paymentMode === 'full'
-                  ? '✅ You pay ₹' + total.toLocaleString() + ' now. Kit assembled right away.'
-                  : '🤝 Pay ₹' + upfront.toLocaleString() + ' now to confirm. Remaining ₹' + payLater.toLocaleString() + ' at ' + (deliveryMode === 'pickup' ? 'pickup' : 'delivery') + '.'}
+            {/* Store card */}
+            <section>
+              <div className="bg-surface-container-lowest p-space-sm rounded-xl flex items-center justify-between gap-space-sm shadow-sm">
+                <div className="flex items-center gap-space-sm min-w-0">
+                  <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-primary shrink-0">
+                    <span className="material-symbols-outlined text-[24px]">menu_book</span>
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-label-md text-label-md text-on-surface font-semibold truncate">Bedi Book Store, Sec 40-C</span>
+                    <span className="font-body-sm text-body-sm text-tertiary">Serving Chandigarh since 1994</span>
+                  </div>
+                </div>
+                <a aria-label="Chat with the store on WhatsApp" className="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-on-surface hover:bg-surface-container-high transition-colors shrink-0" href={'https://wa.me/' + ADMIN_WA} target="_blank" rel="noopener noreferrer">
+                  <span className="material-symbols-outlined text-[18px]">chat</span>
+                </a>
               </div>
-            </div>
+            </section>
+          </aside>
+        </div>
+      </main>
 
-            {/* Order recap */}
-            <div style={{ background: 'var(--card)', borderRadius: '14px', border: '2px solid var(--border)', padding: '14px 16px', marginBottom: '20px', fontSize: '13px', color: 'var(--text-2)', lineHeight: 1.8, fontWeight: '500' }}>
-              <div>👤 {name} · 📱 +91 {phone}</div>
-              <div>{deliveryMode === 'pickup' ? '🏪 Pickup — Sector-40C, Chandigarh' : '🚚 Delivery — ' + address}</div>
-              <div>📦 Class {classLabel} · {allItems.length} items</div>
-            </div>
-
-            {isSignedIn ? (
-              <button onClick={handleOrder} disabled={ordering}
-                style={{ width: '100%', background: paymentMode === 'full' ? 'linear-gradient(135deg,#00B86B,#009957)' : 'linear-gradient(135deg,#2D7FF9,#1D4ED8)', color: '#fff', border: 'none', borderRadius: '14px', padding: '17px', fontSize: '16px', fontWeight: '800', cursor: ordering ? 'not-allowed' : 'pointer', fontFamily: 'Poppins, sans-serif', boxShadow: paymentMode === 'full' ? '0 4px 0 #009957' : '0 4px 0 #1D4ED8', opacity: ordering ? 0.7 : 1 }}>
-                {ordering ? 'Opening payment…' : paymentMode === 'full' ? '✅ Pay ₹' + total.toLocaleString() + ' & Confirm' : '🤝 Pay ₹' + upfront.toLocaleString() + ' to Book Kit'}
-              </button>
-            ) : (
-              <SignInButton mode="modal">
-                <button className="btn-3d" style={{ width: '100%', background: 'linear-gradient(135deg,#00B86B,#2D7FF9)', color: '#fff', border: 'none', borderRadius: '14px', padding: '17px', fontSize: '16px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', boxShadow: '0 4px 0 #009957' }}>Sign in to pay →</button>
-              </SignInButton>
-            )}
-
-            <p style={{ fontSize: '11px', color: 'var(--text-3)', textAlign: 'center', marginTop: '10px', lineHeight: 1.5, fontWeight: '500' }}>
-              Secure payment via Razorpay · Exchange within 10 days with bill
-            </p>
+      {/* Bottom pay bar (phone and tablet) */}
+      <aside className="lg:hidden fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-8px_24px_rgba(45,30,18,0.08)]">
+        <div className="max-w-md mx-auto px-margin py-space-sm flex items-center justify-between gap-space-md">
+          <div className="flex flex-col shrink-0">
+            <span className="font-label-md text-label-md text-on-surface-variant">{paymentMode === 'full' ? 'Total Payable' : 'Pay Now (30%)'}</span>
+            <span className="font-headline-md text-headline-md text-on-surface">₹{payNow.toLocaleString('en-IN')}</span>
           </div>
-        )}
-
-      </div>
-    </>
+          {payButton}
+        </div>
+      </aside>
+    </div>
   )
 }
 
 export default function CheckoutPage() {
   return (
-    <Suspense fallback={<div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Poppins, sans-serif', color: '#6B6280' }}>Loading checkout…</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-surface text-on-surface-variant font-body-md">Loading checkout…</div>}>
       <CheckoutInner />
     </Suspense>
   )
