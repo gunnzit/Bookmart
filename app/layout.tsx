@@ -9,21 +9,21 @@ const APP_URL = 'https://buddybooks.in'
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
   title: {
-    default: 'BuddyBooks — Buy & Sell Second-Hand Books in Chandigarh',
-    template: '%s | BuddyBooks Chandigarh',
+    default: 'Pageplus — Buy & Sell Second-Hand Books in Chandigarh',
+    template: '%s | Pageplus Chandigarh',
   },
   description: 'Buy and sell second-hand textbooks, novels, notebooks and stationery from students near you in Chandigarh, Mohali and Panchkula. Save up to 60% on school books.',
   keywords: [
     'buy books Chandigarh', 'sell books Chandigarh', 'second hand books Chandigarh',
     'used textbooks Chandigarh', 'NCERT books Chandigarh', 'second hand books Mohali',
     'buy sell books Panchkula', 'student marketplace Chandigarh', 'school books Chandigarh',
-    'cheap books Chandigarh', 'BuddyBooks', 'Bedi Book Store', 'Sector 40 Chandigarh books',
+    'cheap books Chandigarh', 'Pageplus', 'BuddyBooks', 'Bedi Book Store', 'Sector 40 Chandigarh books',
     'DPS books Chandigarh', 'Shivalik Public School books', 'JEE books Chandigarh',
     'NEET books Chandigarh', 'school kit Chandigarh', 'notebook stationery Chandigarh',
   ],
-  authors: [{ name: 'BuddyBooks', url: APP_URL }],
+  authors: [{ name: 'Pageplus', url: APP_URL }],
   creator: 'Bedi Book Store',
-  publisher: 'BuddyBooks',
+  publisher: 'Pageplus',
   robots: {
     index: true,
     follow: true,
@@ -33,13 +33,13 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_IN',
     url: APP_URL,
-    siteName: 'BuddyBooks',
-    title: 'BuddyBooks — Buy & Sell Second-Hand Books in Chandigarh',
+    siteName: 'Pageplus',
+    title: 'Pageplus — Buy & Sell Second-Hand Books in Chandigarh',
     description: 'Student marketplace for second-hand books, notebooks and stationery in Chandigarh Tricity. Save up to 60% on school and college books.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'BuddyBooks — Buy & Sell Second-Hand Books in Chandigarh',
+    title: 'Pageplus — Buy & Sell Second-Hand Books in Chandigarh',
     description: 'Student marketplace for second-hand books in Chandigarh Tricity. Free to list, no commission.',
   },
   icons: {
@@ -63,7 +63,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               __html: JSON.stringify({
                 '@context': 'https://schema.org',
                 '@type': 'LocalBusiness',
-                name: 'BuddyBooks — Bedi Book Store',
+                name: 'Pageplus — Bedi Book Store',
                 description: 'Student marketplace for buying and selling second-hand books, notebooks and stationery in Chandigarh.',
                 url: APP_URL,
                 telephone: '+919914735738',
@@ -97,7 +97,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               __html: JSON.stringify({
                 '@context': 'https://schema.org',
                 '@type': 'WebSite',
-                name: 'BuddyBooks',
+                name: 'Pageplus',
                 url: APP_URL,
                 potentialAction: {
                   '@type': 'SearchAction',
