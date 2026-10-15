@@ -8,20 +8,20 @@ datasource db {
 }
 
 model User {
-  id              String        @id @default(cuid())
-  name            String
-  email           String        @unique
-  phone           String?
-  location        String?
-  createdAt       DateTime      @default(now())
-  clerkId         String?       @unique
-  listings        Listing[]
-  orders          Order[]
-  wishlist        Wishlist[]
-  bookRequests    BookRequest[]
-  reviewsGiven    Review[]      @relation("ReviewsGiven")
-  reviewsReceived Review[]      @relation("ReviewsReceived")
-  kitOrders       KitOrder[]
+  id        String     @id @default(cuid())
+  name      String
+  email     String     @unique
+  phone     String?
+  location  String?
+  createdAt DateTime   @default(now())
+  clerkId   String?    @unique
+  listings  Listing[]
+  orders    Order[]
+  wishlist  Wishlist[]
+  bookRequests BookRequest[]
+  reviewsGiven    Review[] @relation("ReviewsGiven")
+  reviewsReceived Review[] @relation("ReviewsReceived")
+  kitOrders KitOrder[]
 }
 
 model Listing {
@@ -144,7 +144,7 @@ model playing_with_neon {
 
 model ProjectRequest {
   id          String   @id @default(cuid())
-  userId      String
+  userId      String                        // Clerk user id of the student
   buyerName   String   @default("")
   phone       String
   category    String
@@ -154,18 +154,27 @@ model ProjectRequest {
   size        String?
   description String?
   photoUrl    String?
+ 
   status      String   @default("quote_requested")
+  // quote_requested -> quoted -> in_progress -> ready -> delivered (or cancelled)
+ 
+  // Quote (admin-set, rupees)
   quotePrice    Int?
   advanceAmount Int?
   quoteNote     String?
+ 
+  // Payments (stored in paise)
   advancePaidPaise Int     @default(0)
   balancePaidPaise Int     @default(0)
   advanceOrderId   String?
   advancePaymentId String?
   balanceOrderId   String?
   balancePaymentId String?
+ 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+ 
   @@index([userId])
   @@index([status])
 }
+ 
