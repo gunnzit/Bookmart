@@ -1,48 +1,42 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { PrismaClient } from '@prisma/client'
+import { sendWhatsApp } from '@/lib/whatsapp'
 
-const otpStore = new Map<string, { otp: string; expires: number }>()
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
+const prisma = globalForPrisma.prisma ?? new PrismaClient()
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
-export async function POST(req: NextRequest) {
-  const { phone } = await req.json()
-  if (!phone || phone.length < 10) return NextResponse.json({ error: 'Invalid phone' }, { status: 400 })
+export async function GET(request: Request, context: any) {
+  try {
+    const { id } = await context.params
+    const { searchParams } = new URL(request.url)
+    const action = searchParams.get('action')
 
-  const cleaned = phone.replace(/\D/g, '')
-  const e164 = cleaned.startsWith('91') ? cleaned : `91${cleaned}`
-  const otp = Math.floor(100000 + Math.random() * 900000).toString()
+    if (action !== 'approve' && action !== 'reject') {
+      return new Response('Invalid action', { status: 400 })
+    }
 
-  otpStore.set(e164, { otp, expires: Date.now() + 10 * 60 * 1000 }) // 10 min expiry
+    const listing = await prisma.listing.update({
+      where: { id },
+      data: { status: action === 'approve' ? 'active' : 'rejected' },
+      include: { seller: true },
+    })
 
-  await fetch(`https://graph.facebook.com/v19.0/${process.env.META_PHONE_NUMBER_ID}/messages`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.META_WHATSAPP_TOKEN}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      messaging_product: 'whatsapp',
-      to: e164,
-      type: 'text',
-      text: { body: `Your BuddyBooks verification code is: *${otp}*\n\nValid for 10 minutes. Do not share this with anyone.` },
-    }),
-  })
+    // Fire WhatsApp notification (non-blocking — won't break approval if it fails)
+    if (listing.seller?.phone) {
+      const message = action === 'approve'
+        ? `✅ *Your listing is live on Pageplus!*\n\n📚 *${listing.title}*\n💰 ₹${listing.price}\n\nView it here: https://buddybooks.in/listing/${listing.id}\n\n_Bedi Book Store · Pageplus_`
+        : `❌ *Your listing was not approved.*\n\n📚 *${listing.title}*\n\nReason: Does not meet our listing guidelines. Please check your photos (MRP tag must be visible) and re-list.\n\nQuestions? Chat with us: https://wa.me/919914735738\n\n_Bedi Book Store · Pageplus_`
 
-  return NextResponse.json({ success: true })
-}
+      sendWhatsApp(listing.seller.phone, message).catch(() => {
+        // Silently ignore — approval is unaffected
+      })
+    }
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url)
-  const phone = searchParams.get('phone')
-  const otp = searchParams.get('otp')
-  if (!phone || !otp) return NextResponse.json({ valid: false })
+    const isApprove = action === 'approve'
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${isApprove ? 'Approved' : 'Rejected'}</title><style>body{font-family:sans-serif;background:#f7f6f3;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}.card{background:#fff;border-radius:16px;padding:40px;text-align:center;max-width:400px;box-shadow:0 4px 24px rgba(0,0,0,.08)}h1{color:${isApprove ? '#1D9E75' : '#E24B4A'}}a{display:inline-block;margin-top:20px;background:#1B2A4A;color:#fff;padding:12px 28px;border-radius:10px;text-decoration:none}</style></head><body><div class="card"><h1>${isApprove ? '✅ Approved!' : '❌ Rejected'}</h1><p>${listing.title}</p><p>₹${listing.price} · ${listing.location}</p><a href="https://buddybooks.in/admin">Admin Panel</a></div></body></html>`
 
-  const cleaned = phone.replace(/\D/g, '')
-  const e164 = cleaned.startsWith('91') ? cleaned : `91${cleaned}`
-  const record = otpStore.get(e164)
-
-  if (!record) return NextResponse.json({ valid: false, reason: 'No OTP sent' })
-  if (Date.now() > record.expires) { otpStore.delete(e164); return NextResponse.json({ valid: false, reason: 'Expired' }) }
-  if (record.otp !== otp) return NextResponse.json({ valid: false, reason: 'Wrong OTP' })
-
-  otpStore.delete(e164)
-  return NextResponse.json({ valid: true })
+    return new Response(html, { headers: { 'Content-Type': 'text/html' } })
+  } catch (error) {
+    return new Response('Error: ' + String(error), { status: 500 })
+  }
 }
