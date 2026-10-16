@@ -1,17 +1,14 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
-import { useUser, SignInButton, useClerk } from '@clerk/nextjs'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import BottomNav from '@/components/BottomNav'
+import { useUser, useClerk, SignInButton } from '@clerk/nextjs'
 
-// ── Contact (change here only) ────────────────────────────────────────────
-const WHATSAPP_NUMBER = '918872235738'
-const WA_HELP_LINK = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent('Hi, I need help on Pageplus')
+const SHADOW = 'shadow-[0_6px_20px_rgba(120,70,40,0.08)]'
 
-const cats = ['All', 'textbook', 'novel', 'notebook', 'art', 'stationery', 'competitive']
-const sortOptions = ['Newest', 'Cheapest', 'Most expensive', 'Active only']
-const areas = ['All areas', 'Chandigarh', 'Mohali', 'Panchkula']
-const conditions = ['New', 'Good', 'Fair']
+const CATS = ['All', 'textbook', 'novel', 'notebook', 'art', 'stationery', 'competitive']
+const SORTS = ['Newest', 'Cheapest', 'Most expensive', 'Active only']
+const AREAS = ['All areas', 'Chandigarh', 'Mohali', 'Panchkula']
+const CONDS = ['New', 'Good', 'Fair']
 
 function areaMatch(location: string, area: string) {
   const loc = (location || '').toLowerCase()
@@ -19,29 +16,33 @@ function areaMatch(location: string, area: string) {
   return loc.includes(area.toLowerCase())
 }
 
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+
 export default function Marketplace() {
   const router = useRouter()
   const { isSignedIn, user } = useUser()
   const { openSignIn } = useClerk()
 
-  const [logoOk, setLogoOk] = useState(true)
   const [listings, setListings] = useState<any[]>([])
   const [search, setSearch] = useState('')
-  const [activeCat, setActiveCat] = useState('All')
-  const [sortBy, setSortBy] = useState('Newest')
+  const [cat, setCat] = useState('All')
   const [area, setArea] = useState('All areas')
+  const [sortBy, setSortBy] = useState('Newest')
   const [under150, setUnder150] = useState(false)
   const [cond, setCond] = useState<string | null>(null)
-  const [showSortMenu, setShowSortMenu] = useState(false)
-  const [showAreaMenu, setShowAreaMenu] = useState(false)
-  const [showSuggestions, setShowSuggestions] = useState(false)
+  const [filterOpen, setFilterOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [unread, setUnread] = useState(0)
+  const [saved, setSaved] = useState<Set<string>>(new Set())
 
-  const searchRef = useRef<HTMLDivElement>(null)
-  const sortRef = useRef<HTMLDivElement>(null)
-  const areaRef = useRef<HTMLDivElement>(null)
+  // Search text carried over from the Home page (?q=...)
+  useEffect(() => {
+    try {
+      const qq = new URLSearchParams(window.location.search).get('q')
+      if (qq) setSearch(qq)
+    } catch {}
+  }, [])
 
   // Keep the user record in sync
   useEffect(() => {
@@ -50,7 +51,7 @@ export default function Marketplace() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ clerkId: user.id, name: user.fullName, email: user.primaryEmailAddress?.emailAddress }),
-      })
+      }).catch(() => {})
     }
   }, [isSignedIn, user])
 
@@ -72,79 +73,87 @@ export default function Marketplace() {
     return () => { stop = true; clearInterval(t) }
   }, [isSignedIn])
 
-  // Load listings, and refresh when the tab becomes visible again
+  // Which books this person has saved
   useEffect(() => {
-    function fetchListings() {
-      setLoading(true)
+    if (!isSignedIn || !user) { setSaved(new Set()); return }
+    fetch('/api/wishlist?userId=' + user.id)
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setSaved(new Set(d.map((w: any) => w.listingId))) })
+      .catch(() => {})
+  }, [isSignedIn, user])
+
+  // Load listings, and refresh quietly when the tab becomes visible again
+  useEffect(() => {
+    let first = true
+    function load() {
       fetch('/api/listings?t=' + Date.now(), { cache: 'no-store' })
-        .then(res => res.json())
-        .then(data => {
-          if (Array.isArray(data)) { setListings(data); setError('') }
-          else setError('Could not load listings')
-          setLoading(false)
+        .then(r => r.json())
+        .then(d => {
+          if (Array.isArray(d)) { setListings(d); setError('') }
+          else if (first) setError('Could not load listings')
         })
-        .catch(() => { setError('Could not connect to database'); setLoading(false) })
+        .catch(() => { if (first) setError('Could not connect. Check your internet and try again.') })
+        .finally(() => { first = false; setLoading(false) })
     }
-    fetchListings()
-    const onVisible = () => { if (document.visibilityState === 'visible') fetchListings() }
+    load()
+    const onVisible = () => { if (document.visibilityState === 'visible') load() }
     document.addEventListener('visibilitychange', onVisible)
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [])
 
-  // Close dropdowns on outside click
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (searchRef.current && !searchRef.current.contains(e.target as Node)) setShowSuggestions(false)
-      if (sortRef.current && !sortRef.current.contains(e.target as Node)) setShowSortMenu(false)
-      if (areaRef.current && !areaRef.current.contains(e.target as Node)) setShowAreaMenu(false)
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [])
-
-  // Only live listings (sold ones still show, with a SOLD tag)
+  // Only live listings (sold ones still show, with a Sold mark)
   const visible = listings.filter((l: any) => !l.status || l.status === 'active')
 
-  const filtered = visible.filter((l: any) => {
-    const q = search.toLowerCase().trim()
-    const matchCat = activeCat === 'All' || l.category === activeCat
-    const matchSearch = !q
-      || (l.title || '').toLowerCase().includes(q)
-      || (l.subtitle || '').toLowerCase().includes(q)
-      || (l.category || '').toLowerCase().includes(q)
-      || (l.location || '').toLowerCase().includes(q)
-      || (l.condition || '').toLowerCase().includes(q)
-    const matchActive = sortBy !== 'Active only' || !l.sold
-    const matchArea = area === 'All areas' || areaMatch(l.location, area)
-    const matchPrice = !under150 || Number(l.price) <= 150
-    const matchCond = !cond || l.condition === cond
-    return matchCat && matchSearch && matchActive && matchArea && matchPrice && matchCond
-  }).sort((a: any, b: any) => {
-    if (sortBy === 'Cheapest') return a.price - b.price
-    if (sortBy === 'Most expensive') return b.price - a.price
-    if (a.featured && !b.featured) return -1
-    if (!a.featured && b.featured) return 1
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  })
-
-  const suggestions = search.length > 1
-    ? visible.filter((l: any) => (l.title || '').toLowerCase().includes(search.toLowerCase()) || (l.subtitle || '').toLowerCase().includes(search.toLowerCase())).slice(0, 5)
-    : []
+  const filtered = visible
+    .filter((l: any) => {
+      const q = search.toLowerCase().trim()
+      const matchSearch = !q
+        || (l.title || '').toLowerCase().includes(q)
+        || (l.subtitle || '').toLowerCase().includes(q)
+        || (l.category || '').toLowerCase().includes(q)
+        || (l.location || '').toLowerCase().includes(q)
+        || (l.condition || '').toLowerCase().includes(q)
+      return (cat === 'All' || l.category === cat)
+        && matchSearch
+        && (sortBy !== 'Active only' || !l.sold)
+        && (area === 'All areas' || areaMatch(l.location, area))
+        && (!under150 || Number(l.price) <= 150)
+        && (!cond || l.condition === cond)
+    })
+    .sort((a: any, b: any) => {
+      if (sortBy === 'Cheapest') return a.price - b.price
+      if (sortBy === 'Most expensive') return b.price - a.price
+      if (a.featured && !b.featured) return -1
+      if (!a.featured && b.featured) return 1
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    })
 
   const activeCount = visible.filter((l: any) => !l.sold).length
-  const hasFilters = activeCat !== 'All' || sortBy !== 'Newest' || !!search || area !== 'All areas' || under150 || !!cond
+  const sheetFilters = (sortBy !== 'Newest' ? 1 : 0) + (under150 ? 1 : 0) + (cond ? 1 : 0)
+  const anyFilter = cat !== 'All' || area !== 'All areas' || !!search || sheetFilters > 0
 
   function clearAll() {
-    setActiveCat('All'); setSortBy('Newest'); setSearch(''); setArea('All areas'); setUnder150(false); setCond(null)
+    setCat('All'); setArea('All areas'); setSearch(''); setSortBy('Newest'); setUnder150(false); setCond(null)
   }
 
-  function discountOf(l: any) {
-    const p = Number(l.price)
-    const o = Number(l.origPrice)
-    return o > p && p > 0 ? Math.round((1 - p / o) * 100) : 0
+  async function toggleHeart(l: any, e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!isSignedIn || !user) { openSignIn(); return }
+    try {
+      const res = await fetch('/api/wishlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, listingId: l.id }),
+      })
+      const d = await res.json()
+      setSaved(prev => {
+        const next = new Set(prev)
+        if (d.saved) next.add(l.id); else next.delete(l.id)
+        return next
+      })
+    } catch {}
   }
 
-  // ── Chat with seller (opens the in-app chat) ─────────────────────────────
   function openChat(l: any, e: React.MouseEvent) {
     e.stopPropagation()
     if (!isSignedIn) { openSignIn(); return }
@@ -152,311 +161,259 @@ export default function Marketplace() {
     router.push('/messages/new?listing=' + l.id)
   }
 
-  const sellButton = (className: string, children: React.ReactNode) =>
-    isSignedIn
-      ? <button className={className} onClick={() => router.push('/sell')}>{children}</button>
-      : <SignInButton mode="modal"><button className={className}>{children}</button></SignInButton>
+  function goSell() {
+    if (!isSignedIn) { openSignIn(); return }
+    router.push('/sell')
+  }
 
-  const navLink = 'font-label-lg text-label-lg text-on-surface-variant hover:text-primary-container transition-colors px-3 py-2 rounded-full hover:bg-surface-container-low whitespace-nowrap'
-  const chip = 'px-3.5 py-1.5 rounded-full font-label-md text-label-md whitespace-nowrap shadow-sm transition-colors shrink-0 '
+  const iconBtn = 'relative w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#1E1B19] active:scale-90 transition-transform ' + SHADOW
+  const chip = (on: boolean) => 'px-4 py-2 rounded-full text-[13px] whitespace-nowrap shrink-0 active:scale-95 transition-transform ' + (on ? 'bg-[#E8632B] text-white font-semibold ' : 'bg-white text-[#1E1B19] font-medium ') + SHADOW
+  const sheetPill = (on: boolean) => 'px-3.5 py-1.5 rounded-full text-[13px] whitespace-nowrap transition-colors active:scale-95 ' + (on ? 'bg-[#E8632B] text-white font-semibold' : 'bg-[#FFF1EA] text-[#1E1B19] font-medium')
 
   return (
-    <div className="bg-surface text-on-surface font-body-md antialiased flex flex-col min-h-screen">
+    <div
+      className="min-h-screen text-[#1E1B19] antialiased font-['Plus_Jakarta_Sans',sans-serif]"
+      style={{ background: 'linear-gradient(180deg, #FDEADF 0%, #FFF7F2 100%)' }}
+    >
+      {/* Filter sheet */}
+      {filterOpen && (
+        <div className="fixed inset-0 z-[400] bg-black/45 flex items-end md:items-center justify-center" onClick={() => setFilterOpen(false)}>
+          <div className="bg-white rounded-t-[28px] md:rounded-[28px] p-6 w-full max-w-md shadow-[0_-10px_35px_rgba(30,27,25,0.2)]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }} onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1.5 rounded-full bg-[#F0E2DA] mx-auto mb-4 md:hidden" />
+            <div className="flex items-start justify-between gap-3 mb-5">
+              <div>
+                <h3 className="text-[18px] font-bold">Sort and filter</h3>
+                <p className="text-[13px] text-[#9A908A] mt-0.5">{filtered.length} {filtered.length === 1 ? 'book' : 'books'} match</p>
+              </div>
+              <button aria-label="Close" onClick={() => setFilterOpen(false)} className="w-9 h-9 rounded-full bg-[#FFF1EA] flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
 
-      {/* Header */}
-      <header className="fixed top-0 inset-x-0 z-50 bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(45,30,18,0.04)] pt-safe">
-        <div className="h-20 px-margin md:px-margin-desktop flex items-center justify-between gap-space-sm md:gap-6 max-w-md mx-auto md:max-w-[1200px]">
-          <div className="flex items-center gap-space-sm md:gap-4 min-w-0">
-            {logoOk ? (
-              <img alt="Pageplus" className="h-10 w-auto object-contain shrink-0 cursor-pointer" src="/pageplus-logo.png" onError={() => setLogoOk(false)} onClick={() => router.push('/')} />
-            ) : (
-              <span className="font-headline-md text-headline-md text-on-surface shrink-0 cursor-pointer" onClick={() => router.push('/')}>Page<span className="text-secondary-container">plus</span></span>
-            )}
-            <span className="hidden sm:flex items-center gap-1 bg-surface-container-low px-space-sm py-1 rounded-full min-w-0">
-              <span className="material-symbols-outlined text-[16px] text-primary shrink-0">location_on</span>
-              <span className="font-label-micro text-label-micro text-on-surface-variant font-bold truncate max-w-[110px] sm:max-w-[200px]">Sector 40-C • Chandigarh</span>
-            </span>
+            <div className="flex flex-col gap-5">
+              <div>
+                <p className="text-[13px] font-semibold mb-2">Sort by</p>
+                <div className="flex flex-wrap gap-2">
+                  {SORTS.map(s => <button key={s} onClick={() => setSortBy(s)} className={sheetPill(sortBy === s)}>{s}</button>)}
+                </div>
+              </div>
+              <div>
+                <p className="text-[13px] font-semibold mb-2">Price</p>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => setUnder150(v => !v)} className={sheetPill(under150)}>Under ₹150</button>
+                </div>
+              </div>
+              <div>
+                <p className="text-[13px] font-semibold mb-2">Condition</p>
+                <div className="flex flex-wrap gap-2">
+                  {CONDS.map(c => <button key={c} onClick={() => setCond(cond === c ? null : c)} className={sheetPill(cond === c)}>{c}</button>)}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2.5 mt-7">
+              <button onClick={() => { setSortBy('Newest'); setUnder150(false); setCond(null) }} className="h-[52px] px-6 rounded-full bg-white border border-[#F0E2DA] text-[15px] font-semibold active:scale-95 transition-transform">Clear</button>
+              <button onClick={() => setFilterOpen(false)} className="flex-1 h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform">
+                Show {filtered.length} {filtered.length === 1 ? 'book' : 'books'}
+              </button>
+            </div>
           </div>
+        </div>
+      )}
 
-          <nav className="hidden lg:flex items-center gap-1">
-            <button className={navLink} onClick={() => router.push('/school-sets')}>School Sets</button>
-            <button className={navLink + ' !text-primary-container font-bold'} onClick={() => router.push('/marketplace')}>Marketplace</button>
-            <button className={navLink} onClick={() => router.push('/requests')}>Requests</button>
-          </nav>
+      <main className="w-full max-w-md md:max-w-5xl mx-auto px-5 pb-36 flex flex-col gap-5" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
 
-          <div className="flex items-center gap-1 shrink-0">
-            {sellButton('hidden md:flex items-center gap-1.5 bg-primary-container text-on-primary font-label-lg text-label-lg font-bold px-4 py-2.5 rounded-full shadow-sm active:scale-95 transition-transform mr-1', (<><span className="material-symbols-outlined text-[18px]">add</span><span>Sell</span></>))}
-            <button aria-label="Saved books" onClick={() => router.push('/wishlist')} className="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant transition-colors active:bg-surface-container">
-              <span className="material-symbols-outlined text-[22px]">favorite</span>
-            </button>
-            <button aria-label={unread > 0 ? 'Messages, ' + unread + ' unread' : 'Messages'} onClick={() => router.push('/messages')} className="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant transition-colors active:bg-surface-container relative">
-              <span className="material-symbols-outlined text-[22px]">forum</span>
+        {/* 1. App bar */}
+        <header className="flex items-center justify-between">
+          <a href="/" className="text-[26px] font-extrabold tracking-tight leading-none active:scale-95 transition-transform">
+            Page<span className="text-[#E8632B]">plus</span>
+          </a>
+          <div className="flex items-center gap-2.5">
+            <nav className="hidden md:flex items-center gap-1 mr-2">
+              <a href="/" className="px-3 py-2 rounded-full text-[14px] font-medium text-[#5E5650] hover:text-[#1E1B19]">Home</a>
+              <a href="/school-sets" className="px-3 py-2 rounded-full text-[14px] font-medium text-[#5E5650] hover:text-[#1E1B19]">Sets</a>
+              <a href="/requests" className="px-3 py-2 rounded-full text-[14px] font-medium text-[#5E5650] hover:text-[#1E1B19]">Requests</a>
+            </nav>
+            <button aria-label={unread > 0 ? 'Messages, ' + unread + ' unread' : 'Messages'} onClick={() => router.push('/messages')} className={iconBtn}>
+              <span className="material-symbols-outlined text-[20px]">forum</span>
               {unread > 0 && (
-                <span className="absolute top-1.5 right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-primary-container text-on-primary text-[10px] font-bold flex items-center justify-center ring-2 ring-surface">{unread > 9 ? '9+' : unread}</span>
+                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#E8632B] text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-[#FFF7F2]">{unread > 9 ? '9+' : unread}</span>
               )}
             </button>
-            <a aria-label="WhatsApp Support" className="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant transition-colors active:bg-surface-container relative" href={WA_HELP_LINK} rel="noopener noreferrer" target="_blank">
-              <span className="material-symbols-outlined text-[22px] text-tertiary">support_agent</span>
-            </a>
+            <button aria-label="Saved books" onClick={() => router.push('/wishlist')} className={iconBtn}>
+              <span className="material-symbols-outlined text-[20px]">favorite</span>
+            </button>
             {isSignedIn ? (
-              <button aria-label="Profile" onClick={() => router.push('/profile')} className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0 ml-1 shadow-[0_2px_8px_-2px_rgba(45,30,18,0.06)]">
-                <span className="material-symbols-outlined text-on-primary text-[18px]">person</span>
+              <button aria-label="Profile" onClick={() => router.push('/profile')} className={iconBtn}>
+                <span className="material-symbols-outlined text-[20px]">person</span>
               </button>
             ) : (
               <SignInButton mode="modal">
-                <button aria-label="Sign in" className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0 ml-1 shadow-[0_2px_8px_-2px_rgba(45,30,18,0.06)]">
-                  <span className="material-symbols-outlined text-on-primary text-[18px]">person</span>
+                <button aria-label="Sign in" className={iconBtn}>
+                  <span className="material-symbols-outlined text-[20px]">person</span>
                 </button>
               </SignInButton>
             )}
           </div>
+        </header>
+
+        {/* 2. Search */}
+        <div className={'flex items-center w-full h-12 bg-white rounded-full pl-4 pr-1.5 gap-2.5 ' + SHADOW}>
+          <span className="material-symbols-outlined text-[20px] text-[#9A908A] shrink-0">search</span>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search NCERT, RD Sharma, Class 10…"
+            type="text"
+            className="flex-1 min-w-0 bg-transparent text-[14px] text-[#1E1B19] placeholder:text-[#9A908A] focus:outline-none"
+          />
+          {search && (
+            <button aria-label="Clear search" onClick={() => setSearch('')} className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-[#9A908A]">
+              <span className="material-symbols-outlined text-[18px]">close</span>
+            </button>
+          )}
+          <button aria-label="Sort and filter" onClick={() => setFilterOpen(true)} className="relative w-9 h-9 rounded-full bg-[#FFF1EA] flex items-center justify-center text-[#1E1B19] shrink-0 active:scale-90 transition-transform">
+            <span className="material-symbols-outlined text-[18px]">tune</span>
+            {sheetFilters > 0 && <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#E8632B] ring-2 ring-[#FFF1EA]" />}
+          </button>
         </div>
-      </header>
 
-      <main className="flex-1 w-full max-w-md mx-auto md:max-w-[1200px] pt-20 pb-40 md:pb-16 px-margin md:px-margin-desktop">
-        <div className="flex flex-col w-full space-y-4 pt-4 md:pt-6">
-
-          {/* Search + filter button */}
-          <div className="flex items-center gap-2">
-            <div ref={searchRef} className="relative flex-1">
-              <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
-              <input value={search} onChange={e => { setSearch(e.target.value); setShowSuggestions(true) }} onFocus={() => setShowSuggestions(true)}
-                className="w-full h-11 pl-10 pr-10 rounded-xl bg-surface-container-lowest text-on-surface font-body-sm text-body-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-container/20 transition-all placeholder:text-outline"
-                placeholder="Search books, notebooks, class, school..." type="text" />
-              {search && (
-                <button aria-label="Clear search" onClick={() => { setSearch(''); setShowSuggestions(false) }} className="absolute right-3 top-1/2 -translate-y-1/2 text-outline">
-                  <span className="material-symbols-outlined text-[18px]">close</span>
-                </button>
-              )}
-              {showSuggestions && suggestions.length > 0 && (
-                <div className="absolute z-30 left-0 right-0 top-12 bg-surface-container-lowest rounded-xl shadow-lg overflow-hidden border border-outline-variant">
-                  {suggestions.map((l: any) => (
-                    <button key={l.id} onClick={() => router.push('/listing/' + l.id)} className="w-full flex items-center gap-3 px-3 py-2.5 text-left active:bg-surface-container border-b border-[#EADFCC]/70 last:border-0">
-                      <div className="w-9 h-9 rounded-lg bg-primary-fixed flex items-center justify-center overflow-hidden shrink-0 text-[18px]">
-                        {l.images?.[0] ? <img src={l.images[0]} alt="" className="w-full h-full object-cover" /> : <span>{l.emoji || '📚'}</span>}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-label-md text-label-md text-on-surface font-semibold truncate">{l.title}</div>
-                        <div className="font-body-sm text-[12px] text-primary font-bold">₹{l.price} · {l.location}</div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
+        {/* 3. Sell card */}
+        <section className={'bg-white rounded-[22px] p-3.5 flex items-center justify-between gap-3 ' + SHADOW}>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-11 h-11 rounded-full bg-[#FCE3D6] text-[#E8632B] flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-[24px]">add_photo_alternate</span>
             </div>
-
-            <div ref={sortRef} className="relative shrink-0">
-              <button aria-label="Sort and filter" onClick={() => setShowSortMenu(o => !o)} className="w-11 h-11 rounded-xl bg-surface-container-high flex items-center justify-center text-on-surface shadow-sm active:scale-95 transition-transform">
-                <span className="material-symbols-outlined text-[20px]">tune</span>
-              </button>
-              {showSortMenu && (
-                <div className="absolute z-30 right-0 top-12 min-w-[180px] bg-surface-container-lowest rounded-xl shadow-lg overflow-hidden border border-outline-variant">
-                  {sortOptions.map(opt => (
-                    <button key={opt} onClick={() => { setSortBy(opt); setShowSortMenu(false) }} className={'w-full text-left px-4 py-3 font-label-md text-label-md flex items-center gap-2 active:bg-surface-container ' + (sortBy === opt ? 'text-primary font-bold bg-primary-fixed/40' : 'text-on-surface')}>
-                      {sortBy === opt && <span className="material-symbols-outlined text-[16px]">check</span>}
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              )}
+            <div className="min-w-0">
+              <h2 className="text-[15px] font-bold leading-tight">Sell your old books</h2>
+              <p className="text-[12px] text-[#9A908A] mt-0.5">Free to list · You keep the full price</p>
             </div>
           </div>
+          <button onClick={goSell} className="px-4 py-2.5 rounded-full bg-[#E8632B] text-white text-[14px] font-bold flex items-center gap-1 shrink-0 shadow-[0_4px_14px_rgba(232,99,43,0.35)] active:scale-95 transition-transform">
+            <span className="material-symbols-outlined text-[18px]">add</span>Sell
+          </button>
+        </section>
 
-          {/* Category chips */}
-          <div className="flex gap-2 overflow-x-auto -mx-margin px-margin md:mx-0 md:px-0 py-0.5 scrollbar-none">
-            {cats.map(c => (
-              <button key={c} onClick={() => setActiveCat(c)} className={chip + 'capitalize ' + (activeCat === c ? 'bg-primary-container text-on-primary-container' : 'bg-surface-container-lowest text-on-surface-variant hover:bg-surface-container')}>
-                {c === 'All' ? 'All Pre-Loved' : c}
-              </button>
+        {/* 4. Category chips and meetup area */}
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center gap-2 overflow-x-auto -mx-5 px-5 pb-1" style={{ scrollbarWidth: 'none' }}>
+            {CATS.map(c => (
+              <button key={c} onClick={() => setCat(c)} className={chip(cat === c)}>{c === 'All' ? 'All' : cap(c)}</button>
             ))}
           </div>
-
-          {/* Sell banner */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary-fixed to-surface-container-high p-4 md:p-6 shadow-sm">
-            <div className="relative z-10 flex flex-col gap-2.5 md:max-w-xl">
-              <div className="flex items-center justify-between gap-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-surface-container-lowest text-primary font-label-micro text-label-micro shadow-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
-                  0% COMMISSION
-                </span>
-                <span className="font-label-micro text-label-micro text-on-surface-variant uppercase tracking-wider">Chandigarh Tricity</span>
-              </div>
-              <div>
-                <h2 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-primary-fixed font-bold leading-tight">Have old books from last session?</h2>
-                <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">List in 2 minutes • You keep 100% of the price • Meet nearby, check the book, then pay</p>
-              </div>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1">
-                {sellButton('h-11 px-4 rounded-xl bg-primary-container text-on-primary font-label-lg text-label-lg shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2', (<><span className="material-symbols-outlined text-[20px]">add_circle</span>Sell Your Books Now</>))}
-                <div className="flex items-center gap-1.5 px-1 py-1 text-on-surface-variant font-label-micro text-label-micro">
-                  <span className="material-symbols-outlined text-tertiary text-[16px] shrink-0">verified_user</span>
-                  <span>Every listing is checked by our team before it goes live</span>
-                </div>
-              </div>
+          <div>
+            <p className="text-[12px] text-[#9A908A] mb-2 px-0.5">Meetup area</p>
+            <div className="flex items-center gap-2 overflow-x-auto -mx-5 px-5 pb-1" style={{ scrollbarWidth: 'none' }}>
+              {AREAS.map(a => (
+                <button key={a} onClick={() => setArea(a)} className={chip(area === a)}>{a}</button>
+              ))}
             </div>
-            <span className="material-symbols-outlined absolute -right-4 -bottom-6 text-[120px] md:text-[160px] text-primary/10 select-none pointer-events-none">menu_book</span>
+          </div>
+        </section>
+
+        {/* 5. Books */}
+        <section className="flex flex-col gap-3">
+          <div className="flex items-baseline justify-between gap-3">
+            <h1 className="text-[17px] font-bold">Books in your neighbourhood</h1>
+            <span className="text-[13px] text-[#5E5650] shrink-0">
+              {loading ? '…' : anyFilter ? filtered.length + ' found' : activeCount + ' available'}
+            </span>
           </div>
 
-          {/* Quick filters */}
-          <div className="flex items-center gap-2 pt-1 overflow-x-auto scrollbar-none -mx-margin px-margin md:mx-0 md:px-0">
-            <div ref={areaRef} className="relative shrink-0">
-              <button onClick={() => setShowAreaMenu(o => !o)} className={'flex items-center gap-1 px-3 py-1.5 rounded-full font-label-md text-label-md shadow-sm ' + (area !== 'All areas' ? 'bg-primary-fixed text-on-primary-fixed-variant font-semibold' : 'bg-surface-container-lowest text-on-surface')}>
-                <span className="material-symbols-outlined text-[16px] text-primary">my_location</span>
-                <span>{area}</span>
-                <span className="material-symbols-outlined text-[16px] text-outline">arrow_drop_down</span>
-              </button>
-              {showAreaMenu && (
-                <div className="absolute z-30 left-0 top-10 min-w-[160px] bg-surface-container-lowest rounded-xl shadow-lg overflow-hidden border border-outline-variant">
-                  {areas.map(a => (
-                    <button key={a} onClick={() => { setArea(a); setShowAreaMenu(false) }} className={'w-full text-left px-4 py-3 font-label-md text-label-md flex items-center gap-2 active:bg-surface-container ' + (area === a ? 'text-primary font-bold bg-primary-fixed/40' : 'text-on-surface')}>
-                      {area === a && <span className="material-symbols-outlined text-[16px]">check</span>}
-                      {a}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <button onClick={() => setUnder150(v => !v)} className={chip + (under150 ? 'bg-primary-fixed text-on-primary-fixed-variant font-semibold' : 'bg-surface-container-lowest text-on-surface-variant')}>Under ₹150</button>
-            {conditions.map(c => (
-              <button key={c} onClick={() => setCond(cond === c ? null : c)} className={chip + (cond === c ? 'bg-primary-fixed text-on-primary-fixed-variant font-semibold' : 'bg-surface-container-lowest text-on-surface-variant')}>{c}</button>
-            ))}
-            {hasFilters && (
-              <button onClick={clearAll} className="px-3 py-1.5 rounded-full bg-error-container text-on-error-container font-label-md text-label-md whitespace-nowrap shrink-0 flex items-center gap-1">
-                <span className="material-symbols-outlined text-[14px]">close</span>Clear
-              </button>
-            )}
-          </div>
-
-          {/* Catalog heading */}
-          <div className="flex items-center justify-between px-1">
-            <p className="font-headline-sm md:font-headline-md text-headline-sm md:text-headline-md text-on-surface">
-              Pre-Loved Catalog{' '}
-              <span className="font-body-sm text-body-sm text-outline font-normal">
-                ({loading ? '…' : search || hasFilters ? filtered.length + ' found' : activeCount + ' active'})
-              </span>
-            </p>
-            <button onClick={() => setShowSortMenu(o => !o)} className="font-label-micro text-label-micro text-secondary font-bold uppercase">Sort: {sortBy}</button>
-          </div>
-
-          {/* Grid */}
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-              {[...Array(8)].map((_, i) => <div key={i} className="h-72 rounded-2xl bg-surface-container animate-pulse" />)}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {[...Array(6)].map((_, i) => <div key={i} className="h-72 rounded-[22px] bg-white/60 animate-pulse" />)}
             </div>
           ) : error ? (
-            <div className="bg-surface-container-lowest rounded-2xl p-8 text-center shadow-sm">
-              <span className="material-symbols-outlined text-[36px] text-error mb-2">error</span>
-              <p className="font-body-md text-body-md text-error mb-4 font-semibold">{error}</p>
-              <button onClick={() => window.location.reload()} className="bg-primary-container text-on-primary font-label-lg text-label-lg font-bold px-5 py-2.5 rounded-xl shadow-md">Try again</button>
+            <div className={'bg-white rounded-[22px] p-6 text-center ' + SHADOW}>
+              <p className="text-[14px] text-[#5E5650] mb-4">{error}</p>
+              <button onClick={() => window.location.reload()} className="px-5 py-2.5 bg-[#E8632B] text-white text-[14px] font-semibold rounded-full active:scale-95 transition-transform">Try again</button>
             </div>
           ) : filtered.length === 0 ? (
-            <div className="bg-surface-container-lowest rounded-2xl p-8 text-center shadow-sm">
-              <span className="material-symbols-outlined text-[40px] text-primary mb-2">search_off</span>
-              <h3 className="font-headline-sm text-headline-sm text-on-surface mb-1">Nothing found</h3>
-              <p className="font-body-sm text-body-sm text-on-surface-variant mb-4">Try a different search, category or filter.</p>
+            <div className={'bg-white rounded-[22px] p-6 text-center ' + SHADOW}>
+              <h2 className="text-[16px] font-bold mb-1">Nothing found</h2>
+              <p className="text-[14px] text-[#5E5650] mb-4">Try a different search or filter, or ask for the book you need.</p>
               <div className="flex gap-2 justify-center flex-wrap">
-                <button onClick={clearAll} className="bg-primary-container text-on-primary font-label-lg text-label-lg font-bold px-5 py-2.5 rounded-xl shadow-md">Reset filters</button>
-                <button onClick={() => router.push('/requests')} className="bg-surface-container-low text-primary font-label-lg text-label-lg font-bold px-5 py-2.5 rounded-xl">Request this book</button>
+                {anyFilter && <button onClick={clearAll} className="px-5 py-2.5 bg-[#E8632B] text-white text-[14px] font-semibold rounded-full active:scale-95 transition-transform">Clear filters</button>}
+                <button onClick={() => router.push('/requests')} className={'px-5 py-2.5 bg-white text-[14px] font-semibold rounded-full active:scale-95 transition-transform ' + SHADOW}>Request this book</button>
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {filtered.map((l: any) => {
-                const off = discountOf(l)
-                const featured = l.featured && !l.sold
+                const isSaved = saved.has(l.id)
+                const sold = !!l.sold
+                const seller = l.seller?.name ? String(l.seller.name).split(' ')[0] : ''
+                const place = (l.location || '').split(',')[0]
+                const metaLine = [seller, place].filter(Boolean).join(' • ')
                 return (
-                  <div key={l.id} onClick={() => router.push('/listing/' + l.id)}
-                    className={'bg-surface-container-lowest rounded-2xl p-2.5 flex flex-col shadow-sm hover:shadow-md transition cursor-pointer group ' + (featured ? 'ring-2 ring-[#E0A100]/60' : '')}>
-                    <div className="relative w-full aspect-[4/5] rounded-xl overflow-hidden bg-primary-fixed/50 mb-2 flex items-center justify-center text-[44px]">
-                      {l.images?.[0]
-                        ? <img className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-300" src={l.images[0]} alt={l.title} />
-                        : <span>{l.emoji || '📚'}</span>}
-                      {l.condition && <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-surface-container-lowest/90 backdrop-blur-md text-primary font-label-micro text-label-micro font-bold shadow-sm">{l.condition}</span>}
-                      {off > 0 && !l.sold && <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-md bg-primary-container text-on-primary font-label-micro text-label-micro font-bold">-{off}%</span>}
-                      {featured && <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-[#E0A100] text-white font-label-micro text-label-micro font-bold flex items-center gap-0.5"><span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>Featured</span>}
-                      {l.location && <span className="absolute bottom-2 right-2 px-1.5 py-0.5 rounded-md bg-inverse-surface/85 text-inverse-on-surface font-label-micro text-[10px] max-w-[60%] truncate">{l.location}</span>}
-                      {l.sold && (
-                        <div className="absolute inset-0 bg-inverse-surface/60 flex items-center justify-center">
-                          <span className="text-white font-label-lg text-label-lg tracking-[0.2em] font-bold">SOLD</span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex-1 flex flex-col justify-between">
-                      <div>
-                        <span className="font-label-micro text-label-micro text-outline uppercase tracking-wider block truncate">{l.subtitle || l.category}</span>
-                        <h3 className={'font-headline-sm text-[16px] leading-snug font-semibold line-clamp-1 ' + (l.sold ? 'text-outline' : 'text-on-surface')}>{l.title}</h3>
-                        <div className="flex items-baseline gap-1.5 mt-1 flex-wrap">
-                          <span className={'font-headline-sm text-[18px] font-bold ' + (l.sold ? 'text-outline' : 'text-primary')}>₹{l.price}</span>
-                          {Number(l.origPrice) > Number(l.price) && <span className="font-body-sm text-[12px] text-outline line-through">₹{l.origPrice}</span>}
-                          {off > 0 && !l.sold && <span className="font-label-micro text-[11px] text-secondary font-bold">{off}% off</span>}
-                        </div>
-                        {l.seller?.name && (
-                          <div className="flex items-center gap-1 mt-1.5 text-on-surface-variant font-label-micro text-label-micro truncate">
-                            <span className="material-symbols-outlined text-[13px] text-tertiary">person</span>
-                            <span className="truncate">{String(l.seller.name).split(' ')[0]}</span>
+                  <div key={l.id} onClick={() => router.push('/listing/' + l.id)} className={'bg-white rounded-[22px] p-3 flex flex-col justify-between cursor-pointer ' + SHADOW}>
+                    <div>
+                      <div className="relative w-full aspect-[4/5] rounded-[18px] overflow-hidden mb-2.5 bg-[#FFF1EA] flex items-center justify-center text-[40px]">
+                        {l.images?.[0] ? <img src={l.images[0]} alt={l.title} className={'w-full h-full object-cover ' + (sold ? 'opacity-60' : '')} /> : <span>{l.emoji || '📚'}</span>}
+                        {l.featured && !sold && (
+                          <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-white/95 text-[11px] font-semibold flex items-center gap-0.5 shadow-sm">
+                            <span className="material-symbols-outlined text-[12px] text-[#F5B82E]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>Featured
+                          </span>
+                        )}
+                        <button aria-label={isSaved ? 'Remove from saved' : 'Save book'} onClick={e => toggleHeart(l, e)}
+                          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white flex items-center justify-center active:scale-90 transition-transform shadow-[0_2px_10px_rgba(120,70,40,0.14)]">
+                          <span className="material-symbols-outlined text-[16px]" style={{ color: isSaved ? '#E8632B' : '#9A908A', fontVariationSettings: isSaved ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
+                        </button>
+                        {l.condition && !sold && (
+                          <span className="absolute bottom-2 left-2 px-2 py-0.5 rounded-full bg-white/95 text-[11px] font-semibold shadow-sm">{l.condition}</span>
+                        )}
+                        {sold && (
+                          <div className="absolute inset-0 bg-[#1E1B19]/35 flex items-center justify-center">
+                            <span className="px-3 py-1 rounded-full bg-white text-[12px] font-bold">Sold</span>
                           </div>
                         )}
                       </div>
-                      <div className="grid grid-cols-2 gap-1.5 mt-2.5 pt-2 border-t border-surface-container">
-                        <button disabled={l.sold} onClick={e => openChat(l, e)} className="h-8 rounded-lg bg-surface-container-high text-on-surface-variant flex items-center justify-center gap-1 active:scale-95 transition-transform disabled:opacity-40">
-                          <span className="material-symbols-outlined text-[15px] text-tertiary">forum</span>
-                          <span className="font-label-micro text-label-micro">Chat</span>
-                        </button>
-                        <button disabled={l.sold} onClick={e => { e.stopPropagation(); router.push('/listing/' + l.id) }} className="h-8 rounded-lg bg-primary-container text-on-primary flex items-center justify-center font-label-micro text-label-micro shadow-sm active:scale-95 transition-transform disabled:opacity-40">Buy</button>
+                      <h3 className={'text-[13px] font-bold leading-tight line-clamp-2 ' + (sold ? 'text-[#9A908A]' : '')}>{l.title}</h3>
+                      {metaLine && <p className="text-[12px] text-[#9A908A] mt-1 truncate">{metaLine}</p>}
+                    </div>
+                    <div className="flex items-center justify-between mt-3">
+                      <div className="flex items-baseline gap-1.5 min-w-0">
+                        <span className={'text-[15px] font-extrabold ' + (sold ? 'text-[#9A908A]' : '')}>₹{l.price}</span>
+                        {Number(l.origPrice) > Number(l.price) && <span className="text-[12px] text-[#9A908A] line-through">₹{l.origPrice}</span>}
                       </div>
+                      <button aria-label="Chat to buy" disabled={sold} onClick={e => openChat(l, e)}
+                        className="w-8 h-8 rounded-full bg-[#E8632B] text-white flex items-center justify-center shrink-0 active:scale-90 transition-transform shadow-[0_3px_10px_rgba(232,99,43,0.35)] disabled:opacity-40 disabled:shadow-none">
+                        <span className="material-symbols-outlined text-[17px]">chat_bubble</span>
+                      </button>
                     </div>
                   </div>
                 )
               })}
             </div>
           )}
+        </section>
 
-          {/* Request a book */}
-          <div className="rounded-xl bg-surface-container-lowest p-3.5 shadow-sm flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-[22px]">manage_search</span>
-              </div>
-              <div className="min-w-0">
-                <p className="font-label-lg text-label-lg text-on-surface font-semibold">Can&apos;t find your book?</p>
-                <p className="font-body-sm text-body-sm text-on-surface-variant">Post a request and sellers will contact you.</p>
-              </div>
-            </div>
-            <button onClick={() => router.push('/requests')} className="bg-primary-container text-on-primary font-label-md text-label-md font-bold px-3.5 py-2 rounded-full shrink-0 active:scale-95 transition-transform">Request</button>
-          </div>
-
-          {/* How it works */}
-          <div className="rounded-2xl bg-surface-container-low p-4 md:p-6 shadow-sm flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-full bg-primary-fixed flex items-center justify-center text-on-primary-fixed-variant">
-                <span className="material-symbols-outlined text-[18px]">verified</span>
-              </div>
-              <div>
-                <h4 className="font-headline-sm text-[16px] text-on-surface font-semibold">How Pageplus Works</h4>
-                <p className="font-body-sm text-[12px] text-on-surface-variant">Simple, free and direct</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-center pt-1 md:max-w-2xl">
-              {[
-                { icon: 'photo_camera', t: '1. Snap & Post', s: 'Free listing' },
-                { icon: 'forum', t: '2. Chat', s: 'Talk to the seller' },
-                { icon: 'handshake', t: '3. Meet & Pay', s: 'Check, then pay' },
-              ].map(x => (
-                <div key={x.t} className="flex flex-col items-center">
-                  <div className="w-10 h-10 rounded-full bg-surface-container-lowest flex items-center justify-center shadow-sm mb-1.5 text-primary">
-                    <span className="material-symbols-outlined text-[20px]">{x.icon}</span>
-                  </div>
-                  <span className="font-label-md text-[12px] text-on-surface font-semibold">{x.t}</span>
-                  <span className="font-body-sm text-[11px] text-outline leading-tight mt-0.5">{x.s}</span>
+        {/* 6. How it works */}
+        <section className={'bg-white rounded-[22px] p-5 flex flex-col gap-4 ' + SHADOW}>
+          <h2 className="text-[15px] font-bold">How buying works</h2>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { icon: 'forum', t: 'Chat', s: 'Message the seller in the app' },
+              { icon: 'handshake', t: 'Meet nearby', s: 'Check the book in person' },
+              { icon: 'payments', t: 'Pay when happy', s: 'Pay the seller directly' },
+            ].map(x => (
+              <div key={x.t} className="flex flex-col items-center text-center gap-1.5">
+                <div className="w-9 h-9 rounded-full bg-[#FFF1EA] flex items-center justify-center text-[#E8632B]">
+                  <span className="material-symbols-outlined text-[18px]">{x.icon}</span>
                 </div>
-              ))}
-            </div>
+                <span className="text-[12px] font-semibold leading-tight">{x.t}</span>
+                <span className="text-[11px] text-[#9A908A] leading-snug">{x.s}</span>
+              </div>
+            ))}
           </div>
-        </div>
-      </main>
+          <p className="text-[12px] text-[#9A908A]">Every listing is checked by our team before it goes live.</p>
+        </section>
 
-      {/* Shared bottom bar (phone only) */}
-      <BottomNav />
+        <button onClick={() => router.push('/requests')} className="self-center text-[13px] font-semibold text-[#C4501A] active:opacity-70">
+          Can&apos;t find your book? Ask for it
+        </button>
+      </main>
     </div>
   )
 }
