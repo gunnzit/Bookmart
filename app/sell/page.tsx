@@ -122,6 +122,7 @@ export default function SellPage() {
   const locationRef = useRef<HTMLDivElement>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const [priceTouched, setPriceTouched] = useState(false)
+  const [donate, setDonate] = useState(false)
 
   // Phone gate
   const [phoneChecked, setPhoneChecked] = useState(false)
@@ -144,14 +145,15 @@ export default function SellPage() {
         setForm(prev => ({ ...prev, ...d }))
         if (d.location) setLocationSearch(d.location)
         if (d.price) setPriceTouched(true)
+        if (d.donate) setDonate(true)
       }
     } catch {}
   }, [])
 
   // Save draft
   useEffect(() => {
-    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(form)) } catch {}
-  }, [form])
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ ...form, donate })) } catch {}
+  }, [form, donate])
 
   useEffect(() => {
     if (isSignedIn === false) router.push('/')
@@ -262,11 +264,13 @@ export default function SellPage() {
   function validate(): string {
     if (images.length < 2) return 'Add at least 2 photos: the front cover and the MRP tag.'
     if (!form.title.trim()) return 'Add the book title.'
-    if (!mrp) return 'Add the original MRP printed on the book.'
-    if (!priceNum || priceNum <= 0) return 'Add your selling price.'
-    if (priceNum > 10000) return 'Maximum price is ₹10,000.'
-    if (mrp <= priceNum) return 'Selling price must be lower than the MRP.'
-    if (Math.round((1 - priceNum / mrp) * 100) > 90) return 'Discount cannot be more than 90%.'
+    if (!donate) {
+      if (!mrp) return 'Add the original MRP printed on the book.'
+      if (!priceNum || priceNum <= 0) return 'Add your selling price.'
+      if (priceNum > 10000) return 'Maximum price is ₹10,000.'
+      if (mrp <= priceNum) return 'Selling price must be lower than the MRP.'
+      if (Math.round((1 - priceNum / mrp) * 100) > 90) return 'Discount cannot be more than 90%.'
+    }
     if (!form.location.trim()) return 'Choose where buyers can meet you.'
     return ''
   }
@@ -275,7 +279,7 @@ export default function SellPage() {
     const parts = [form.board, form.grade, form.edition.trim()].filter(Boolean)
     let s = parts.join(' · ')
     if (form.note.trim()) s = s ? `${s} · ${form.note.trim()}` : form.note.trim()
-    return s.slice(0, 160)
+    return s.slice(0, 120)
   }
 
   async function submit() {
@@ -291,8 +295,8 @@ export default function SellPage() {
         body: JSON.stringify({
           title: form.title.trim(),
           subtitle: buildSubtitle(),
-          price: priceNum,
-          origPrice: mrp,
+          price: donate ? 0 : priceNum,
+          origPrice: donate ? (mrp > 0 ? mrp : null) : mrp,
           condition: form.condition,
           category: form.category,
           emoji: emojis[form.category],
@@ -376,7 +380,7 @@ export default function SellPage() {
           onClick={() => {
             setDone(false)
             setForm({ title: '', board: '', grade: '', edition: '', note: '', price: '', origPrice: '', condition: 'Good', category: 'textbook', location: '' })
-            setImages([]); setPreviews([]); setLocationSearch(''); setPriceTouched(false)
+            setImages([]); setPreviews([]); setLocationSearch(''); setPriceTouched(false); setDonate(false)
           }}
           className={`w-full h-11 mt-3 rounded-full bg-white text-[14px] font-semibold ${SHADOW} active:scale-[0.98] transition-transform`}>
           List another book
@@ -483,9 +487,9 @@ export default function SellPage() {
           <StepTitle n={3} right="An honest rating sells faster">Condition</StepTitle>
           <div className={`${CARD} flex flex-col gap-3`}>
             {GRADES.map(g => {
-              const on = form.condition === g.value
+              const on = !donate && form.condition === g.value
               return (
-                <button key={g.value} type="button" onClick={() => update('condition', g.value)}
+                <button key={g.value} type="button" onClick={() => { setDonate(false); update('condition', g.value) }}
                   className={`flex items-start gap-3 p-3 rounded-[16px] text-left active:scale-[0.99] transition-transform ${on ? 'bg-[#FCE3D6]' : 'bg-[#FFF1EA]'}`}>
                   <span className={`w-5 h-5 mt-0.5 rounded-full shrink-0 flex items-center justify-center text-[12px] ${on ? 'bg-[#E8632B] text-white' : 'bg-white'}`}>{on ? '✓' : ''}</span>
                   <span className="flex-1">
@@ -498,6 +502,22 @@ export default function SellPage() {
                 </button>
               )
             })}
+            <button type="button" onClick={() => { setError(''); setDonate(true) }}
+              className={`flex items-start gap-3 p-3 rounded-[16px] text-left active:scale-[0.99] transition-transform ${donate ? 'bg-[#FCE3D6]' : 'bg-[#FFF1EA]'}`}>
+              <span className={`w-5 h-5 mt-0.5 rounded-full shrink-0 flex items-center justify-center text-[12px] ${donate ? 'bg-[#E8632B] text-white' : 'bg-white'}`}>{donate ? '✓' : ''}</span>
+              <span className="flex-1">
+                <span className="flex items-center justify-between">
+                  <span className="text-[15px] font-semibold">Donate / Free to community</span>
+                  <span className={`text-[12px] font-medium ${donate ? 'text-[#C4501A]' : 'text-[#9A908A]'}`}>Free</span>
+                </span>
+                <span className="block text-[12px] text-[#5E5650] mt-0.5">Pass it forward to help local students and juniors</span>
+              </span>
+            </button>
+            {donate && (
+              <p className="text-[12px] text-[#5E5650] -mt-1">
+                Condition is saved as {grade.label}. Tap a condition above to change it, or leave it as is.
+              </p>
+            )}
             <div className="mt-1">
               <label className={LABEL}>Note for buyers (optional)</label>
               <textarea value={form.note} onChange={e => update('note', e.target.value.slice(0, 80))} rows={2}
@@ -509,7 +529,20 @@ export default function SellPage() {
 
         {/* 4 Price */}
         <section>
-          <StepTitle n={4}>Fair resale price</StepTitle>
+          <StepTitle n={4}>{donate ? 'Price' : 'Fair resale price'}</StepTitle>
+          {donate ? (
+            <div className={`${CARD} flex items-start gap-3`}>
+              <span className="w-9 h-9 rounded-full bg-[#FFF1EA] flex items-center justify-center text-[18px] shrink-0">🎁</span>
+              <div>
+                <p className="text-[15px] font-semibold">Free to the community</p>
+                <p className="text-[12px] text-[#5E5650] mt-0.5">No price needed. Buyers will see this book as free, and you choose who to hand it to in chat.</p>
+                <button type="button" onClick={() => setDonate(false)}
+                  className={`mt-3 px-3 py-1.5 rounded-full bg-white text-[12px] font-semibold ${SHADOW} active:scale-95 transition-transform`}>
+                  I want to sell it instead
+                </button>
+              </div>
+            </div>
+          ) : (
           <div className={`${CARD} flex flex-col gap-4`}>
             <div>
               <label className={LABEL}>Original MRP</label>
@@ -560,6 +593,7 @@ export default function SellPage() {
               <span className="text-[16px] font-bold">₹{priceNum || 0}</span>
             </div>
           </div>
+          )}
         </section>
 
         {/* 5 Meet */}
@@ -605,7 +639,7 @@ export default function SellPage() {
           {uploadProgress && <p className="text-[12px] text-[#5E5650] mb-2 text-center">{uploadProgress}</p>}
           <button onClick={submit} disabled={loading}
             className="w-full h-[52px] rounded-full bg-[#E8632B] text-white text-[17px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.98] transition-transform">
-            {loading ? 'Publishing…' : <>Publish listing{priceNum > 0 && <span className="opacity-70">• ₹{priceNum}</span>}</>}
+            {loading ? 'Publishing…' : <>{donate ? 'Publish as free' : 'Publish listing'}{!donate && priceNum > 0 && <span className="opacity-70">• ₹{priceNum}</span>}</>}
           </button>
         </div>
       </div>

@@ -130,7 +130,7 @@ export async function POST(request: Request) {
     if (location.length < 2 || location.length > 100) return NextResponse.json({ error: 'Choose a location' }, { status: 400 })
     if (!CATEGORIES.includes(category)) return NextResponse.json({ error: 'Invalid category' }, { status: 400 })
     if (!CONDITIONS.includes(condition)) return NextResponse.json({ error: 'Invalid condition' }, { status: 400 })
-    if (!Number.isInteger(price) || price < 1 || price > 10000) return NextResponse.json({ error: 'Price must be between ₹1 and ₹10,000' }, { status: 400 })
+    if (!Number.isInteger(price) || price < 0 || price > 10000) return NextResponse.json({ error: 'Price must be between ₹0 (free) and ₹10,000' }, { status: 400 })
     if (origPrice !== null) {
       if (!Number.isInteger(origPrice) || origPrice <= price) return NextResponse.json({ error: 'Original price must be higher than your price' }, { status: 400 })
       if (Math.round((1 - price / origPrice) * 100) > 90) return NextResponse.json({ error: 'Discount cannot exceed 90%' }, { status: 400 })
