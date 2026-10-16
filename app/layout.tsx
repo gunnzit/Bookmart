@@ -1,11 +1,19 @@
 import { ClerkProvider } from '@clerk/nextjs'
 import Script from 'next/script'
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { Analytics } from '@vercel/analytics/react'
 import GlassNav from '@/components/GlassNav'
 
-const APP_URL = 'https://buddybooks.in'
+const APP_URL = 'https://pageplus.in'
+
+// Phone status-bar colour, and notch spacing (used by the bottom bar and headers)
+export const viewport: Viewport = {
+  themeColor: '#c4501a',
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+}
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
@@ -25,6 +33,12 @@ export const metadata: Metadata = {
   authors: [{ name: 'Pageplus', url: APP_URL }],
   creator: 'Bedi Book Store',
   publisher: 'Pageplus',
+  applicationName: 'Pageplus',
+  appleWebApp: {
+    capable: true,
+    title: 'Pageplus',
+    statusBarStyle: 'default',
+  },
   robots: {
     index: true,
     follow: true,
@@ -43,11 +57,11 @@ export const metadata: Metadata = {
     title: 'Pageplus — Buy & Sell Second-Hand Books in Chandigarh',
     description: 'Student marketplace for second-hand books in Chandigarh Tricity. Free to list, no commission.',
   },
+  // The manifest comes from app/manifest.ts, which Next adds by itself
   icons: {
-    icon: '/favicon.ico',
-    apple: '/apple-touch-icon.png',
+    icon: [{ url: '/pwa-icon/192', sizes: '192x192', type: 'image/png' }],
+    apple: [{ url: '/pwa-icon/180', sizes: '180x180', type: 'image/png' }],
   },
-  manifest: '/manifest.json',
   alternates: {
     canonical: APP_URL,
   },
