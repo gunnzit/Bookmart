@@ -1,80 +1,62 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useUser, SignInButton } from '@clerk/nextjs'
-import { schools, isRegister, DELIVERY_FEE } from '@/lib/kit-prices'
-import BottomNav from '@/components/BottomNav'
-import LocationSheet, { useDeliveryPlace, placeShortLabel } from '@/components/LocationSheet'
+import { useUser, useClerk, SignInButton } from '@clerk/nextjs'
+import { schools, isRegister } from '@/lib/kit-prices'
+import LocationSheet, { useDeliveryPlace } from '@/components/LocationSheet'
 
 // ── Contact (change here only) ────────────────────────────────────────────
 const WHATSAPP_NUMBER = '918872235738'
-const WHATSAPP_DISPLAY = '+91 88722 35738'
 const WA_HELP_LINK = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent('Hi, I need help with a school book set on Pageplus')
 
-const SCHOOL_META: Record<string, { title: string; sub: string; icon: string }> = {
-  'Delhi Public School': { title: 'DPS, Sector 40-C', sub: 'CBSE Affiliated', icon: 'account_balance' },
-  'Shivalik Public School': { title: 'Shivalik Public School', sub: 'Phase 6, Mohali', icon: 'history_edu' },
+// ── Photos (put your own files in public/photos) ──────────────────────────
+const HERO_PHOTO = '/photos/hero.jpg'
+const STORE_PHOTO = '/photos/store.jpg'
+
+const SHADOW = 'shadow-[0_6px_20px_rgba(120,70,40,0.08)]'
+
+const SHORT_NAME: Record<string, string> = {
+  'Delhi Public School': 'DPS Sector 40-C',
+  'Shivalik Public School': 'Shivalik Public',
 }
-
-const partnerSchools = [
-  { name: 'DPS Chandigarh', place: 'Sec 40-C', tag: 'All Grades', icon: 'school' },
-  { name: 'Shivalik Public', place: 'Phase 6 Mohali', tag: 'All Grades', icon: 'history_edu' },
-  { name: 'Vivek High', place: 'Sec 38 Chd', tag: 'Pre-order', icon: 'auto_stories' },
-  { name: 'St. Kabir', place: 'Sec 26 Chd', tag: 'All Grades', icon: 'cast_for_education' },
-  { name: 'Bhavan Vidyalaya', place: 'Sec 27 Chd', tag: 'All Grades', icon: 'menu_book' },
-]
-
-const essentials = [
-  { name: 'Classmate 6-Pack Long Notebooks', desc: 'Single line • 172 Pages each • Pack of 6', price: 320, icon: 'edit_note' },
-  { name: 'Camlin Precision Geometry Box', desc: 'Self-centering compass, divider & stencils', price: 145, icon: 'architecture' },
-  { name: 'Faber-Castell 24-Color Pencil Set', desc: 'Triangular grip with bonus sharpener', price: 190, icon: 'palette' },
-]
-
-const faqs = [
-  { q: 'Edition change after buying?', a: 'Exchange is available within 24 hours of pickup or delivery, at the Sector 40-C store.' },
-  { q: 'How are used books verified?', a: 'Every listing is checked by our team before it goes live. Meet the seller, check the book, then pay.' },
-  { q: 'Can I remove books I already have?', a: 'Yes! Simply uncheck any items you own in the set screen before checkout.' },
-]
 
 // Same default selection rules as the School Sets page (so the price matches)
 function kitSummary(school: string, cls: number) {
   const kit = schools[school]?.[cls]
-  if (!kit) return { total: 0, books: 0, notebooks: 0, stationery: 0 }
+  if (!kit) return { total: 0, books: 0, notebooks: 0 }
   let total = 0
   let books = 0
   let notebooks = 0
-  let stationery = 0
   for (const sec of ['ncert', 'pvt'] as const) {
     for (const it of kit[sec]) {
       if (!it.oos && !it.optional) { total += it.price; books++ }
     }
   }
   for (const it of kit.stationery) {
-    if (!it.oos) { total += it.price; stationery++ }
+    if (!it.oos) total += it.price
   }
   for (const n of kit.notebooks) {
     if (!n.oos) { total += (isRegister(n.name) ? 68 : 50) * n.qty; notebooks += n.qty }
   }
-  return { total, books, notebooks, stationery }
+  return { total, books, notebooks }
 }
 
 export default function HomePage() {
   const router = useRouter()
-  const { isSignedIn } = useUser()
-  const inputRef = useRef<HTMLInputElement>(null)
-  const headerInputRef = useRef<HTMLInputElement>(null)
+  const { isSignedIn, user } = useUser()
+  const { openSignIn } = useClerk()
+  const pickerRef = useRef<HTMLDivElement>(null)
 
-  const [logoOk, setLogoOk] = useState(true)
   const [search, setSearch] = useState('')
-  const [tab, setTab] = useState<'kits' | 'preloved'>('kits')
   const [school, setSchool] = useState('Shivalik Public School')
-  const [schoolOpen, setSchoolOpen] = useState(false)
   const [cls, setCls] = useState(5)
-  const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [listings, setListings] = useState<any[]>([])
+  const [saved, setSaved] = useState<Set<string>>(new Set())
   const [cart, setCart] = useState<{ selectedClass: number; items: string[]; kitSubtotal: number }[]>([])
   const [sheetOpen, setSheetOpen] = useState(false)
   const [place, setPlace] = useDeliveryPlace()
+  const [heroOk, setHeroOk] = useState(true)
+  const [storeOk, setStoreOk] = useState(true)
 
   useEffect(() => {
     fetch('/api/listings')
@@ -89,16 +71,29 @@ export default function HomePage() {
     } catch {}
   }, [])
 
+  // Which books this person has already saved
+  useEffect(() => {
+    if (!isSignedIn || !user) { setSaved(new Set()); return }
+    fetch('/api/wishlist?userId=' + user.id)
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setSaved(new Set(d.map((w: any) => w.listingId))) })
+      .catch(() => {})
+  }, [isSignedIn, user])
+
   const schoolNames = Object.keys(schools)
   const classes = Object.keys(schools[school]).map(Number).sort((a, b) => a - b)
   const summary = kitSummary(school, cls)
-  const meta = SCHOOL_META[school] || { title: school, sub: '', icon: 'school' }
-  const listingCount = listings.length
+  const shortName = SHORT_NAME[school] || school
   const cartTotal = cart.reduce((sum, k) => sum + (k.kitSubtotal || 0), 0)
+
+  const placeLine = !place
+    ? 'Choose your delivery area'
+    : place.kind === 'pickup'
+      ? 'Pickup from Sector 40-C'
+      : 'Deliver to ' + place.area.split(',')[0]
 
   function pickSchool(name: string) {
     setSchool(name)
-    setSchoolOpen(false)
     const cl = Object.keys(schools[name]).map(Number).sort((a, b) => a - b)
     if (!cl.includes(cls)) setCls(cl[0])
   }
@@ -108,529 +103,228 @@ export default function HomePage() {
     router.push(search.trim() ? '/marketplace?q=' + encodeURIComponent(search.trim()) : '/marketplace')
   }
 
-  function startVoice() {
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SR) { focusSearch(); return }
-    try {
-      const rec = new SR()
-      rec.lang = 'en-IN'
-      rec.onresult = (e: any) => {
-        const t = e.results?.[0]?.[0]?.transcript || ''
-        if (t) { setSearch(t); router.push('/marketplace?q=' + encodeURIComponent(t)) }
-      }
-      rec.start()
-    } catch { focusSearch() }
-  }
-
-  function focusSearch() {
-    const el = window.innerWidth >= 768 ? headerInputRef.current : inputRef.current
-    el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    el?.focus()
-  }
-
-  function whatsappSeller(l: any, e: React.MouseEvent) {
+  async function toggleHeart(l: any, e: React.MouseEvent) {
     e.stopPropagation()
-    const phone = String(l.seller?.phone || '').replace(/\D/g, '').slice(-10)
-    if (phone.length === 10) {
-      window.open('https://wa.me/91' + phone + '?text=' + encodeURIComponent('Hi, I am interested in your listing "' + l.title + '" on Pageplus'), '_blank')
-    } else {
-      router.push('/listing/' + l.id)
-    }
+    if (!isSignedIn || !user) { openSignIn(); return }
+    try {
+      const res = await fetch('/api/wishlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, listingId: l.id }),
+      })
+      const d = await res.json()
+      setSaved(prev => {
+        const next = new Set(prev)
+        if (d.saved) next.add(l.id); else next.delete(l.id)
+        return next
+      })
+    } catch {}
   }
 
-  function discount(l: any) {
-    const p = Number(l.price)
-    const o = Number(l.origPrice)
-    if (o > p && p > 0) return Math.round((1 - p / o) * 100)
-    return 0
+  function openChat(l: any, e: React.MouseEvent) {
+    e.stopPropagation()
+    if (!isSignedIn) { openSignIn(); return }
+    if (user?.id === l.sellerId) { router.push('/listing/' + l.id); return }
+    router.push('/messages/new?listing=' + l.id)
   }
 
-  const sellButton = (className: string, children: React.ReactNode) =>
-    isSignedIn
-      ? <button className={className} onClick={() => router.push('/sell')}>{children}</button>
-      : <SignInButton mode="modal"><button className={className}>{children}</button></SignInButton>
+  function goSell() {
+    if (!isSignedIn) { openSignIn(); return }
+    router.push('/sell')
+  }
 
-  const navLink = 'font-label-lg text-label-lg text-on-surface-variant hover:text-primary-container transition-colors px-3 py-2 rounded-full hover:bg-surface-container-low whitespace-nowrap'
+  const iconBtn = 'relative w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#1E1B19] active:scale-90 transition-transform ' + SHADOW
 
   return (
-    <div className="bg-surface text-on-surface font-body-md antialiased flex flex-col min-h-screen">
-
+    <div
+      className="min-h-screen text-[#1E1B19] antialiased font-['Plus_Jakarta_Sans',sans-serif]"
+      style={{ background: 'linear-gradient(180deg, #FDEADF 0%, #FFF7F2 100%)' }}
+    >
       <LocationSheet open={sheetOpen} onClose={() => setSheetOpen(false)} place={place} onSelect={setPlace} />
 
-      {/* Header */}
-      <header className="fixed top-0 inset-x-0 z-50 bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(45,30,18,0.04)] pt-safe">
-        <div className="h-20 px-margin md:px-margin-desktop flex items-center justify-between gap-space-sm md:gap-6 max-w-md mx-auto md:max-w-[1200px]">
-          <div className="flex items-center gap-space-sm md:gap-4 flex-1 md:flex-none min-w-0">
-            {logoOk ? (
-              <img alt="Pageplus" className="h-10 w-auto object-contain shrink-0 cursor-pointer" src="/pageplus-logo.png" onError={() => setLogoOk(false)} onClick={() => router.push('/')} />
-            ) : (
-              <span className="font-headline-md text-headline-md text-on-surface shrink-0 cursor-pointer" onClick={() => router.push('/')}>Page<span className="text-secondary-container">plus</span></span>
-            )}
-            <button onClick={() => setSheetOpen(true)} aria-label="Choose delivery location" className="flex items-center gap-1 bg-surface-container-low px-space-sm py-1 rounded-full text-left transition-colors active:bg-surface-container min-w-0">
-              <span className="material-symbols-outlined text-[16px] text-primary shrink-0">location_on</span>
-              <span className="font-label-micro text-label-micro text-on-surface-variant font-bold truncate max-w-[130px] sm:max-w-[200px]">{placeShortLabel(place)}</span>
-              <span className="material-symbols-outlined text-[16px] text-outline shrink-0">keyboard_arrow_down</span>
-            </button>
-          </div>
+      <main className="w-full max-w-md md:max-w-3xl mx-auto px-5 pb-36 flex flex-col gap-5" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
 
-          {/* Desktop search */}
-          <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-xl">
-            <div className="flex items-center bg-surface-container-lowest rounded-full px-space-md py-2.5 shadow-sm w-full border border-outline-variant/50">
-              <span className="material-symbols-outlined text-outline text-[22px] shrink-0 mr-2">search</span>
-              <input ref={headerInputRef} value={search} onChange={e => setSearch(e.target.value)} className="w-full bg-transparent font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none min-w-0" placeholder="Search school sets, syllabus, books..." type="text" />
-              <button type="button" onClick={startVoice} aria-label="Voice Search" className="w-8 h-8 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container transition-colors shrink-0">
-                <span className="material-symbols-outlined text-[19px]">mic</span>
-              </button>
-            </div>
-          </form>
-
-          {/* Desktop links */}
-          <nav className="hidden lg:flex items-center gap-1 shrink-0">
-            <button className={navLink} onClick={() => router.push('/school-sets')}>School Sets</button>
-            <button className={navLink} onClick={() => router.push('/marketplace')}>Marketplace</button>
-            <button className={navLink} onClick={() => router.push('/school-sets')}>Stationery</button>
-          </nav>
-
-          <div className="flex items-center gap-1 shrink-0">
-            <button aria-label="Search" onClick={focusSearch} className="md:hidden w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant transition-colors active:bg-surface-container">
-              <span className="material-symbols-outlined text-[22px]">search</span>
-            </button>
-            {sellButton('hidden md:flex items-center gap-1.5 bg-primary-container text-on-primary font-label-lg text-label-lg font-bold px-4 py-2.5 rounded-full shadow-sm active:scale-95 transition-transform mr-1', (<><span className="material-symbols-outlined text-[18px]">add</span><span>Sell</span></>))}
-            <a aria-label="WhatsApp Support" className="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant transition-colors active:bg-surface-container relative" href={WA_HELP_LINK} rel="noopener noreferrer" target="_blank">
-              <span className="material-symbols-outlined text-[22px] text-tertiary">chat</span>
-              <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-primary-container ring-2 ring-surface"></span>
+        {/* 1. App bar */}
+        <header>
+          <div className="flex items-center justify-between">
+            <a href="/" className="text-[26px] font-extrabold tracking-tight leading-none active:scale-95 transition-transform">
+              Page<span className="text-[#E8632B]">plus</span>
             </a>
-            {isSignedIn ? (
-              <button aria-label="Profile" onClick={() => router.push('/profile')} className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0 ml-1 shadow-[0_2px_8px_-2px_rgba(45,30,18,0.06)]">
-                <span className="material-symbols-outlined text-on-primary text-[18px]">person</span>
+            <div className="flex items-center gap-2.5">
+              <button aria-label="Kit bag" onClick={() => router.push('/school-sets')} className={iconBtn}>
+                <span className="material-symbols-outlined text-[20px]">shopping_bag</span>
+                {cart.length > 0 && <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#E8632B] ring-2 ring-white" />}
               </button>
-            ) : (
-              <SignInButton mode="modal">
-                <button aria-label="Sign in" className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0 ml-1 shadow-[0_2px_8px_-2px_rgba(45,30,18,0.06)]">
-                  <span className="material-symbols-outlined text-on-primary text-[18px]">person</span>
+              {isSignedIn ? (
+                <button aria-label="Profile" onClick={() => router.push('/profile')} className={iconBtn}>
+                  <span className="material-symbols-outlined text-[20px]">person</span>
                 </button>
-              </SignInButton>
-            )}
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 flex flex-col relative w-full max-w-md mx-auto md:max-w-[1200px] pt-20 pb-40 md:pb-24 bg-surface px-margin md:px-margin-desktop">
-        <div className="flex flex-col w-full pb-8 md:pt-6">
-
-          {/* Top section: phone = stacked, desktop = hero left + banners right */}
-          <div className="flex flex-col lg:grid lg:grid-cols-12 lg:gap-x-6 lg:items-start">
-
-            {/* 1. Delivery strip */}
-            <div className="bg-surface-container-high text-on-surface rounded-xl p-3 mb-space-md shadow-sm flex items-center justify-between gap-3 lg:col-span-5 lg:col-start-8 lg:row-start-1">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-[22px]">local_shipping</span>
-                </div>
-                <div>
-                  <p className="font-label-lg text-label-lg font-bold text-on-surface">Home delivery within 24 hours</p>
-                  <p className="font-body-sm text-[13px] text-on-surface-variant font-medium">₹{DELIVERY_FEE} • Chandigarh • Mohali • Panchkula</p>
-                </div>
-              </div>
-              <span className="bg-primary text-on-primary text-[11px] font-bold px-2.5 py-1 rounded-full uppercase shrink-0">24h</span>
-            </div>
-
-            {/* 2. Mobile search (desktop uses the header search) */}
-            <form onSubmit={handleSearch} className="md:hidden relative w-full mb-space-md">
-              <div className="flex items-center bg-surface-container-lowest rounded-full px-space-md py-2.5 shadow-sm">
-                <span className="material-symbols-outlined text-outline text-[22px] shrink-0 mr-2">search</span>
-                <input ref={inputRef} value={search} onChange={e => setSearch(e.target.value)} className="w-full bg-transparent font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none min-w-0" placeholder="Search school sets (DPS, Carmel, Shivalik), syllabus, books..." type="text" />
-                <div className="flex items-center gap-1 shrink-0 ml-1">
-                  <button type="button" onClick={startVoice} aria-label="Voice Search" className="w-8 h-8 flex items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container transition-colors">
-                    <span className="material-symbols-outlined text-[19px]">mic</span>
-                  </button>
-                </div>
-              </div>
-            </form>
-
-            {/* 3. Hero card */}
-            <div className="bg-surface-container-lowest rounded-xl p-space-md md:p-6 shadow-sm mb-space-md relative lg:col-span-7 lg:row-span-3 lg:row-start-1 lg:col-start-1">
-              <div className="flex items-center gap-2 mb-3 bg-surface-container-low p-1.5 rounded-xl">
-                <button onClick={() => setTab('kits')} className={'flex-1 py-2.5 px-3 rounded-lg font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 transition-colors ' + (tab === 'kits' ? 'bg-surface-container-lowest text-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface')}>
-                  <span className="material-symbols-outlined text-[20px]">backpack</span>
-                  <span>School Kits</span>
-                </button>
-                <button onClick={() => setTab('preloved')} className={'flex-1 py-2.5 px-3 rounded-lg font-label-lg text-label-lg font-bold flex items-center justify-center gap-1.5 transition-colors ' + (tab === 'preloved' ? 'bg-surface-container-lowest text-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface')}>
-                  <span className="material-symbols-outlined text-[20px] text-primary">sync_alt</span>
-                  <span>Pre-Loved</span>
-                  <span className="bg-primary text-on-primary text-[10px] px-2 py-0.5 rounded-full font-bold uppercase">-60%</span>
-                </button>
-              </div>
-
-              {tab === 'kits' ? (
-                <>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="bg-primary-fixed text-on-primary-fixed-variant font-label-micro text-xs px-2.5 py-1 rounded-full uppercase font-bold">CBSE • ICSE Kits</span>
-                    <span className="font-label-micro text-xs text-primary flex items-center gap-1 font-bold"><span className="w-2 h-2 rounded-full bg-primary animate-pulse"></span>2026–27 Sync</span>
-                  </div>
-                  <h2 className="font-headline-lg-mobile md:font-headline-lg text-[26px] md:text-[32px] leading-tight font-bold text-on-surface mb-3">Select Child&apos;s Book Set</h2>
-
-                  <div className="mb-3 relative">
-                    <button onClick={() => setSchoolOpen(o => !o)} className="w-full bg-surface-container-low text-left px-4 py-3.5 rounded-xl flex items-center justify-between shadow-sm active:bg-surface-container transition-colors">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                          <span className="material-symbols-outlined text-primary text-[22px]">{meta.icon}</span>
-                        </div>
-                        <div className="truncate">
-                          <span className="font-label-lg text-[16px] text-on-surface font-bold block truncate">{meta.title}</span>
-                          <span className="font-body-sm text-[12px] text-on-surface-variant">{meta.sub}</span>
-                        </div>
-                      </div>
-                      <span className="material-symbols-outlined text-outline text-[22px] shrink-0">unfold_more</span>
-                    </button>
-                    {schoolOpen && (
-                      <div className="absolute z-20 left-0 right-0 mt-1 bg-surface-container-lowest rounded-xl shadow-lg overflow-hidden border border-outline-variant">
-                        {schoolNames.map(n => (
-                          <button key={n} onClick={() => pickSchool(n)} className={'w-full text-left px-4 py-3 font-label-lg text-label-lg active:bg-surface-container ' + (n === school ? 'text-primary font-bold bg-primary-fixed/40' : 'text-on-surface')}>
-                            {SCHOOL_META[n]?.title || n}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <label className="font-label-micro text-xs uppercase text-on-surface-variant font-bold">Select Class</label>
-                      <span className="font-label-micro text-xs text-primary font-bold">{classes.length} Classes</span>
-                    </div>
-                    <div className="flex items-center gap-2 overflow-x-auto pb-2 -mx-space-md px-space-md scrollbar-none md:flex-wrap md:overflow-visible md:mx-0 md:px-0">
-                      {classes.map(c => (
-                        c === cls ? (
-                          <button key={c} className="px-5 py-2 rounded-xl font-label-lg text-[16px] whitespace-nowrap bg-primary-container text-on-primary font-bold shadow-md shrink-0 flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-white"></span>Class {c}
-                          </button>
-                        ) : (
-                          <button key={c} onClick={() => setCls(c)} className="px-4 py-2 rounded-xl font-label-lg text-label-lg font-semibold whitespace-nowrap bg-surface-container-low text-on-surface-variant active:bg-surface-container hover:bg-surface-container shrink-0">Class {c}</button>
-                        )
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="bg-surface-container-low rounded-xl p-3.5 mb-3.5 flex items-center justify-between">
-                    <div className="min-w-0 pr-2">
-                      <span className="font-label-lg text-[16px] font-bold text-on-surface block truncate">{SCHOOL_META[school]?.title.split(',')[0] || school} Class {cls} Set</span>
-                      <span className="font-body-sm text-[13px] text-on-surface-variant">
-                        {summary.books} Books + {summary.notebooks} Notebooks{summary.stationery > 0 ? ' + Stationery Kit' : ''}
-                      </span>
-                    </div>
-                    <span className="font-headline-sm text-[24px] font-bold text-primary shrink-0">₹{summary.total.toLocaleString('en-IN')}</span>
-                  </div>
-
-                  <button onClick={() => router.push('/school-sets')} className="w-full bg-primary-container text-on-primary font-label-lg text-[16px] py-4 px-space-md rounded-xl shadow-md active:scale-[0.98] transition-transform flex items-center justify-center gap-2 font-bold">
-                    <span>View Curated Set ({summary.books} Books)</span>
-                    <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
-                  </button>
-                </>
               ) : (
-                <>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="bg-primary-fixed text-on-primary-fixed-variant font-label-micro text-xs px-2.5 py-1 rounded-full uppercase font-bold">Used Books</span>
-                    <span className="font-label-micro text-xs text-primary font-bold">0% Fee</span>
-                  </div>
-                  <h2 className="font-headline-lg-mobile md:font-headline-lg text-[26px] md:text-[32px] leading-tight font-bold text-on-surface mb-2">Save up to 60% on old books</h2>
-                  <p className="font-body-sm text-[14px] text-on-surface-variant mb-4">Buy from students near you, or list your old books in two minutes.</p>
-                  <div className="grid grid-cols-2 gap-2.5">
-                    <button onClick={() => router.push('/marketplace')} className="w-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold py-3.5 px-3 rounded-xl flex items-center justify-center gap-2 shadow-md active:scale-[0.98] transition-transform">
-                      <span className="material-symbols-outlined text-[20px]">storefront</span>
-                      <span>Browse Books</span>
-                    </button>
-                    {sellButton('w-full bg-surface-container-low text-on-surface font-label-lg text-label-lg font-bold py-3.5 px-3 rounded-xl flex items-center justify-center gap-2 active:scale-[0.98] transition-transform', (<><span className="material-symbols-outlined text-[20px] text-primary">add_circle</span><span>Sell Books</span></>))}
-                  </div>
-                </>
+                <SignInButton mode="modal">
+                  <button aria-label="Sign in" className={iconBtn}>
+                    <span className="material-symbols-outlined text-[20px]">person</span>
+                  </button>
+                </SignInButton>
               )}
             </div>
+          </div>
+          <button onClick={() => setSheetOpen(true)} className="flex items-center gap-1 text-[13px] font-medium text-[#5E5650] mt-1.5 active:opacity-70">
+            <span>{placeLine}</span>
+            <span className="material-symbols-outlined text-[16px] text-[#9A908A]">expand_more</span>
+          </button>
+        </header>
 
-            {/* 4. Buy & sell banner */}
-            <div className="bg-surface-container-lowest border-2 border-primary/20 rounded-xl p-3.5 mb-space-md shadow-sm lg:col-span-5 lg:col-start-8 lg:row-start-2">
-              <div className="flex items-center justify-between gap-3 mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                    <span className="material-symbols-outlined text-[28px]">currency_rupee</span>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className="bg-primary text-on-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Used Books</span>
-                      <span className="text-primary font-label-micro text-xs font-bold">0% Fee</span>
-                    </div>
-                    <h3 className="font-headline-sm text-[19px] font-bold text-on-surface">Buy &amp; Sell at 60% Off</h3>
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                {sellButton('w-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold py-3 px-3 rounded-xl flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform', (<><span className="material-symbols-outlined text-[20px]">add_circle</span><span>Sell Books</span></>))}
-                <button onClick={() => router.push('/marketplace')} className="w-full bg-surface-container-low text-on-surface hover:bg-surface-container font-label-lg text-label-lg font-bold py-3 px-3 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-transform">
-                  <span className="material-symbols-outlined text-[20px] text-primary">storefront</span>
-                  <span>{listingCount > 0 ? 'Browse ' + listingCount : 'Browse Books'}</span>
+        {/* 2. Search */}
+        <form onSubmit={handleSearch} className={'flex items-center w-full h-12 bg-white rounded-full pl-4 pr-1.5 gap-2.5 ' + SHADOW}>
+          <span className="material-symbols-outlined text-[20px] text-[#9A908A] shrink-0">search</span>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search books, notebooks, class…"
+            type="text"
+            className="flex-1 min-w-0 bg-transparent text-[14px] text-[#1E1B19] placeholder:text-[#9A908A] focus:outline-none"
+          />
+          <button type="button" aria-label="Browse marketplace filters" onClick={() => router.push('/marketplace')} className="w-9 h-9 rounded-full bg-[#FFF1EA] flex items-center justify-center text-[#1E1B19] shrink-0 active:scale-90 transition-transform">
+            <span className="material-symbols-outlined text-[18px]">tune</span>
+          </button>
+        </form>
+
+        {/* 3. Hero */}
+        <section className={'relative w-full rounded-[22px] overflow-hidden aspect-[16/10] flex flex-col justify-end p-5 ' + SHADOW} style={{ background: 'linear-gradient(135deg, #C4501A 0%, #E8632B 100%)' }}>
+          {heroOk && (
+            <img src={HERO_PHOTO} alt="" className="absolute inset-0 w-full h-full object-cover" onError={() => setHeroOk(false)} />
+          )}
+          {!heroOk && <span className="material-symbols-outlined absolute right-5 top-5 text-white/25 text-[96px]">menu_book</span>}
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(30,27,25,0.78), rgba(30,27,25,0.3) 55%, rgba(30,27,25,0))' }} />
+          <div className="relative flex flex-col items-start gap-3">
+            <h1 className="text-white text-[19px] font-bold leading-snug max-w-[250px]">
+              School books for 2026-27, ready at Sector 40-C
+            </h1>
+            <button onClick={() => pickerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="px-5 py-2.5 bg-white text-[#1E1B19] text-[13px] font-semibold rounded-full active:scale-95 transition-transform">
+              Find your set
+            </button>
+          </div>
+        </section>
+
+        {/* 4. School picker */}
+        <section ref={pickerRef} className="flex flex-col gap-3 scroll-mt-4">
+          <div className="flex items-center gap-2 overflow-x-auto -mx-5 px-5" style={{ scrollbarWidth: 'none' }}>
+            {schoolNames.map(n => {
+              const on = n === school
+              return (
+                <button key={n} onClick={() => pickSchool(n)}
+                  className={'px-4 py-2 rounded-full text-[13px] whitespace-nowrap shrink-0 active:scale-95 transition-transform ' + (on ? 'bg-[#E8632B] text-white font-semibold ' : 'bg-white text-[#1E1B19] font-medium ') + SHADOW}>
+                  {SHORT_NAME[n] || n}
                 </button>
-              </div>
-            </div>
-
-            {/* Free pickup banner */}
-            <div className="bg-secondary-fixed text-on-secondary-fixed rounded-xl p-3 mb-space-md shadow-sm flex items-center gap-3 lg:col-span-5 lg:col-start-8 lg:row-start-3">
-              <div className="w-10 h-10 rounded-full bg-primary-container text-on-primary flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-[22px]">storefront</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-label-lg text-label-lg font-bold text-on-secondary-fixed-variant">Free Store Pickup</span>
-                  <span className="bg-primary text-on-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Free</span>
-                </div>
-                <p className="font-body-sm text-[13px] text-on-secondary-fixed font-medium truncate">Collect your kit from Booth 48, Sector 40-C.</p>
-              </div>
-            </div>
+              )
+            })}
           </div>
 
-          {/* 5. Category cards */}
-          <div className="mb-space-lg md:mt-4">
-            <div className="flex items-center justify-between mb-space-sm">
-              <h3 className="font-headline-sm md:font-headline-md text-headline-sm md:text-headline-md text-on-surface">Explore by Category</h3>
-              <span className="font-label-micro text-label-micro text-primary uppercase font-bold tracking-wider">Fast Services</span>
-            </div>
-            <div className="flex flex-col gap-space-sm md:grid md:grid-cols-3 md:gap-4">
-              <div onClick={() => router.push('/school-sets')} className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm active:bg-surface-container-low hover:shadow-md transition cursor-pointer">
-                <div className="flex items-start gap-space-md">
-                  <div className="w-16 h-16 rounded-lg bg-primary-fixed overflow-hidden shrink-0 relative flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[32px] text-primary">backpack</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1 mb-0.5">
-                      <span className="font-label-lg text-label-lg text-on-surface font-semibold">Full School Bundles</span>
-                    </div>
-                    <p className="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mb-2">NCERT textbooks, school-specific registers with monograms, syllabus diaries &amp; art folios.</p>
-                    <span className="font-label-md text-label-md text-primary font-semibold inline-flex items-center gap-1">Explore 18 Schools <span className="material-symbols-outlined text-[16px]">chevron_right</span></span>
-                  </div>
-                </div>
-              </div>
-
-              <div onClick={() => router.push('/marketplace')} className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm active:bg-surface-container-low hover:shadow-md transition cursor-pointer">
-                <div className="flex items-start gap-space-md">
-                  <div className="w-16 h-16 rounded-lg bg-primary-fixed overflow-hidden shrink-0 relative flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[32px] text-primary">sync_alt</span>
-                    <span className="absolute bottom-1 right-1 bg-primary text-on-primary text-[9px] font-bold px-1 rounded-sm">60% OFF</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className="font-label-lg text-label-lg text-on-surface font-semibold">Buy &amp; Sell Old Books</span>
-                      <span className="bg-surface-container-high text-on-surface-variant font-label-micro text-[10px] px-1.5 py-0.5 rounded-full font-bold">Verified</span>
-                    </div>
-                    <p className="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mb-2">Save up to 60% or list your old session books in 2 minutes with zero seller commission.</p>
-                    <span className="font-label-md text-label-md text-primary font-semibold inline-flex items-center gap-1">{listingCount > 0 ? 'Browse ' + listingCount + ' Books' : 'Browse Books'} <span className="material-symbols-outlined text-[16px]">chevron_right</span></span>
-                  </div>
-                </div>
-              </div>
-
-              <div onClick={() => router.push('/school-sets')} className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm active:bg-surface-container-low hover:shadow-md transition cursor-pointer">
-                <div className="flex items-start gap-space-md">
-                  <div className="w-16 h-16 rounded-lg bg-primary-fixed overflow-hidden shrink-0 relative flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[32px] text-primary">draw</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="font-label-lg text-label-lg text-on-surface font-semibold">Stationery &amp; Supplies</span>
-                    <p className="font-body-sm text-body-sm text-on-surface-variant line-clamp-2 mb-2">Classmate spiral notebooks, Camlin geometry tools, Faber-Castell art supplies, chart papers.</p>
-                    <span className="font-label-md text-label-md text-primary font-semibold inline-flex items-center gap-1">Order Supplies <span className="material-symbols-outlined text-[16px]">chevron_right</span></span>
-                  </div>
-                </div>
-              </div>
-            </div>
+          <div className="flex items-center gap-2 overflow-x-auto -mx-5 px-5 pb-1" style={{ scrollbarWidth: 'none' }}>
+            {classes.map(c => {
+              const on = c === cls
+              return (
+                <button key={c} onClick={() => setCls(c)}
+                  className={'px-3.5 py-1.5 rounded-full text-[12px] whitespace-nowrap shrink-0 transition-colors ' + (on ? 'bg-[#E8632B] text-white font-semibold ' : 'bg-white text-[#1E1B19] font-medium ') + SHADOW}>
+                  Class {c}
+                </button>
+              )
+            })}
           </div>
 
-          {/* 6. Partner schools */}
-          <div className="mb-space-lg">
-            <div className="flex items-center justify-between mb-space-xs">
-              <div>
-                <h3 className="font-headline-sm md:font-headline-md text-headline-sm md:text-headline-md text-on-surface">Tricity Partner Schools</h3>
-                <p className="font-body-sm text-body-sm text-on-surface-variant">Aligned syllabus &amp; approved bundle sets</p>
+          <div className={'bg-white rounded-[22px] p-4 flex flex-col gap-4 ' + SHADOW}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="text-[15px] font-bold leading-snug">{shortName} · Class {cls} set</h2>
+                <p className="text-[13px] text-[#9A908A] mt-0.5">
+                  {summary.books} books{summary.notebooks > 0 ? ' + ' + summary.notebooks + ' notebooks' : ''}
+                </p>
               </div>
-              <span className="bg-surface-container-high text-on-surface-variant font-label-micro text-[10px] px-2 py-0.5 rounded-full font-bold">100% Verified</span>
+              <span className="text-[18px] font-extrabold shrink-0">₹{summary.total.toLocaleString('en-IN')}</span>
             </div>
-            <div className="flex items-center gap-space-sm overflow-x-auto py-2 -mx-space-md px-space-md scrollbar-none md:grid md:grid-cols-5 md:gap-4 md:overflow-visible md:mx-0 md:px-0">
-              {partnerSchools.map(s => (
-                <div key={s.name} onClick={() => router.push('/school-sets')} className="w-36 md:w-auto bg-surface-container-lowest rounded-xl p-space-sm md:p-4 shadow-sm hover:shadow-md transition flex flex-col items-center text-center shrink-0 cursor-pointer">
-                  <div className="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center mb-1 text-primary">
-                    <span className="material-symbols-outlined text-[24px]">{s.icon}</span>
-                  </div>
-                  <span className="font-label-md text-label-md font-semibold text-on-surface line-clamp-1">{s.name}</span>
-                  <span className="font-label-micro text-[10px] text-on-surface-variant">{s.place}</span>
-                  <span className="mt-2 font-label-micro text-[10px] bg-primary-fixed text-on-primary-fixed px-1.5 py-0.5 rounded">{s.tag}</span>
-                </div>
-              ))}
-            </div>
+            <button
+              onClick={() => router.push('/school-sets?school=' + encodeURIComponent(school) + '&class=' + cls)}
+              className="w-full h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full flex items-center justify-center active:scale-[0.98] transition-transform">
+              View set
+            </button>
+          </div>
+        </section>
+
+        {/* 5. Books from students near you */}
+        <section className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[17px] font-bold">Books from students near you</h2>
+            <button onClick={() => router.push('/marketplace')} className="text-[13px] font-semibold text-[#9A908A] active:opacity-70">See all</button>
           </div>
 
-          {/* 7. Pre-loved listings (live) */}
-          <div className="mb-space-lg">
-            <div className="flex items-center justify-between mb-space-sm">
-              <div>
-                <h3 className="font-headline-sm md:font-headline-md text-headline-sm md:text-headline-md text-on-surface">Pre-Loved Books Nearby</h3>
-                <p className="font-body-sm text-body-sm text-on-surface-variant">Every listing is checked by our team</p>
-              </div>
-              <button onClick={() => router.push('/marketplace')} className="font-label-md text-label-md text-primary font-semibold">View All</button>
+          {listings.length === 0 ? (
+            <div className={'bg-white rounded-[22px] p-5 text-center ' + SHADOW}>
+              <p className="text-[14px] text-[#5E5650] mb-3">No books listed yet. Be the first to sell yours.</p>
+              <button onClick={goSell} className="px-5 py-2.5 bg-[#E8632B] text-white text-[14px] font-semibold rounded-full active:scale-95 transition-transform">Sell a book</button>
             </div>
-            {listings.length === 0 ? (
-              <div className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm text-center">
-                <p className="font-body-sm text-body-sm text-on-surface-variant mb-3">No listings yet. Be the first to sell your old books!</p>
-                {sellButton('bg-primary-container text-on-primary font-label-lg text-label-lg font-bold py-2.5 px-5 rounded-xl shadow-sm active:scale-95 transition-transform', 'Sell Books')}
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-                {listings.slice(0, 4).map(l => {
-                  const off = discount(l)
-                  return (
-                    <div key={l.id} onClick={() => router.push('/listing/' + l.id)} className="bg-surface-container-lowest rounded-xl p-2.5 shadow-sm hover:shadow-md transition flex flex-col justify-between cursor-pointer">
-                      <div>
-                        <div className="w-full aspect-[4/3] rounded-lg bg-surface-container-high overflow-hidden relative mb-2 flex items-center justify-center text-[34px]">
-                          {l.images?.[0] ? <img className="w-full h-full object-cover" src={l.images[0]} alt={l.title} /> : <span>{l.emoji || '📚'}</span>}
-                          {l.condition && <span className="absolute top-1.5 left-1.5 bg-surface-container-lowest/90 font-label-micro text-[10px] text-on-surface px-1.5 py-0.5 rounded">{l.condition}</span>}
-                          {off > 0 && <span className="absolute top-1.5 right-1.5 bg-primary text-on-primary font-label-micro text-[9px] px-1 py-0.5 rounded font-bold">-{off}%</span>}
-                        </div>
-                        <span className="font-label-micro text-[10px] text-primary font-semibold uppercase block truncate">{l.subtitle || l.category || 'Pre-loved'}</span>
-                        <h4 className="font-label-md text-label-md font-semibold text-on-surface line-clamp-2 leading-tight">{l.title}</h4>
-                        <div className="flex items-baseline gap-1 mt-1">
-                          <span className="font-label-lg text-label-lg font-bold text-on-surface">₹{l.price}</span>
-                          {Number(l.origPrice) > Number(l.price) && <span className="font-body-sm text-[12px] text-outline line-through">₹{l.origPrice}</span>}
-                        </div>
-                        {l.location && (
-                          <div className="flex items-center gap-1 text-on-surface-variant mt-0.5">
-                            <span className="material-symbols-outlined text-[13px] text-tertiary">location_on</span>
-                            <span className="font-body-sm text-[11px] truncate">{l.location}</span>
-                          </div>
-                        )}
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {listings.slice(0, 4).map(l => {
+                const isSaved = saved.has(l.id)
+                return (
+                  <div key={l.id} onClick={() => router.push('/listing/' + l.id)} className={'bg-white rounded-[22px] p-3 flex flex-col justify-between cursor-pointer ' + SHADOW}>
+                    <div>
+                      <div className="relative w-full aspect-[4/3] rounded-[18px] overflow-hidden mb-2.5 bg-[#FFF1EA] flex items-center justify-center text-[34px]">
+                        {l.images?.[0] ? <img src={l.images[0]} alt={l.title} className="w-full h-full object-cover" /> : <span>{l.emoji || '📚'}</span>}
+                        <button aria-label={isSaved ? 'Remove from saved' : 'Save book'} onClick={e => toggleHeart(l, e)}
+                          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white flex items-center justify-center active:scale-90 transition-transform shadow-[0_2px_10px_rgba(120,70,40,0.12)]">
+                          <span className="material-symbols-outlined text-[16px]" style={{ color: isSaved ? '#E8632B' : '#9A908A', fontVariationSettings: isSaved ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
+                        </button>
                       </div>
-                      <button onClick={e => whatsappSeller(l, e)} className="w-full mt-3 bg-surface-container-low text-on-surface hover:bg-primary/10 font-label-micro text-label-micro py-2 rounded-lg flex items-center justify-center gap-1 active:scale-95 transition-transform">
-                        <span className="material-symbols-outlined text-[15px] text-[#25D366]">chat</span>
-                        <span>WhatsApp Seller</span>
+                      <h3 className="text-[13px] font-bold leading-tight line-clamp-2">{l.title}</h3>
+                      <p className="text-[12px] text-[#9A908A] mt-1 truncate">{[l.category, l.condition].filter(Boolean).join(' • ')}</p>
+                    </div>
+                    <div className="flex items-center justify-between mt-3">
+                      <span className="text-[15px] font-extrabold">₹{l.price}</span>
+                      <button aria-label="Chat to buy" onClick={e => openChat(l, e)} className="w-8 h-8 rounded-full bg-[#E8632B] text-white flex items-center justify-center active:scale-90 transition-transform shadow-[0_3px_10px_rgba(232,99,43,0.35)]">
+                        <span className="material-symbols-outlined text-[17px]">chat_bubble</span>
                       </button>
                     </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* 8. School essentials */}
-          <div className="mb-space-lg">
-            <div className="flex items-center justify-between mb-space-sm">
-              <div>
-                <h3 className="font-headline-sm md:font-headline-md text-headline-sm md:text-headline-md text-on-surface">School Essentials</h3>
-                <p className="font-body-sm text-body-sm text-on-surface-variant">Classmate, Camlin &amp; Faber-Castell original</p>
-              </div>
-              <span className="font-label-micro text-label-micro text-primary uppercase font-bold">Quick Add</span>
-            </div>
-            <div className="flex flex-col gap-2 md:grid md:grid-cols-3 md:gap-4">
-              {essentials.map(it => (
-                <div key={it.name} className="bg-surface-container-lowest rounded-xl p-space-sm md:p-4 flex items-center justify-between shadow-sm hover:shadow-md transition">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-12 h-12 rounded-lg bg-surface-container-low overflow-hidden shrink-0 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-[26px] text-primary">{it.icon}</span>
-                    </div>
-                    <div className="min-w-0">
-                      <h4 className="font-label-md text-label-md font-semibold text-on-surface truncate">{it.name}</h4>
-                      <p className="font-body-sm text-[12px] text-on-surface-variant">{it.desc}</p>
-                      <span className="font-label-md text-label-md font-bold text-on-surface">₹{it.price}</span>
-                    </div>
                   </div>
-                  <button onClick={() => router.push('/school-sets')} aria-label={'Add ' + it.name} className="w-9 h-9 rounded-full bg-primary-container text-on-primary flex items-center justify-center shrink-0 shadow-sm active:scale-90 transition-transform ml-2">
-                    <span className="material-symbols-outlined text-[20px]">add</span>
-                  </button>
-                </div>
-              ))}
+                )
+              })}
+            </div>
+          )}
+
+          <button onClick={goSell} className="self-start text-[13px] font-semibold text-[#C4501A] active:opacity-70">
+            Have old books? Sell yours
+          </button>
+        </section>
+
+        {/* 6. Store card */}
+        <section className={'bg-white rounded-[22px] p-4 flex flex-col gap-3.5 ' + SHADOW}>
+          <div className="flex items-center gap-3">
+            <div className="w-14 h-14 rounded-[18px] overflow-hidden shrink-0 bg-[#FFF1EA] flex items-center justify-center">
+              {storeOk
+                ? <img src={STORE_PHOTO} alt="Bedi Book Store" className="w-full h-full object-cover" onError={() => setStoreOk(false)} />
+                : <span className="material-symbols-outlined text-[26px] text-[#C4501A]">storefront</span>}
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-[14px] font-bold">Bedi Book Store, Sector 40-C</h3>
+              <p className="text-[12px] text-[#9A908A] mt-0.5">Since 1994 · Booth 48 · Mon–Sat, 9am–7pm</p>
             </div>
           </div>
-
-          {/* 9 + 10. Trust strip and FAQ (side by side on desktop) */}
-          <div className="lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
-            <div className="bg-surface-container-lowest rounded-xl p-3.5 md:p-5 shadow-sm mb-space-lg">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-11 h-11 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-[24px]">verified</span>
-                </div>
-                <div>
-                  <h4 className="font-headline-sm text-[18px] font-bold text-on-surface">Bedi Book Store, Sec 40-C</h4>
-                  <p className="font-body-sm text-[13px] text-on-surface-variant">Trusted by parents since 1994</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-2 text-center">
-                <div className="bg-surface-container-low p-2.5 rounded-xl flex flex-col items-center">
-                  <span className="material-symbols-outlined text-primary text-[24px] mb-1">verified_user</span>
-                  <span className="font-label-md text-label-md font-bold text-on-surface">100% Original</span>
-                  <span className="font-body-sm text-[11px] text-on-surface-variant">Prints</span>
-                </div>
-                <div className="bg-surface-container-low p-2.5 rounded-xl flex flex-col items-center">
-                  <span className="material-symbols-outlined text-primary text-[24px] mb-1">check_circle</span>
-                  <span className="font-label-md text-label-md font-bold text-on-surface">100% Correct</span>
-                  <span className="font-body-sm text-[11px] text-on-surface-variant">Syllabus</span>
-                </div>
-                <div className="bg-surface-container-low p-2.5 rounded-xl flex flex-col items-center">
-                  <span className="material-symbols-outlined text-primary text-[24px] mb-1">swap_horiz</span>
-                  <span className="font-label-md text-label-md font-bold text-on-surface">Easy 24h</span>
-                  <span className="font-body-sm text-[11px] text-on-surface-variant">Exchange</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-space-lg">
-              <div className="mb-3"><h3 className="font-headline-sm text-[20px] font-bold text-on-surface">Parent FAQs</h3></div>
-              <div className="flex flex-col gap-2">
-                {faqs.map((f, i) => (
-                  <div key={f.q} className="bg-surface-container-lowest rounded-xl p-3 shadow-sm">
-                    <button onClick={() => setOpenFaq(openFaq === i ? null : i)} className="w-full flex items-center justify-between text-left gap-2 font-label-lg text-label-lg font-bold text-on-surface py-1">
-                      <span>{f.q}</span>
-                      <span className="material-symbols-outlined text-outline text-[22px] transition-transform duration-200 shrink-0" style={{ transform: openFaq === i ? 'rotate(180deg)' : 'rotate(0deg)' }}>expand_more</span>
-                    </button>
-                    {openFaq === i && <div className="pt-2 font-body-sm text-[14px] text-on-surface-variant leading-snug">{f.a}</div>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* 11. Support footer */}
-          <div className="bg-surface-container-low rounded-xl p-4 md:p-6 mb-24 md:mb-8 shadow-sm text-center md:max-w-xl md:mx-auto md:w-full">
-            <div className="w-12 h-12 rounded-full bg-[#25D366]/15 text-[#25D366] flex items-center justify-center mx-auto mb-2">
-              <span className="material-symbols-outlined text-[28px]">chat</span>
-            </div>
-            <h4 className="font-headline-sm text-[19px] font-bold text-on-surface mb-1">Need Help with Editions?</h4>
-            <p className="font-body-sm text-[14px] text-on-surface-variant mb-3">Uncle ji is ready on WhatsApp</p>
-            <a className="w-full bg-[#25D366] text-white font-label-lg text-[16px] font-bold py-3.5 px-4 rounded-xl shadow-sm flex items-center justify-center gap-2 mb-3 active:scale-[0.98] transition-transform" href={WA_HELP_LINK} rel="noopener noreferrer" target="_blank">
-              <span className="material-symbols-outlined text-[22px]">chat</span>
-              <span>WhatsApp Uncle ji</span>
-            </a>
-            <div className="flex items-center justify-center gap-3 text-on-surface-variant font-label-md text-xs font-semibold flex-wrap">
-              <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[15px]">call</span> {WHATSAPP_DISPLAY}</span>
-              <span>•</span>
-              <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[15px]">store</span> Booth 48, Sec 40-C</span>
-            </div>
-          </div>
-        </div>
+          <a href={WA_HELP_LINK} target="_blank" rel="noopener noreferrer" className="w-full h-11 bg-[#25D366] text-white rounded-full flex items-center justify-center gap-2 text-[14px] font-semibold active:scale-[0.98] transition-transform">
+            <span className="material-symbols-outlined text-[18px]">chat</span>
+            <span>Chat on WhatsApp</span>
+          </a>
+        </section>
       </main>
 
-      {/* Floating cart bar (only when the cart has kits) */}
+      {/* Kit bag pill (only when a kit has been added) */}
       {cart.length > 0 && (
-        <div className="fixed bottom-20 md:bottom-6 inset-x-0 z-40 px-margin flex justify-center pointer-events-none">
-          <div className="w-full max-w-md bg-inverse-surface text-inverse-on-surface rounded-full py-2.5 px-4 shadow-xl flex items-center justify-between pointer-events-auto">
-            <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-full bg-primary-container text-on-primary font-bold text-xs flex items-center justify-center">{cart.length}</div>
-              <div className="flex flex-col">
-                <span className="font-label-md text-label-md font-semibold text-inverse-on-surface leading-tight">₹{cartTotal.toLocaleString('en-IN')} total</span>
-                <span className="font-label-micro text-[10px] text-surface-dim">{cart.length} {cart.length > 1 ? 'kits' : 'kit'} in bag</span>
-              </div>
-            </div>
-            <button onClick={() => router.push('/school-sets')} className="bg-primary-container text-on-primary font-label-md text-label-md px-4 py-2 rounded-full font-semibold flex items-center gap-1.5 active:scale-95 transition-transform">
-              <span>View Cart</span>
-              <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-            </button>
+        <div className="fixed inset-x-0 flex justify-center pointer-events-none px-5" style={{ zIndex: 40, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 88px)' }}>
+          <div className={'pointer-events-auto bg-white rounded-full pl-4 pr-1.5 py-1.5 flex items-center gap-3 ' + SHADOW}>
+            <span className="text-[13px] font-semibold">{cart.length} {cart.length > 1 ? 'kits' : 'kit'} · ₹{cartTotal.toLocaleString('en-IN')}</span>
+            <button onClick={() => router.push('/school-sets')} className="px-4 py-2 bg-[#E8632B] text-white text-[13px] font-semibold rounded-full active:scale-95 transition-transform">View bag</button>
           </div>
         </div>
       )}
-
-      {/* Shared bottom bar (phone only) */}
-      <BottomNav />
     </div>
   )
 }

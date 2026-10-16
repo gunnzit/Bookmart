@@ -29,27 +29,32 @@ export default function LoadingScreen({ delayMs = 0, out = false }: { delayMs?: 
       `}</style>
 
       <div
-        className="absolute inset-0 flex flex-col items-center justify-center bg-surface"
-        style={{ paddingBottom: 90, animation: 'ppLoadFade 0.2s ease ' + delayMs + 'ms both' }}
+        className="absolute inset-0 flex flex-col items-center justify-center"
+        style={{
+          paddingBottom: 90,
+          background: 'linear-gradient(180deg, #FDEADF 0%, #FFF7F2 100%)',
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          animation: 'ppLoadFade 0.2s ease ' + delayMs + 'ms both',
+        }}
       >
         {/* Thin sliding bar at the top */}
-        <div className="absolute top-0 left-0 right-0 h-[3px] overflow-hidden" style={{ background: 'rgba(196,80,26,0.12)' }}>
-          <div className="pp-anim h-full w-1/3 rounded-full" style={{ background: '#c4501a', animation: 'ppLoadBar 1.2s ease-in-out infinite' }} />
+        <div className="absolute top-0 left-0 right-0 h-[3px] overflow-hidden" style={{ background: 'rgba(232,99,43,0.15)' }}>
+          <div className="pp-anim h-full w-1/3 rounded-full" style={{ background: '#E8632B', animation: 'ppLoadBar 1.2s ease-in-out infinite' }} />
         </div>
 
         {/* Wordmark */}
-        <div className="pp-anim font-headline-lg text-[40px] leading-none tracking-tight text-on-surface" style={{ animation: 'ppLoadBreathe 2.2s ease-in-out infinite' }}>
-          Page<span style={{ color: '#ff743b' }}>plus</span>
+        <div className="pp-anim" style={{ fontSize: 40, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1, color: '#1E1B19', animation: 'ppLoadBreathe 2.2s ease-in-out infinite' }}>
+          Page<span style={{ color: '#E8632B' }}>plus</span>
         </div>
-        <p className="font-body-sm text-body-sm text-on-surface-variant mt-2">Books, kits &amp; stationery</p>
+        <p style={{ fontSize: 13, color: '#9A908A', marginTop: 8 }}>Books, kits &amp; stationery</p>
 
         {/* Bouncing dots */}
-        <div className="flex items-center gap-2 mt-7">
+        <div className="flex items-center gap-2" style={{ marginTop: 28 }}>
           {[0, 1, 2].map(i => (
             <span
               key={i}
-              className="pp-anim block w-2.5 h-2.5 rounded-full"
-              style={{ background: '#c4501a', animation: 'ppLoadDot 1.1s ease-in-out ' + i * 0.16 + 's infinite' }}
+              className="pp-anim block rounded-full"
+              style={{ width: 10, height: 10, background: '#E8632B', animation: 'ppLoadDot 1.1s ease-in-out ' + i * 0.16 + 's infinite' }}
             />
           ))}
         </div>
