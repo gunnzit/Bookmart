@@ -9,35 +9,34 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-// ── Settings (change here only) ───────────────────────────────────────────
-const WHATSAPP_NUMBER = '919914735738'
-const WA_HELP_LINK = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent('Hi, I need help listing a book on Pageplus')
-const MAX_PHOTOS = 3                          // slots: Cover, MRP tag, Extra
+const MAX_PHOTOS = 3
 const MAX_PHOTO_MB = 10
-const PRICE_SUGGESTIONS = [0.4, 0.5, 0.6]     // shares of the MRP shown as suggestion buttons
 const DRAFT_KEY = 'pageplus_sell_draft'
 
 const categories = ['textbook', 'novel', 'notebook', 'art', 'stationery', 'competitive']
-const conditions = ['New', 'Good', 'Fair']
-const conditionDesc: Record<string, string> = {
-  New: 'Unused, sealed or as good as new',
-  Good: 'Minor wear only, nothing missing',
-  Fair: 'Used but fully readable, may have marks',
-}
-const conditionTag: Record<string, string> = { New: 'Fastest sale', Good: 'Popular', Fair: '' }
 const emojis: Record<string, string> = {
   textbook: '📗', novel: '📘', notebook: '📓',
   art: '🎨', stationery: '✏️', competitive: '📙',
 }
-const catDesc: Record<string, string> = {
-  textbook: 'School & college', novel: 'Fiction & lit',
-  notebook: 'Ruled, plain', art: 'Supplies',
-  stationery: 'Pens, files', competitive: 'JEE, NEET',
+const catLabel: Record<string, string> = {
+  textbook: 'Textbook', novel: 'Novel', notebook: 'Notebook',
+  art: 'Art', stationery: 'Stationery', competitive: 'Competitive',
 }
+
+// Stored value must stay New / Good / Fair (the server only accepts these).
+const GRADES = [
+  { value: 'New', label: 'Like New', pct: 0.5, desc: 'Unmarked pages, crisp spine, unused feel' },
+  { value: 'Good', label: 'Good', pct: 0.35, desc: 'Clean pages, light cover wear, fully intact binding' },
+  { value: 'Fair', label: 'Fair', pct: 0.2, desc: 'Pencil notes, minor highlighting, complete text' },
+]
+
+const BOARDS = ['CBSE', 'ICSE', 'Punjab Board', 'Other']
+const CLASSES = ['Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'Other']
+
 const SLOTS = [
-  { label: 'Cover', hint: 'Front cover', required: true },
-  { label: 'MRP tag', hint: 'Price tag visible', required: true },
-  { label: 'Extra', hint: 'Optional', required: false },
+  { name: 'Front cover', hint: 'Required' },
+  { name: 'MRP tag', hint: 'Required' },
+  { name: 'Extra', hint: 'Optional' },
 ]
 
 const LOCATIONS = [
@@ -78,72 +77,85 @@ const LOCATIONS = [
   'Kharar, Mohali', 'Zirakpur', 'Derabassi', 'Dera Bassi',
 ]
 
-const inputBase = 'w-full px-4 py-3 rounded-xl bg-white font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-[#E8632B]/20 focus:border-[#E8632B] border '
-const inputOk = 'border-[#EADFCC]'
-const inputBad = 'border-error'
-const labelCls = 'font-label-micro text-label-micro uppercase text-on-surface-variant block mb-1.5'
+const CARD = 'bg-white rounded-[22px] p-4 shadow-[0_6px_20px_rgba(120,70,40,0.08)]'
+const INPUT = 'w-full bg-[#FFF1EA] rounded-[16px] px-3.5 py-3 text-[14px] text-[#1E1B19] placeholder:text-[#9A908A] outline-none focus:ring-2 focus:ring-[#FCE3D6]'
+const LABEL = 'block text-[12px] text-[#5E5650] mb-1.5'
+const SHADOW = 'shadow-[0_6px_20px_rgba(120,70,40,0.08)]'
 
-function scrollToId(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+function Chip({ on, children, onClick }: { on: boolean; children: React.ReactNode; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`shrink-0 px-4 py-2 rounded-full text-[13px] active:scale-95 transition-transform ${
+        on ? 'bg-[#E8632B] text-white font-semibold' : 'bg-[#FFF1EA] text-[#1E1B19] font-medium'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+function StepTitle({ n, children, right }: { n: number; children: React.ReactNode; right?: string }) {
+  return (
+    <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center gap-2">
+        <span className="w-6 h-6 rounded-full bg-[#F8EDE6] text-[#5E5650] text-[12px] font-bold flex items-center justify-center">{n}</span>
+        <h2 className="text-[17px] leading-[22px] font-bold text-[#1E1B19]">{children}</h2>
+      </div>
+      {right && <span className="text-[12px] text-[#5E5650]">{right}</span>}
+    </div>
+  )
 }
 
 export default function SellPage() {
   const router = useRouter()
   const { isSignedIn, user } = useUser()
-
-  const [logoOk, setLogoOk] = useState(true)
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
-  const [touched, setTouched] = useState(false)
-  const [showGuide, setShowGuide] = useState(false)
-  const [draftMsg, setDraftMsg] = useState('')
+  const [images, setImages] = useState<File[]>([])
+  const [previews, setPreviews] = useState<string[]>([])
   const [uploadProgress, setUploadProgress] = useState('')
-
-  const [files, setFiles] = useState<(File | null)[]>(Array(MAX_PHOTOS).fill(null))
-  const [previews, setPreviews] = useState<(string | null)[]>(Array(MAX_PHOTOS).fill(null))
-
+  const [error, setError] = useState('')
   const [locationSearch, setLocationSearch] = useState('')
   const [showLocationDropdown, setShowLocationDropdown] = useState(false)
   const locationRef = useRef<HTMLDivElement>(null)
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [priceTouched, setPriceTouched] = useState(false)
 
-  // Phone — collected once and saved (no OTP check yet)
+  // Phone gate
   const [phoneChecked, setPhoneChecked] = useState(false)
   const [hasPhone, setHasPhone] = useState(false)
   const [phone, setPhone] = useState('')
   const [savingPhone, setSavingPhone] = useState(false)
 
   const [form, setForm] = useState({
-    title: '', subtitle: '', price: '',
-    origPrice: '', condition: 'Good',
+    title: '', board: '', grade: '', edition: '', note: '',
+    price: '', origPrice: '', condition: 'Good',
     category: 'textbook', location: '',
   })
 
-  useEffect(() => {
-    if (isSignedIn === false) router.push('/')
-  }, [isSignedIn])
-
-  // Restore a draft saved on this device (text only — photos are never stored)
+  // Restore draft
   useEffect(() => {
     try {
       const raw = localStorage.getItem(DRAFT_KEY)
-      if (!raw) return
-      const d = JSON.parse(raw)
-      if (d && typeof d.form === 'object') {
-        const f = d.form
-        setForm(prev => ({
-          title: typeof f.title === 'string' ? f.title : prev.title,
-          subtitle: typeof f.subtitle === 'string' ? f.subtitle : prev.subtitle,
-          price: typeof f.price === 'string' ? f.price : prev.price,
-          origPrice: typeof f.origPrice === 'string' ? f.origPrice : prev.origPrice,
-          condition: conditions.includes(f.condition) ? f.condition : prev.condition,
-          category: categories.includes(f.category) ? f.category : prev.category,
-          location: typeof f.location === 'string' ? f.location : prev.location,
-        }))
-        setLocationSearch(typeof f.location === 'string' ? f.location : '')
-        setDraftMsg('Draft restored. Add your photos again.')
+      if (raw) {
+        const d = JSON.parse(raw)
+        setForm(prev => ({ ...prev, ...d }))
+        if (d.location) setLocationSearch(d.location)
+        if (d.price) setPriceTouched(true)
       }
     } catch {}
   }, [])
+
+  // Save draft
+  useEffect(() => {
+    try { localStorage.setItem(DRAFT_KEY, JSON.stringify(form)) } catch {}
+  }, [form])
+
+  useEffect(() => {
+    if (isSignedIn === false) router.push('/')
+  }, [isSignedIn, router])
 
   useEffect(() => {
     if (!isSignedIn || !user) return
@@ -167,44 +179,25 @@ export default function SellPage() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
+  const grade = GRADES.find(g => g.value === form.condition) || GRADES[1]
+  const mrp = parseInt(form.origPrice) || 0
+  const suggested = mrp > 0 ? Math.max(1, Math.round(mrp * grade.pct)) : 0
+  const bandLow = suggested ? Math.max(1, Math.round(suggested * 0.9)) : 0
+  const bandHigh = suggested ? Math.round(suggested * 1.1) : 0
+  const priceNum = parseInt(form.price) || 0
+
+  // Auto-fill the suggested price until the seller types their own
+  useEffect(() => {
+    if (!priceTouched && suggested > 0) {
+      setForm(prev => ({ ...prev, price: String(suggested) }))
+    }
+  }, [suggested, priceTouched])
+
   if (!isSignedIn) return null
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
   function update(field: string, value: string) {
+    setError('')
     setForm(prev => ({ ...prev, [field]: value }))
-  }
-
-  function pickPhoto(slot: number, e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file) return
-    if (!file.type.startsWith('image/')) { alert('Please choose an image file.'); return }
-    if (file.size > MAX_PHOTO_MB * 1024 * 1024) { alert('That photo is too large (max ' + MAX_PHOTO_MB + ' MB).'); return }
-    setFiles(prev => { const n = [...prev]; n[slot] = file; return n })
-    const reader = new FileReader()
-    reader.onload = ev => setPreviews(prev => { const n = [...prev]; n[slot] = ev.target?.result as string; return n })
-    reader.readAsDataURL(file)
-  }
-
-  function removePhoto(slot: number) {
-    setFiles(prev => { const n = [...prev]; n[slot] = null; return n })
-    setPreviews(prev => { const n = [...prev]; n[slot] = null; return n })
-  }
-
-  function selectLocation(loc: string) {
-    setForm(prev => ({ ...prev, location: loc }))
-    setLocationSearch(loc)
-    setShowLocationDropdown(false)
-  }
-
-  function saveDraft() {
-    try {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify({ form }))
-      setDraftMsg('Draft saved on this device (photos are not saved).')
-    } catch {
-      setDraftMsg('Could not save the draft on this device.')
-    }
-    setTimeout(() => setDraftMsg(''), 4000)
   }
 
   async function savePhone() {
@@ -219,14 +212,44 @@ export default function SellPage() {
     setHasPhone(true)
   }
 
+  const filteredLocations = locationSearch.length > 0
+    ? LOCATIONS.filter(l => l.toLowerCase().includes(locationSearch.toLowerCase())).slice(0, 8)
+    : LOCATIONS.slice(0, 8)
+
+  function selectLocation(loc: string) {
+    setForm(prev => ({ ...prev, location: loc }))
+    setLocationSearch(loc)
+    setShowLocationDropdown(false)
+  }
+
+  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || [])
+    e.target.value = ''
+    const toAdd: File[] = []
+    for (const f of files.slice(0, MAX_PHOTOS - images.length)) {
+      if (f.size > MAX_PHOTO_MB * 1024 * 1024) { setError(`Each photo must be under ${MAX_PHOTO_MB} MB.`); continue }
+      toAdd.push(f)
+    }
+    setImages(prev => [...prev, ...toAdd])
+    toAdd.forEach(file => {
+      const reader = new FileReader()
+      reader.onload = ev => setPreviews(prev => [...prev, ev.target?.result as string])
+      reader.readAsDataURL(file)
+    })
+  }
+
+  function removeImage(index: number) {
+    setImages(prev => prev.filter((_, i) => i !== index))
+    setPreviews(prev => prev.filter((_, i) => i !== index))
+  }
+
   async function uploadImages(): Promise<string[]> {
-    const toUpload = files.filter((f): f is File => !!f)
     const urls: string[] = []
-    for (let i = 0; i < toUpload.length; i++) {
-      setUploadProgress('Uploading photo ' + (i + 1) + ' of ' + toUpload.length + '…')
-      const file = toUpload[i]
+    for (let i = 0; i < images.length; i++) {
+      setUploadProgress(`Uploading photo ${i + 1} of ${images.length}…`)
+      const file = images[i]
       const ext = file.name.split('.').pop()
-      const fileName = Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + ext
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
       const { error } = await supabase.storage.from('Listings').upload(fileName, file, { cacheControl: '3600', upsert: false })
       if (error) throw new Error('Photo upload failed: ' + error.message)
       const { data } = supabase.storage.from('Listings').getPublicUrl(fileName)
@@ -236,41 +259,46 @@ export default function SellPage() {
     return urls
   }
 
-  // ── Validation (shown inline once the seller tries to publish) ───────────
-  const priceNum = parseInt(form.price) || 0
-  const origNum = parseInt(form.origPrice) || 0
-  const photoCount = files.filter(Boolean).length
-  const photosOk = !!files[0] && !!files[1]
-  const discount = priceNum > 0 && origNum > priceNum ? Math.round((1 - priceNum / origNum) * 100) : 0
-
-  const errs = {
-    photos: photosOk ? '' : 'Add the cover photo and a photo of the MRP tag.',
-    title: form.title.trim() ? '' : 'Please enter a title.',
-    price: !priceNum ? 'Enter your price.' : priceNum > 10000 ? 'Maximum price is ₹10,000.' : '',
-    orig: origNum && origNum <= priceNum ? 'Original price must be higher than your price.' : origNum && discount > 90 ? 'Discount cannot exceed 90%.' : '',
-    location: form.location.trim() ? '' : 'Choose where you can meet the buyer.',
+  function validate(): string {
+    if (images.length < 2) return 'Add at least 2 photos: the front cover and the MRP tag.'
+    if (!form.title.trim()) return 'Add the book title.'
+    if (!mrp) return 'Add the original MRP printed on the book.'
+    if (!priceNum || priceNum <= 0) return 'Add your selling price.'
+    if (priceNum > 10000) return 'Maximum price is ₹10,000.'
+    if (mrp <= priceNum) return 'Selling price must be lower than the MRP.'
+    if (Math.round((1 - priceNum / mrp) * 100) > 90) return 'Discount cannot be more than 90%.'
+    if (!form.location.trim()) return 'Choose where buyers can meet you.'
+    return ''
   }
-  const firstErrId = errs.title ? 'sec-title' : errs.photos ? 'sec-photos' : errs.price || errs.orig ? 'sec-price' : errs.location ? 'sec-location' : ''
 
-  const doneCount = [photosOk, !errs.title, !errs.price, !errs.location].filter(Boolean).length
-  const progress = Math.round((doneCount / 4) * 100)
+  function buildSubtitle() {
+    const parts = [form.board, form.grade, form.edition.trim()].filter(Boolean)
+    let s = parts.join(' · ')
+    if (form.note.trim()) s = s ? `${s} · ${form.note.trim()}` : form.note.trim()
+    return s.slice(0, 160)
+  }
 
-  async function publish() {
-    setTouched(true)
-    if (firstErrId) { scrollToId(firstErrId); return }
+  async function submit() {
+    const msg = validate()
+    if (msg) { setError(msg); return }
     setLoading(true)
+    setError('')
     try {
       const imageUrls = await uploadImages()
       const res = await fetch('/api/listings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          title: form.title, subtitle: form.subtitle,
+          title: form.title.trim(),
+          subtitle: buildSubtitle(),
           price: priceNum,
-          origPrice: origNum || null,
-          condition: form.condition, category: form.category,
-          emoji: emojis[form.category], location: form.location,
-          sellerId: user?.id!, images: imageUrls,
+          origPrice: mrp,
+          condition: form.condition,
+          category: form.category,
+          emoji: emojis[form.category],
+          location: form.location,
+          sellerId: user?.id!,
+          images: imageUrls,
         }),
       })
       if (res.ok) {
@@ -278,413 +306,309 @@ export default function SellPage() {
         setDone(true)
       } else {
         const data = await res.json().catch(() => ({}))
-        if (data.error === 'listing_rejected') alert('❌ Listing not approved\n\n' + data.reason)
-        else alert('Something went wrong. Try again.')
+        if (data.error === 'listing_rejected') setError('Listing not approved. ' + (data.reason || ''))
+        else setError('Something went wrong. Please try again.')
       }
-    } catch (err: any) { alert(err.message || 'Could not connect.') }
+    } catch (err: any) {
+      setError(err.message || 'Could not connect. Please try again.')
+    }
     setUploadProgress('')
     setLoading(false)
   }
 
-  function resetForm() {
-    setDone(false); setTouched(false)
-    setForm({ title: '', subtitle: '', price: '', origPrice: '', condition: 'Good', category: 'textbook', location: '' })
-    setFiles(Array(MAX_PHOTOS).fill(null)); setPreviews(Array(MAX_PHOTOS).fill(null)); setLocationSearch('')
-  }
+  const shell = 'min-h-screen font-[family-name:Plus_Jakarta_Sans,sans-serif] text-[#1E1B19]'
+  const bg = { background: 'linear-gradient(180deg,#FDEADF 0%,#FFF7F2 100%)' }
 
-  const filteredLocations = locationSearch.length > 0
-    ? LOCATIONS.filter(l => l.toLowerCase().includes(locationSearch.toLowerCase())).slice(0, 8)
-    : LOCATIONS.slice(0, 8)
+  if (!phoneChecked) return (
+    <div className={`${shell} flex items-center justify-center`} style={bg}>
+      <div className="w-6 h-6 rounded-full border-[3px] border-[#E8632B] border-t-transparent animate-spin" />
+    </div>
+  )
 
-  const suggestions = origNum > 0
-    ? PRICE_SUGGESTIONS.map(p => ({ pct: Math.round(p * 100), value: Math.max(5, Math.round((origNum * p) / 5) * 5) })).filter(s => s.value < origNum)
-    : []
-
-  // ── Screens ──────────────────────────────────────────────────────────────
-  const wrap = 'bg-surface text-on-surface font-body-md antialiased min-h-screen'
-
-  if (!phoneChecked) {
-    return (
-      <div className={wrap + ' flex items-center justify-center'}>
-        <span className="material-symbols-outlined text-[36px] text-primary animate-spin">progress_activity</span>
-      </div>
-    )
-  }
-
-  if (!hasPhone) {
-    return (
-      <div className={wrap + ' flex flex-col'}>
-        <header className="fixed top-0 inset-x-0 z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(45,30,18,0.04)]">
-          <div className="h-16 px-margin flex items-center gap-space-sm max-w-md mx-auto">
-            <button aria-label="Back" onClick={() => router.push('/marketplace')} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container active:scale-95 transition-transform">
-              <span className="material-symbols-outlined text-[24px]">arrow_back</span>
-            </button>
-            <h1 className="font-headline-sm text-headline-sm text-on-surface">Add your number</h1>
+  if (!hasPhone) return (
+    <div className={shell} style={bg}>
+      <header className="px-5 pt-4 flex items-center gap-3">
+        <button onClick={() => router.push('/marketplace')} aria-label="Back"
+          className={`w-10 h-10 rounded-full bg-white ${SHADOW} flex items-center justify-center text-[18px] active:scale-95 transition-transform`}>←</button>
+        <h1 className="text-[20px] font-bold">Your WhatsApp number</h1>
+      </header>
+      <div className="max-w-md mx-auto px-5 mt-6">
+        <div className={CARD}>
+          <p className="text-[14px] text-[#5E5650] leading-[20px] mb-4">
+            Buyers can reach you on WhatsApp when you reply in chat. Add it once and you are set.
+          </p>
+          <div className="flex gap-2">
+            <div className="flex items-center bg-[#FFF1EA] rounded-[16px] px-3.5 text-[14px] text-[#5E5650] font-medium shrink-0">+91</div>
+            <input
+              value={phone}
+              inputMode="numeric"
+              onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+              placeholder="98765 43210"
+              className={INPUT}
+            />
           </div>
-        </header>
-        <main className="flex-1 w-full max-w-md mx-auto pt-20 pb-10 px-margin">
-          <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
-            <div className="w-14 h-14 rounded-full bg-primary-fixed text-primary flex items-center justify-center mx-auto mb-4">
-              <span className="material-symbols-outlined text-[28px]">call</span>
-            </div>
-            <h2 className="font-headline-md text-headline-md text-on-surface text-center mb-1">Your WhatsApp number</h2>
-            <p className="font-body-sm text-body-sm text-on-surface-variant text-center mb-5">Buyers message you inside Pageplus. We use your number to alert you on WhatsApp when a new message arrives. You only add it once.</p>
-            <label className={labelCls}>WhatsApp number</label>
-            <div className="flex gap-2 mb-2">
-              <div className="flex items-center px-3 rounded-xl bg-surface-container-low border border-[#EADFCC] font-label-md text-label-md text-on-surface-variant shrink-0">+91</div>
-              <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="98765 43210" type="text" inputMode="numeric"
-                className={inputBase + (phone.length === 10 ? 'border-[#2E8B57]' : inputOk)} />
-            </div>
-            {phone.length > 0 && phone.length < 10 && <p className="font-body-sm text-body-sm text-error mb-2">Enter a 10-digit number.</p>}
-            <button onClick={savePhone} disabled={savingPhone || phone.length < 10}
-              className="w-full mt-3 bg-primary-container text-on-primary font-label-lg text-label-lg font-bold py-3.5 rounded-xl shadow-md active:scale-[0.98] transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
-              {savingPhone ? 'Saving…' : 'Save & continue'}
-            </button>
-            <button onClick={() => router.push('/marketplace')} className="w-full mt-2 py-3 text-on-surface-variant font-label-md text-label-md">Cancel</button>
-          </div>
-        </main>
-      </div>
-    )
-  }
-
-  if (done) {
-    return (
-      <div className={wrap + ' flex items-center justify-center p-5'}>
-        <div className="bg-surface-container-lowest rounded-2xl p-8 max-w-sm w-full text-center shadow-[0_8px_20px_-4px_rgba(45,30,18,0.10)] border border-[#EADFCC]">
-          <div className="w-16 h-16 rounded-full bg-[#E0A100]/15 text-[#9A6B00] flex items-center justify-center mx-auto mb-4">
-            <span className="material-symbols-outlined text-[34px]">hourglass_top</span>
-          </div>
-          <h2 className="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mb-2">Listing submitted!</h2>
-          <div className="bg-surface-container-low rounded-xl p-3.5 mb-5 text-left">
-            <p className="font-label-md text-label-md text-on-surface font-semibold mb-0.5">Under review</p>
-            <p className="font-body-sm text-body-sm text-on-surface-variant">Our team checks every listing. Yours goes live once it&apos;s approved, usually within a few hours.</p>
-          </div>
-          <button onClick={() => router.push('/marketplace')} className="w-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold py-3.5 rounded-xl shadow-md active:scale-[0.98] transition-transform mb-2.5">Browse marketplace</button>
-          <button onClick={resetForm} className="w-full bg-surface-container-low text-on-surface font-label-lg text-label-lg font-semibold py-3.5 rounded-xl border border-[#EADFCC]">Post another listing</button>
+          {phone.length > 0 && phone.length < 10 && (
+            <p className="text-[12px] text-[#D64545] mt-2">Enter a 10-digit number.</p>
+          )}
+          <button onClick={savePhone} disabled={savingPhone || phone.length < 10}
+            className="mt-5 w-full h-[52px] rounded-full bg-[#E8632B] text-white text-[17px] font-semibold disabled:opacity-40 active:scale-[0.98] transition-transform">
+            {savingPhone ? 'Saving…' : 'Save and continue'}
+          </button>
+          <button onClick={() => router.push('/marketplace')} className="w-full mt-2 py-3 text-[14px] text-[#5E5650]">Not now</button>
         </div>
       </div>
-    )
-  }
+    </div>
+  )
 
-  const publishLabel = loading ? (uploadProgress || 'Publishing…') : 'Publish'
-  const publishDisabled = loading
+  if (done) return (
+    <div className={`${shell} flex items-center justify-center px-5`} style={bg}>
+      <div className={`${CARD} max-w-sm w-full text-center !p-8`}>
+        <div className="w-16 h-16 mx-auto rounded-full bg-[#FFF1EA] flex items-center justify-center text-[28px] mb-4">⏳</div>
+        <h2 className="text-[20px] font-bold mb-2">Listing submitted</h2>
+        <p className="text-[14px] text-[#5E5650] leading-[20px] mb-6">
+          We are checking it now. It goes live once approved, usually within a few hours.
+        </p>
+        <button onClick={() => router.push('/marketplace')}
+          className="w-full h-[52px] rounded-full bg-[#E8632B] text-white text-[17px] font-semibold active:scale-[0.98] transition-transform">
+          Back to marketplace
+        </button>
+        <button
+          onClick={() => {
+            setDone(false)
+            setForm({ title: '', board: '', grade: '', edition: '', note: '', price: '', origPrice: '', condition: 'Good', category: 'textbook', location: '' })
+            setImages([]); setPreviews([]); setLocationSearch(''); setPriceTouched(false)
+          }}
+          className={`w-full h-11 mt-3 rounded-full bg-white text-[14px] font-semibold ${SHADOW} active:scale-[0.98] transition-transform`}>
+          List another book
+        </button>
+      </div>
+    </div>
+  )
 
   return (
-    <div className={wrap + ' flex flex-col'}>
-
-      {/* Grading guide */}
-      {showGuide && (
-        <div className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm flex items-center justify-center p-5" onClick={() => setShowGuide(false)}>
-          <div className="bg-surface-container-lowest rounded-2xl p-6 max-w-sm w-full shadow-2xl" onClick={e => e.stopPropagation()}>
-            <h3 className="font-headline-md text-headline-md text-on-surface mb-3">Condition guide</h3>
-            <div className="flex flex-col gap-2.5 mb-4">
-              {conditions.map(c => (
-                <div key={c} className="bg-surface-container-low rounded-xl p-3">
-                  <p className="font-label-lg text-label-lg font-semibold text-on-surface">{c}</p>
-                  <p className="font-body-sm text-body-sm text-on-surface-variant">{conditionDesc[c]}</p>
-                </div>
-              ))}
-            </div>
-            <p className="font-body-sm text-body-sm text-on-surface-variant mb-4">Be honest. Photos must match, or the buyer may not buy when you meet.</p>
-            <button onClick={() => setShowGuide(false)} className="w-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold py-3 rounded-xl">Got it</button>
-          </div>
-        </div>
-      )}
-
-      {/* Header */}
-      <header className="fixed top-0 inset-x-0 z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(45,30,18,0.04)]">
-        <div className="h-16 px-margin md:px-margin-desktop flex items-center justify-between gap-space-sm max-w-md mx-auto md:max-w-[1100px]">
-          <div className="flex items-center gap-space-xs min-w-0">
-            <button aria-label="Back" onClick={() => router.push('/marketplace')} className="min-w-[44px] min-h-[44px] -ml-space-xs flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container active:scale-95 transition-transform">
-              <span className="material-symbols-outlined text-[24px]">arrow_back</span>
-            </button>
-            {logoOk ? (
-              <img alt="Pageplus" className="h-8 w-auto object-contain cursor-pointer" src="/pageplus-logo.png" onError={() => setLogoOk(false)} onClick={() => router.push('/')} />
-            ) : (
-              <span className="font-headline-sm text-headline-sm text-on-surface cursor-pointer" onClick={() => router.push('/')}>Page<span className="text-secondary-container">plus</span></span>
-            )}
-            <h1 className="font-headline-sm text-headline-sm text-on-surface truncate ml-1">Post a listing</h1>
-          </div>
-          <a aria-label="Get help" href={WA_HELP_LINK} target="_blank" rel="noopener noreferrer" className="w-11 h-11 flex items-center justify-center text-on-surface-variant hover:text-primary rounded-full transition-colors">
-            <span className="material-symbols-outlined text-[22px]">help_outline</span>
-          </a>
+    <div className={shell} style={bg}>
+      <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-[#FDEADF]/80">
+        <div className="h-16 px-5 flex items-center justify-between max-w-md mx-auto">
+          <button onClick={() => router.back()} aria-label="Back"
+            className={`w-10 h-10 rounded-full bg-white ${SHADOW} flex items-center justify-center text-[18px] active:scale-95 transition-transform`}>←</button>
+          <h1 className="text-[20px] font-bold">Sell a book</h1>
+          <div className="w-10" />
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-md mx-auto md:max-w-[1100px] pt-16 pb-40 lg:pb-12 px-margin md:px-margin-desktop">
-        <div className="pt-space-md lg:pt-6 lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
+      <main className="max-w-md mx-auto px-5 pt-20 pb-40 flex flex-col gap-7">
+        <p className="text-[14px] text-[#5E5650] -mb-2">Free to list. You keep the full price.</p>
 
-          {/* LEFT: the form */}
-          <div className="lg:col-span-8 flex flex-col gap-space-md">
-
-            {/* Banner + progress */}
-            <section className="bg-surface-container-low rounded-xl p-space-md shadow-sm">
-              <div className="flex items-center justify-between gap-space-xs mb-space-xs">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-fixed text-on-primary-fixed font-label-micro text-label-micro uppercase tracking-wider">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>0% Commission
-                </span>
-                <span className="font-label-md text-label-md text-on-surface-variant font-medium">{doneCount} of 4 done</span>
-              </div>
-              <h2 className="font-headline-md text-headline-md text-on-surface mt-1">List in 2 Minutes</h2>
-              <p className="font-body-sm text-body-sm text-on-surface-variant mt-1 leading-relaxed">Free to list, and you keep 100% of the price. Every listing is checked by our team before it goes live.</p>
-              <div className="w-full bg-surface-container-highest h-1.5 rounded-full mt-3 overflow-hidden">
-                <div className="bg-primary h-full rounded-full transition-all duration-500 ease-out" style={{ width: progress + '%' }}></div>
-              </div>
-              {draftMsg && <p className="font-label-md text-label-md text-primary mt-2">{draftMsg}</p>}
-            </section>
-
-            {/* Book details */}
-            <section id="sec-title" className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm">
-              <h2 className="font-headline-sm text-headline-sm text-on-surface">Book details</h2>
-              <div>
-                <label className={labelCls}>Title *</label>
-                <input value={form.title} onChange={e => update('title', e.target.value)} placeholder="e.g. NCERT Physics Part 1 — Class 12" type="text" className={inputBase + (touched && errs.title ? inputBad : inputOk)} />
-                {touched && errs.title && <p className="font-body-sm text-body-sm text-error mt-1">{errs.title}</p>}
-              </div>
-              <div>
-                <label className={labelCls}>Subtitle <span className="normal-case tracking-normal font-normal">(optional)</span></label>
-                <input value={form.subtitle} onChange={e => update('subtitle', e.target.value)} placeholder="e.g. 2023 edition, lightly used" type="text" className={inputBase + inputOk} />
-              </div>
-              <div>
-                <label className={labelCls}>Category *</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {categories.map(cat => {
-                    const on = form.category === cat
-                    return (
-                      <button key={cat} type="button" onClick={() => update('category', cat)}
-                        className={'text-left p-3 rounded-xl transition-colors ' + (on ? 'bg-[#FDE7D8] border-[1.5px] border-[#E8632B]' : 'bg-white border border-[#EADFCC] hover:bg-surface-container-low')}>
-                        <div className="text-[22px] leading-none mb-1">{emojis[cat]}</div>
-                        <div className={'font-label-md text-label-md font-semibold capitalize ' + (on ? 'text-[#C4501A]' : 'text-on-surface')}>{cat}</div>
-                        <div className="font-body-sm text-[11px] text-on-surface-variant">{catDesc[cat]}</div>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            </section>
-
-            {/* Photos */}
-            <section id="sec-photos" className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
-              <div className="flex items-baseline justify-between mb-1">
-                <h2 className="font-headline-sm text-headline-sm text-on-surface">Upload book photos</h2>
-                <span className="font-label-md text-label-md text-secondary font-semibold">{photoCount} of {MAX_PHOTOS} added</span>
-              </div>
-              <p className="font-body-sm text-body-sm text-on-surface-variant mb-space-sm">Add a clear cover photo and a photo of the MRP / price tag. Listings without price proof may be rejected.</p>
-              <div className="grid grid-cols-3 gap-2.5">
-                {SLOTS.slice(0, MAX_PHOTOS).map((slot, i) => (
-                  previews[i] ? (
-                    <div key={i} className="relative rounded-xl overflow-hidden aspect-[4/3] bg-surface-container shadow-sm">
-                      <img src={previews[i]!} alt={slot.label} className="absolute inset-0 w-full h-full object-cover" />
-                      <div className="absolute top-1.5 left-1.5 right-1.5 flex items-center justify-between">
-                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-surface-container-lowest/90 text-primary font-label-micro text-[10px] uppercase font-bold">
-                          <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>{slot.label}
-                        </span>
-                        <button type="button" aria-label={'Remove ' + slot.label + ' photo'} onClick={() => removePhoto(i)} className="w-6 h-6 rounded-full bg-inverse-surface/75 text-inverse-on-surface flex items-center justify-center">
-                          <span className="material-symbols-outlined text-[14px]">close</span>
-                        </button>
-                      </div>
+        {/* 1 Photos */}
+        <section>
+          <StepTitle n={1} right={`${images.length} of ${MAX_PHOTOS} added`}>Photos</StepTitle>
+          <div className={CARD}>
+            <div className="grid grid-cols-3 gap-3">
+              {SLOTS.map((slot, i) => {
+                const src = previews[i]
+                if (src) {
+                  return (
+                    <div key={i} className="relative aspect-[3/4] rounded-[18px] overflow-hidden bg-[#F8EDE6]">
+                      <img src={src} alt={slot.name} className="w-full h-full object-cover" />
+                      <span className="absolute bottom-1.5 left-1.5 right-1.5 bg-[#1E1B19]/75 rounded-full px-2 py-0.5 text-center text-[11px] text-white font-medium">{slot.name}</span>
+                      <button onClick={() => removeImage(i)} aria-label="Remove photo"
+                        className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-white/90 text-[#5E5650] text-[14px] flex items-center justify-center">×</button>
                     </div>
-                  ) : (
-                    <label key={i} className={'rounded-xl aspect-[4/3] flex flex-col items-center justify-center gap-1 p-2 text-center cursor-pointer transition-colors ' + (slot.required ? 'bg-surface-container-low hover:bg-surface-container-high' : 'bg-surface-container-low hover:bg-surface-container-high') + (touched && slot.required ? ' ring-1 ring-error' : '')}>
-                      <span className="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-primary">
-                        <span className="material-symbols-outlined text-[20px]">add_a_photo</span>
-                      </span>
-                      <span className="font-label-md text-label-md text-on-surface font-semibold">{slot.label}</span>
-                      <span className="font-label-micro text-[10px] text-on-surface-variant uppercase tracking-wide">{slot.required ? 'Required' : 'Optional'}</span>
-                      <input type="file" accept="image/*" onChange={e => pickPhoto(i, e)} className="hidden" />
-                    </label>
                   )
+                }
+                const isNext = i === images.length
+                return (
+                  <button key={i} type="button"
+                    onClick={() => isNext && fileRef.current?.click()}
+                    className={`aspect-[3/4] rounded-[18px] bg-[#FFF1EA] flex flex-col items-center justify-center gap-1 text-center p-2 transition-transform ${isNext ? 'active:scale-95' : 'opacity-60'}`}>
+                    <span className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[16px] shadow-[0_2px_8px_rgba(120,70,40,0.06)]">+</span>
+                    <span className="text-[12px] font-medium text-[#1E1B19] leading-tight">{slot.name}</span>
+                    <span className="text-[12px] text-[#9A908A] leading-none">{slot.hint}</span>
+                  </button>
+                )
+              })}
+            </div>
+            <input ref={fileRef} type="file" accept="image/*" multiple onChange={handleImageSelect} className="hidden" />
+            <p className="text-[12px] text-[#5E5650] mt-3">
+              {images.length < 2
+                ? 'Add the front cover first, then a clear photo of the price tag.'
+                : 'Looks good. Clear photos sell faster.'}
+            </p>
+          </div>
+        </section>
+
+        {/* 2 Details */}
+        <section>
+          <StepTitle n={2}>Book details</StepTitle>
+          <div className={`${CARD} flex flex-col gap-4`}>
+            <div>
+              <label className={LABEL}>Book title</label>
+              <input value={form.title} onChange={e => update('title', e.target.value)}
+                placeholder="e.g. NCERT Mathematics Class 10" className={INPUT} />
+            </div>
+            <div>
+              <label className={LABEL}>Category</label>
+              <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1">
+                {categories.map(c => (
+                  <Chip key={c} on={form.category === c} onClick={() => update('category', c)}>{catLabel[c]}</Chip>
                 ))}
               </div>
-              {touched && errs.photos && <p className="font-body-sm text-body-sm text-error mt-2">{errs.photos}</p>}
-            </section>
+            </div>
+            <div>
+              <label className={LABEL}>Education board (optional)</label>
+              <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1">
+                {BOARDS.map(b => (
+                  <Chip key={b} on={form.board === b} onClick={() => update('board', form.board === b ? '' : b)}>{b}</Chip>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className={LABEL}>Class (optional)</label>
+              <div className="flex gap-2 overflow-x-auto -mx-1 px-1 pb-1">
+                {CLASSES.map(c => (
+                  <Chip key={c} on={form.grade === c} onClick={() => update('grade', form.grade === c ? '' : c)}>{c}</Chip>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className={LABEL}>Edition (optional)</label>
+              <input value={form.edition} onChange={e => update('edition', e.target.value)}
+                placeholder="e.g. 2025-26 edition" className={INPUT} />
+            </div>
+          </div>
+        </section>
 
-            {/* Condition */}
-            <section className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
-              <div className="flex items-center justify-between mb-space-xs">
-                <h2 className="font-headline-sm text-headline-sm text-on-surface">Select book condition</h2>
-                <button type="button" onClick={() => setShowGuide(true)} className="text-secondary font-label-md text-label-md flex items-center gap-0.5">
-                  <span className="material-symbols-outlined text-[16px]">info</span>Guide
+        {/* 3 Condition */}
+        <section>
+          <StepTitle n={3} right="An honest rating sells faster">Condition</StepTitle>
+          <div className={`${CARD} flex flex-col gap-3`}>
+            {GRADES.map(g => {
+              const on = form.condition === g.value
+              return (
+                <button key={g.value} type="button" onClick={() => update('condition', g.value)}
+                  className={`flex items-start gap-3 p-3 rounded-[16px] text-left active:scale-[0.99] transition-transform ${on ? 'bg-[#FCE3D6]' : 'bg-[#FFF1EA]'}`}>
+                  <span className={`w-5 h-5 mt-0.5 rounded-full shrink-0 flex items-center justify-center text-[12px] ${on ? 'bg-[#E8632B] text-white' : 'bg-white'}`}>{on ? '✓' : ''}</span>
+                  <span className="flex-1">
+                    <span className="flex items-center justify-between">
+                      <span className="text-[15px] font-semibold">{g.label}</span>
+                      <span className={`text-[12px] font-medium ${on ? 'text-[#C4501A]' : 'text-[#9A908A]'}`}>{Math.round(g.pct * 100)}% of MRP</span>
+                    </span>
+                    <span className="block text-[12px] text-[#5E5650] mt-0.5">{g.desc}</span>
+                  </span>
+                </button>
+              )
+            })}
+            <div className="mt-1">
+              <label className={LABEL}>Note for buyers (optional)</label>
+              <textarea value={form.note} onChange={e => update('note', e.target.value.slice(0, 80))} rows={2}
+                placeholder="e.g. Cover has clear laminate, no missing pages"
+                className={`${INPUT} resize-none`} />
+            </div>
+          </div>
+        </section>
+
+        {/* 4 Price */}
+        <section>
+          <StepTitle n={4}>Fair resale price</StepTitle>
+          <div className={`${CARD} flex flex-col gap-4`}>
+            <div>
+              <label className={LABEL}>Original MRP</label>
+              <div className="relative flex items-center">
+                <span className="absolute left-4 text-[15px] font-semibold text-[#5E5650]">₹</span>
+                <input type="number" inputMode="numeric" value={form.origPrice}
+                  onChange={e => update('origPrice', e.target.value)}
+                  placeholder="190" className={`${INPUT} !pl-9`} />
+              </div>
+            </div>
+
+            {suggested > 0 && (
+              <div className="bg-[#FFF1EA] rounded-[16px] p-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[12px] text-[#5E5650]">Fair resale band ({Math.round(grade.pct * 100)}%)</p>
+                  <p className="text-[15px] font-semibold">₹{bandLow} – ₹{bandHigh}</p>
+                </div>
+                <button type="button"
+                  onClick={() => { setPriceTouched(false); setForm(prev => ({ ...prev, price: String(suggested) })) }}
+                  className={`px-3 py-1.5 rounded-full bg-white text-[12px] font-semibold ${SHADOW} active:scale-95 transition-transform`}>
+                  Use ₹{suggested}
                 </button>
               </div>
-              <div className="flex flex-col gap-2">
-                {conditions.map(c => {
-                  const on = form.condition === c
-                  return (
-                    <button key={c} type="button" onClick={() => update('condition', c)} role="radio" aria-checked={on}
-                      className={'flex items-start gap-3 p-3.5 rounded-xl text-left transition-colors ' + (on ? 'bg-surface-container-low ring-1 ring-primary-container' : 'bg-surface hover:bg-surface-container-low')}>
-                      <span className={'w-5 h-5 mt-0.5 rounded-full shrink-0 flex items-center justify-center ' + (on ? 'bg-primary-container text-on-primary' : 'border-2 border-outline-variant bg-white')}>
-                        {on && <span className="material-symbols-outlined text-[14px]">check</span>}
-                      </span>
-                      <span className="flex-1">
-                        <span className="flex items-center justify-between gap-2">
-                          <span className="font-label-lg text-label-lg text-on-surface font-semibold">{c}</span>
-                          {conditionTag[c] && <span className="px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-micro text-[10px] uppercase font-bold">{conditionTag[c]}</span>}
-                        </span>
-                        <span className="block font-body-sm text-body-sm text-on-surface-variant mt-0.5">{conditionDesc[c]}</span>
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            </section>
+            )}
 
-            {/* Price */}
-            <section id="sec-price" className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-3">
-              <div className="flex items-baseline justify-between">
-                <h2 className="font-headline-sm text-headline-sm text-on-surface">Set selling price</h2>
-                {origNum > 0 && <span className="font-label-md text-label-md text-on-surface-variant">MRP ₹{origNum}</span>}
+            <div>
+              <label className={LABEL}>Your selling price</label>
+              <div className="relative flex items-center">
+                <span className="absolute left-4 text-[28px] font-bold leading-[34px]">₹</span>
+                <input type="number" inputMode="numeric" value={form.price}
+                  onChange={e => { setPriceTouched(true); update('price', e.target.value) }}
+                  placeholder="0"
+                  className="w-full bg-[#FFF1EA] rounded-[16px] py-3 pl-11 pr-4 text-[28px] leading-[34px] font-bold text-[#1E1B19] outline-none focus:ring-2 focus:ring-[#FCE3D6]" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className={labelCls}>Your price (₹) *</label>
-                  <input type="text" inputMode="numeric" value={form.price} onChange={e => update('price', e.target.value.replace(/\D/g, '').slice(0, 5))} placeholder="160"
-                    className={inputBase + (touched && errs.price ? inputBad : inputOk)} />
-                </div>
-                <div>
-                  <label className={labelCls}>Original price / MRP (₹)</label>
-                  <input type="text" inputMode="numeric" value={form.origPrice} onChange={e => update('origPrice', e.target.value.replace(/\D/g, '').slice(0, 5))} placeholder="450"
-                    className={inputBase + (touched && errs.orig ? inputBad : inputOk)} />
-                </div>
-              </div>
-              {touched && errs.price && <p className="font-body-sm text-body-sm text-error -mt-1">{errs.price}</p>}
-              {touched && errs.orig && <p className="font-body-sm text-body-sm text-error -mt-1">{errs.orig}</p>}
-
-              {suggestions.length > 0 && (
-                <div>
-                  <p className="font-label-micro text-label-micro uppercase text-on-surface-variant mb-1.5">Suggestions from your MRP</p>
-                  <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
-                    {suggestions.map(s => (
-                      <button key={s.pct} type="button" onClick={() => update('price', String(s.value))}
-                        className={'px-2.5 py-1 rounded-full font-label-md text-label-md whitespace-nowrap active:scale-95 ' + (priceNum === s.value ? 'bg-primary text-on-primary font-semibold' : 'bg-surface-container text-on-surface')}>
-                        ₹{s.value} ({s.pct}% of MRP)
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              {suggested > 0 && priceNum > 0 && (
+                <p className="text-[12px] mt-1.5 text-[#5E5650]">
+                  {priceNum >= bandLow && priceNum <= bandHigh
+                    ? 'In the fair range for this condition.'
+                    : priceNum > bandHigh
+                      ? 'A little above the fair range. It may take longer to sell.'
+                      : 'Below the fair range. You may be leaving money on the table.'}
+                </p>
               )}
+            </div>
 
-              {discount > 0 && !errs.orig && (
-                <div className="bg-[#2E8B57]/10 text-[#2E8B57] rounded-xl p-3 font-label-md text-label-md font-semibold flex items-center gap-2">
-                  <span className="material-symbols-outlined text-[18px]">sell</span>{discount}% off the MRP. Buyers love a good deal.
-                </div>
-              )}
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[12px] text-[#5E5650]">You receive</span>
+              <span className="text-[16px] font-bold">₹{priceNum || 0}</span>
+            </div>
+          </div>
+        </section>
 
-              <div className="rounded-lg bg-surface-container-low/70 p-3 space-y-2">
-                <div className="flex justify-between items-center font-body-sm text-body-sm text-on-surface-variant">
-                  <span>Buyer pays you</span><span className="font-medium text-on-surface">₹{priceNum || 0}</span>
-                </div>
-                <div className="flex justify-between items-center font-body-sm text-body-sm text-on-surface-variant">
-                  <span className="flex items-center gap-1">Pageplus fee <span className="px-1.5 bg-primary-fixed text-on-primary-fixed rounded text-[10px] font-bold uppercase">0% free</span></span>
-                  <span className="font-medium text-primary">₹0</span>
-                </div>
-                <div className="flex justify-between items-center pt-2 font-label-lg text-label-lg text-on-surface font-semibold">
-                  <span>You receive</span><span className="font-headline-sm text-headline-sm text-primary font-bold">₹{priceNum || 0}</span>
-                </div>
-                <p className="font-label-micro text-[10px] text-outline text-right">You get the full price from the buyer when you meet.</p>
-              </div>
-            </section>
-
-            {/* Meetup & location */}
-            <section id="sec-location" className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm">
-              <div className="flex items-center justify-between">
-                <h2 className="font-headline-sm text-headline-sm text-on-surface">Meetup area</h2>
-                <span className="font-label-micro text-label-micro uppercase tracking-wider text-secondary font-bold">Meet nearby</span>
-              </div>
-              <div ref={locationRef} className="relative">
-                <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-primary text-[20px] pointer-events-none">location_on</span>
+        {/* 5 Meet */}
+        <section>
+          <StepTitle n={5}>Where can buyers meet you?</StepTitle>
+          <div className={CARD}>
+            <div ref={locationRef} className="relative">
+              <div className="relative">
                 <input value={locationSearch}
                   onChange={e => { setLocationSearch(e.target.value); setForm(prev => ({ ...prev, location: e.target.value })); setShowLocationDropdown(true) }}
                   onFocus={() => setShowLocationDropdown(true)}
-                  placeholder="Type your sector or area…" type="text"
-                  className={inputBase + 'pl-11 pr-10 ' + (touched && errs.location ? inputBad : form.location ? 'border-[#2E8B57]' : inputOk)} />
+                  placeholder="Type your sector or area"
+                  className={`${INPUT} ${form.location ? '!pr-10' : ''}`} />
                 {form.location && (
-                  <button type="button" aria-label="Clear location" onClick={() => { setForm(prev => ({ ...prev, location: '' })); setLocationSearch(''); setShowLocationDropdown(true) }} className="absolute right-3 top-1/2 -translate-y-1/2 text-outline">
-                    <span className="material-symbols-outlined text-[18px]">close</span>
-                  </button>
-                )}
-                {showLocationDropdown && filteredLocations.length > 0 && (
-                  <div className="absolute z-30 left-0 right-0 top-12 bg-surface-container-lowest rounded-xl shadow-lg overflow-y-auto max-h-60 border border-outline-variant">
-                    {filteredLocations.map(loc => (
-                      <button key={loc} type="button" onClick={() => selectLocation(loc)} className="w-full flex items-center gap-2.5 px-4 py-3 text-left active:bg-surface-container border-b border-[#EADFCC]/70 last:border-0">
-                        <span className="material-symbols-outlined text-[16px] text-primary">location_on</span>
-                        <span className="font-label-md text-label-md text-on-surface">
-                          <b className="font-semibold">{loc.split(',')[0]}</b>
-                          <span className="text-on-surface-variant">{loc.includes(',') ? ', ' + loc.split(',').slice(1).join(',').trim() : ''}</span>
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {showLocationDropdown && locationSearch.length > 0 && filteredLocations.length === 0 && (
-                  <div className="absolute z-30 left-0 right-0 top-12 bg-surface-container-lowest rounded-xl shadow-lg border border-outline-variant p-4 text-center font-body-sm text-body-sm text-on-surface-variant">
-                    No matches. Try &quot;Sector 22&quot; or &quot;Mohali&quot;.
-                  </div>
+                  <button onClick={() => { setForm(prev => ({ ...prev, location: '' })); setLocationSearch(''); setShowLocationDropdown(true) }}
+                    aria-label="Clear"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[18px] text-[#9A908A]">×</button>
                 )}
               </div>
-              {touched && errs.location && <p className="font-body-sm text-body-sm text-error -mt-1">{errs.location}</p>}
-              <div className="flex items-start gap-2.5 bg-surface-container-low p-3 rounded-lg">
-                <span className="material-symbols-outlined text-[20px] text-primary mt-0.5 shrink-0">handshake</span>
-                <p className="font-body-sm text-body-sm text-on-surface-variant">Meet the buyer in a public place nearby. Agree the time and place in the Pageplus chat. The buyer checks the book, then pays you directly.</p>
-              </div>
-            </section>
-
-            {/* Privacy note */}
-            <section className="bg-surface-container-low rounded-xl p-3.5 flex items-start gap-3">
-              <span className="material-symbols-outlined text-secondary text-[22px] shrink-0 mt-0.5">forum</span>
-              <div>
-                <h3 className="font-label-md text-label-md text-on-surface font-semibold">Buyers message you in Pageplus</h3>
-                <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5 leading-relaxed">Chats happen inside the app. We use your number to alert you on WhatsApp when a new message arrives.</p>
-              </div>
-            </section>
-          </div>
-
-          {/* RIGHT (desktop): preview and publish */}
-          <aside className="hidden lg:block lg:col-span-4 lg:sticky lg:top-24 self-start">
-            <div className="bg-surface-container-lowest rounded-xl p-5 shadow-sm">
-              <h3 className="font-headline-md text-headline-md text-on-surface mb-3">Your listing</h3>
-              <div className="flex gap-3 items-center mb-4">
-                <div className="w-14 h-16 rounded-lg bg-primary-fixed/60 overflow-hidden flex items-center justify-center text-[26px] shrink-0">
-                  {previews[0] ? <img src={previews[0]!} alt="" className="w-full h-full object-cover" /> : <span>{emojis[form.category]}</span>}
+              {showLocationDropdown && filteredLocations.length > 0 && (
+                <div className={`absolute top-[52px] left-0 right-0 bg-white rounded-[18px] ${SHADOW} z-40 overflow-hidden max-h-60 overflow-y-auto`}>
+                  {filteredLocations.map(loc => (
+                    <button key={loc} type="button" onClick={() => selectLocation(loc)}
+                      className="w-full text-left px-4 py-3 text-[14px] hover:bg-[#FFF1EA]">
+                      <span className="font-semibold">{loc.split(',')[0]}</span>
+                      <span className="text-[#9A908A]">{loc.includes(',') ? ', ' + loc.split(',').slice(1).join(',').trim() : ''}</span>
+                    </button>
+                  ))}
                 </div>
-                <div className="min-w-0">
-                  <p className="font-label-lg text-label-lg font-semibold text-on-surface truncate">{form.title || 'Book title'}</p>
-                  <p className="font-body-sm text-body-sm text-on-surface-variant truncate capitalize">{form.category} · {form.condition}</p>
-                  <p className="font-headline-sm text-headline-sm text-primary font-bold">₹{priceNum || 0}{origNum > priceNum && priceNum > 0 && <span className="font-body-sm text-body-sm text-outline line-through ml-1.5">₹{origNum}</span>}</p>
-                </div>
-              </div>
-              <div className="font-body-sm text-body-sm text-on-surface-variant flex flex-col gap-1.5 mb-4">
-                <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-[16px] text-primary">location_on</span>{form.location || 'Meetup area not set'}</span>
-                <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-[16px] text-primary">photo_camera</span>{photoCount} photo{photoCount !== 1 ? 's' : ''}</span>
-              </div>
-              <button onClick={publish} disabled={publishDisabled} className="w-full min-h-[48px] bg-primary-container text-on-primary font-label-lg text-label-lg font-bold rounded-xl shadow-md active:scale-[0.98] transition-transform flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed">
-                <span>{publishLabel}</span>{!loading && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
-              </button>
-              <button onClick={saveDraft} className="w-full mt-2 py-2.5 text-on-surface-variant font-label-md text-label-md hover:text-primary">Save draft</button>
-              <p className="font-body-sm text-[12px] text-on-surface-variant text-center mt-1">Free to post · Usually approved within a few hours</p>
+              )}
             </div>
-          </aside>
-        </div>
+            <p className="text-[12px] text-[#5E5650] mt-3">
+              You and the buyer agree on a time and a nearby spot in chat. The buyer pays you when they have checked the book.
+            </p>
+          </div>
+        </section>
       </main>
 
-      {/* Bottom action bar (phones and tablets) */}
-      <aside aria-label="Listing action bar" className="lg:hidden fixed bottom-4 inset-x-4 z-40 max-w-md mx-auto">
-        <div className="bg-inverse-surface text-inverse-on-surface rounded-2xl p-3 shadow-[0_16px_36px_-6px_rgba(31,29,27,0.32)] flex items-center justify-between gap-3">
-          <div className="min-w-0 pl-1.5">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-secondary-container"></span>
-              <span className="font-label-micro text-label-micro uppercase tracking-wider text-inverse-on-surface/80 truncate capitalize">{form.category}</span>
-            </div>
-            <p className="font-headline-sm text-headline-sm text-inverse-on-surface leading-tight truncate">₹{priceNum || 0} Listing</p>
-          </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <button type="button" onClick={saveDraft} className="h-11 px-3 rounded-xl text-inverse-on-surface/90 font-label-md text-label-md active:scale-95 transition-transform">Draft</button>
-            <button onClick={publish} disabled={publishDisabled} className="h-11 px-4 rounded-xl bg-primary-container text-on-primary font-label-lg text-label-lg font-semibold flex items-center gap-1.5 shadow-md active:scale-95 transition-transform disabled:opacity-60 disabled:cursor-not-allowed">
-              <span className="max-w-[120px] truncate">{publishLabel}</span>{!loading && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
-            </button>
-          </div>
+      {/* Publish bar */}
+      <div className="fixed bottom-0 inset-x-0 z-40 bg-[#FFF7F2]/95 backdrop-blur-md px-5 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(120,70,40,0.06)]">
+        <div className="max-w-md mx-auto">
+          {error && <p className="text-[12px] text-[#D64545] mb-2 text-center">{error}</p>}
+          {uploadProgress && <p className="text-[12px] text-[#5E5650] mb-2 text-center">{uploadProgress}</p>}
+          <button onClick={submit} disabled={loading}
+            className="w-full h-[52px] rounded-full bg-[#E8632B] text-white text-[17px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.98] transition-transform">
+            {loading ? 'Publishing…' : <>Publish listing{priceNum > 0 && <span className="opacity-70">• ₹{priceNum}</span>}</>}
+          </button>
         </div>
-      </aside>
+      </div>
     </div>
   )
 }
