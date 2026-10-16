@@ -1,11 +1,20 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser, SignInButton } from '@clerk/nextjs'
 import { schools, isRegister, BINDING_CHARGE, DELIVERY_FEE } from '@/lib/kit-prices'
 import LocationSheet, { useDeliveryPlace } from '@/components/LocationSheet'
 
 const SHADOW = 'shadow-[0_6px_20px_rgba(120,70,40,0.08)]'
+
+// Frosted glass, the same look as the bottom bar
+const GLASS: CSSProperties = {
+  background: 'rgba(255,255,255,0.55)',
+  backdropFilter: 'blur(20px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+  border: '1px solid rgba(255,255,255,0.7)',
+  boxShadow: '0 6px 20px rgba(120,70,40,0.12)',
+}
 
 type Kit = (typeof schools)[string][number]
 type Section = 'ncert' | 'pvt' | 'notebooks' | 'stationery'
@@ -765,7 +774,7 @@ export default function SchoolSetsPage() {
 
       {/* Toast after adding to the bag */}
       {toast && (
-        <div className="fixed inset-x-0 flex justify-center pointer-events-none px-5" style={{ zIndex: 350, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 200px)' }}>
+        <div className="fixed inset-x-0 flex justify-center pointer-events-none px-5" style={{ zIndex: 350, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 150px)' }}>
           <div className="pointer-events-auto bg-[#1E1B19] text-white rounded-full pl-4 pr-1.5 py-1.5 flex items-center gap-3 shadow-[0_10px_28px_rgba(30,27,25,0.28)]">
             <span className="text-[13px]">{toast}</span>
             <button onClick={() => { setToast(''); setBagOpen(true) }} className="px-3.5 py-1.5 rounded-full bg-white text-[#1E1B19] text-[13px] font-semibold active:scale-95 transition-transform">View bag</button>
@@ -774,7 +783,7 @@ export default function SchoolSetsPage() {
       )}
 
       <main
-        className="w-full max-w-md md:max-w-5xl mx-auto px-5 pb-[250px] lg:pb-16"
+        className="w-full max-w-md md:max-w-5xl mx-auto px-5 pb-[170px] lg:pb-16"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
       >
         {/* App bar */}
@@ -911,19 +920,19 @@ export default function SchoolSetsPage() {
         </div>
       </main>
 
-      {/* Floating add-to-bag bar (phones and tablets), above the navigation */}
-      <div className="lg:hidden fixed inset-x-0 flex justify-center pointer-events-none px-5" style={{ zIndex: 40, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 88px)' }}>
-        <div className={'pointer-events-auto w-full max-w-md bg-white rounded-[26px] p-3.5 flex flex-col gap-2.5 ' + SHADOW}>
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-[14px] font-semibold">{selectedCount} items selected</span>
-            <div className="flex items-baseline gap-1.5">
-              {youSave > 0 && <span className="text-[12px] text-[#9A908A] line-through">₹{market.toLocaleString('en-IN')}</span>}
-              <span className="text-[18px] font-bold">₹{kitSubtotal.toLocaleString('en-IN')}</span>
-              {youSave > 0 && <span className="text-[12px] font-semibold text-[#C4501A] bg-[#FFF1EA] px-2 py-0.5 rounded-full">Save ₹{youSave.toLocaleString('en-IN')}</span>}
-            </div>
+      {/* Small glass Add to bag pill (phones and tablets), just above the navigation */}
+      <div className="lg:hidden fixed inset-x-0 flex justify-center pointer-events-none px-5" style={{ zIndex: 40, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 78px)' }}>
+        <div className="pointer-events-auto flex items-center gap-3 rounded-full pl-4 pr-1.5 py-1.5" style={GLASS}>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-[13px] font-semibold text-[#3D3530]">{selectedCount} items</span>
+            <span className="text-[16px] font-bold">₹{kitSubtotal.toLocaleString('en-IN')}</span>
           </div>
-          <button onClick={handleAddToBag} disabled={!canAdd} className="w-full h-[52px] rounded-full bg-[#E8632B] text-white text-[17px] font-semibold flex items-center justify-center active:scale-[0.98] transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
-            Add to bag · ₹{kitSubtotal.toLocaleString('en-IN')}
+          <button
+            onClick={handleAddToBag}
+            disabled={!canAdd}
+            className="h-10 px-5 rounded-full bg-[#E8632B] text-white text-[14px] font-semibold flex items-center justify-center shadow-[0_4px_12px_rgba(232,99,43,0.35)] active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Add to bag
           </button>
         </div>
       </div>

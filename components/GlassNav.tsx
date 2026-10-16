@@ -102,8 +102,11 @@ export default function GlassNav() {
               gap: 4,
               padding: 6,
               borderRadius: 9999,
-              background: '#FFFFFF',
-              border: '1px solid rgba(240,226,218,0.6)',
+              // Frosted glass: see-through, blurred, with a light edge
+              background: 'rgba(255,255,255,0.55)',
+              backdropFilter: 'blur(20px) saturate(180%)',
+              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+              border: '1px solid rgba(255,255,255,0.7)',
               boxShadow: '0 6px 20px rgba(120,70,40,0.12)',
               fontFamily: "'Plus Jakarta Sans', sans-serif",
             }}
@@ -123,7 +126,7 @@ export default function GlassNav() {
                     padding: on ? '0 16px' : '0 10px',
                     borderRadius: 9999,
                     background: on ? '#E8632B' : 'transparent',
-                    color: on ? '#FFFFFF' : '#5E5650',
+                    color: on ? '#FFFFFF' : '#3D3530',
                     boxShadow: on ? '0 4px 12px rgba(232,99,43,0.35)' : 'none',
                     transition: 'all 320ms cubic-bezier(0.34, 1.3, 0.64, 1)',
                   }}
