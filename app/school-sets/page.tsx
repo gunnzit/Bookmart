@@ -1,38 +1,76 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser, SignInButton } from '@clerk/nextjs'
 import { schools, isRegister, BINDING_CHARGE, DELIVERY_FEE } from '@/lib/kit-prices'
-import BottomNav from '@/components/BottomNav'
+import LocationSheet, { useDeliveryPlace } from '@/components/LocationSheet'
 
-// ── Contact (change here only) ────────────────────────────────────────────
-const WHATSAPP_NUMBER = '918872235738'
-const WA_HELP_LINK = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent('Hi, I need help with a school book set on Pageplus')
+const SHADOW = 'shadow-[0_6px_20px_rgba(120,70,40,0.08)]'
 
 type Kit = (typeof schools)[string][number]
 type Section = 'ncert' | 'pvt' | 'notebooks' | 'stationery'
-type CartKit = { selectedClass: number; items: string[]; kitSubtotal: number }
+type CartKit = { school?: string; selectedClass: number; items: string[]; kitSubtotal: number }
 
-const SCHOOL_TITLE: Record<string, { title: string; sub: string; icon: string }> = {
-  'Shivalik Public School': { title: 'Shivalik Public School', sub: 'Phase 6, Mohali', icon: 'history_edu' },
-  'Delhi Public School': { title: 'DPS, Sector 40-C', sub: 'CBSE Affiliated', icon: 'account_balance' },
+const SHORT_NAME: Record<string, string> = {
+  'Delhi Public School': 'DPS Sector 40-C',
+  'Shivalik Public School': 'Shivalik Public',
+}
+const SCHOOL_SUB: Record<string, string> = {
+  'Delhi Public School': 'CBSE · Sector 40-C, Chandigarh',
+  'Shivalik Public School': 'Phase 6, Mohali',
 }
 
-const SECTION_META: Record<Section, { label: string; icon: string; unit: string }> = {
-  ncert: { label: 'NCERT Textbooks', icon: 'menu_book', unit: 'Books' },
-  pvt: { label: 'Private Books', icon: 'auto_stories', unit: 'Books' },
-  notebooks: { label: 'Notebooks & Registers', icon: 'edit_note', unit: 'Types' },
-  stationery: { label: 'Stationery & Art', icon: 'palette', unit: 'Items' },
-}
-
+const SECTIONS: Section[] = ['ncert', 'pvt', 'notebooks', 'stationery']
 const FLAT_SECTIONS = ['ncert', 'pvt', 'stationery'] as const
-const NOTEBOOK_BRAND_LABEL = { buddy: 'Buddy', classmate: 'Classmate' } as const
+
+const SECTION_META: Record<Section, { label: string; icon: string; caption: string }> = {
+  ncert: { label: 'NCERT textbooks', icon: 'menu_book', caption: 'NCERT' },
+  pvt: { label: 'Private books', icon: 'auto_stories', caption: 'Prescribed' },
+  notebooks: { label: 'Notebooks and registers', icon: 'edit_note', caption: '' },
+  stationery: { label: 'Stationery and art', icon: 'edit', caption: 'Stationery' },
+}
+
+// Cover photo file name from an item name: "Joyful Maths - 1" -> joyful-maths-1
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 
 function Tick({ on }: { on: boolean }) {
   return (
-    <span className={'w-6 h-6 rounded-full shrink-0 flex items-center justify-center transition-colors ' + (on ? 'bg-primary-container text-on-primary' : 'border-2 border-outline-variant bg-surface-container-lowest')}>
-      {on && <span className="material-symbols-outlined text-[16px]">check</span>}
+    <span className={'w-6 h-6 rounded-full shrink-0 flex items-center justify-center transition-colors ' + (on ? 'bg-[#E8632B] text-white' : 'border-2 border-[#E0D2CA] bg-white')}>
+      {on && <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'wght' 700" }}>check</span>}
     </span>
+  )
+}
+
+// A real photo of the item, with a soft tile if the photo does not exist yet
+function CoverTile({ src, icon, square, dim, onOpen }: { src: string; icon: string; square?: boolean; dim?: boolean; onOpen: (s: string) => void }) {
+  const [state, setState] = useState<'loading' | 'ok' | 'bad'>('loading')
+  const imgRef = useRef<HTMLImageElement>(null)
+
+  useEffect(() => {
+    setState('loading')
+    const el = imgRef.current
+    if (el && el.complete && el.naturalWidth > 0) setState('ok')
+  }, [src])
+
+  return (
+    <div
+      onClick={e => { if (state === 'ok') { e.stopPropagation(); onOpen(src) } }}
+      className={'relative shrink-0 overflow-hidden rounded-[18px] bg-[#FFF1EA] flex items-center justify-center ' + (square ? 'w-16 h-16' : 'w-16 h-20') + (dim ? ' opacity-50 grayscale' : '') + (state === 'ok' ? ' cursor-zoom-in' : '')}
+    >
+      {state !== 'bad' && (
+        <img
+          ref={imgRef}
+          key={src}
+          src={src}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: state === 'ok' ? 1 : 0, transition: 'opacity 250ms ease' }}
+          onLoad={() => setState('ok')}
+          onError={() => setState('bad')}
+        />
+      )}
+      {state !== 'ok' && <span className="material-symbols-outlined text-[26px] text-[#C4501A]/60">{icon}</span>}
+    </div>
   )
 }
 
@@ -40,9 +78,7 @@ export default function SchoolSetsPage() {
   const router = useRouter()
   const { isSignedIn, user } = useUser()
 
-  const [logoOk, setLogoOk] = useState(true)
   const [selectedSchool, setSelectedSchool] = useState<string>('Shivalik Public School')
-  const [schoolOpen, setSchoolOpen] = useState(false)
   const [selectedClass, setSelectedClass] = useState<number>(1)
   const [checked, setChecked] = useState<Record<Section, boolean[]>>({ ncert: [], pvt: [], notebooks: [], stationery: [] })
   const [nbQty, setNbQty] = useState<number[]>([])
@@ -51,6 +87,13 @@ export default function SchoolSetsPage() {
   const [warnModal, setWarnModal] = useState<{ section: Section; idx: number } | null>(null)
   const [cart, setCart] = useState<CartKit[]>([])
   const [listingCount, setListingCount] = useState(0)
+  const [q, setQ] = useState('')
+  const [viewer, setViewer] = useState<string | null>(null)
+  const [customize, setCustomize] = useState<'notebooks' | 'stationery' | null>(null)
+  const [bagOpen, setBagOpen] = useState(false)
+  const [toast, setToast] = useState('')
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [place, setPlace] = useDeliveryPlace()
 
   // Out of stock + Notify me
   const [oosItems, setOosItems] = useState<Set<string>>(new Set())
@@ -64,7 +107,7 @@ export default function SchoolSetsPage() {
   const schoolKits = schools[selectedSchool]
   const availableClasses = Object.keys(schoolKits).map(Number).sort((a, b) => a - b)
   const kit: Kit = schoolKits[selectedClass] || schoolKits[availableClasses[0]]
-  const meta = SCHOOL_TITLE[selectedSchool] || { title: selectedSchool, sub: '', icon: 'school' }
+  const shortName = SHORT_NAME[selectedSchool] || selectedSchool
 
   // Items marked out of stock in the data itself
   const dataOos = new Set<string>()
@@ -72,11 +115,14 @@ export default function SchoolSetsPage() {
   kit.notebooks.forEach(it => { if (it.oos) dataOos.add(it.name) })
   function isOOS(name: string) { return oosItems.has(name) || dataOos.has(name) }
 
-  // ── Load cart, stock, listing count, and optional ?school=&class= ───────
+  // ── Load bag, stock, listing count, and optional ?school=&class=&bag=1 ──
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem('buddybooks_cart')
-      if (raw) setCart(JSON.parse(raw))
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed)) setCart(parsed.filter((k: any) => k && Array.isArray(k.items)))
+      }
     } catch {}
     fetch('/api/stock')
       .then(r => r.json())
@@ -97,8 +143,17 @@ export default function SchoolSetsPage() {
         if (cl && schools[sc][cl]) setSelectedClass(cl)
         else setSelectedClass(Object.keys(schools[sc]).map(Number).sort((a, b) => a - b)[0])
       }
+      if (p.get('bag') === '1') setBagOpen(true)
     } catch {}
   }, [])
+
+  // A class that does not exist for this school falls back to its first class
+  useEffect(() => {
+    if (!schools[selectedSchool][selectedClass]) {
+      const first = Object.keys(schools[selectedSchool]).map(Number).sort((a, b) => a - b)[0]
+      if (first) setSelectedClass(first)
+    }
+  }, [selectedSchool, selectedClass])
 
   // ── Reset selections whenever school / class / stock changes ───────────
   useEffect(() => {
@@ -114,6 +169,13 @@ export default function SchoolSetsPage() {
     setNbBrand(k.notebooks.map(() => 'buddy'))
     setNbRegType(k.notebooks.map(() => 'slim'))
   }, [selectedClass, selectedSchool, oosItems])
+
+  // Toast hides by itself
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(''), 3800)
+    return () => clearTimeout(t)
+  }, [toast])
 
   // ── Notify me ──────────────────────────────────────────────────────────
   function openNotify(name: string) {
@@ -195,6 +257,18 @@ export default function SchoolSetsPage() {
     setNbQty(next)
   }
 
+  // ── Customize actions ──────────────────────────────────────────────────
+  function setAllBrand(b: 'buddy' | 'classmate') { setNbBrand(kit.notebooks.map(() => b)) }
+  function setAllReg(r: 'slim' | 'thick') { setNbRegType(kit.notebooks.map(() => r)) }
+  function resetQty() { setNbQty(kit.notebooks.map(n => n.qty)) }
+  function stationerySelectAll() {
+    setChecked(prev => ({ ...prev, stationery: kit.stationery.map(it => !isOOS(it.name)) }))
+  }
+  function stationeryClear() {
+    if (!window.confirm('Remove all stationery from this kit?')) return
+    setChecked(prev => ({ ...prev, stationery: kit.stationery.map(() => false) }))
+  }
+
   // ── Totals ─────────────────────────────────────────────────────────────
   function calcTotal() {
     let total = 0
@@ -245,7 +319,6 @@ export default function SchoolSetsPage() {
   const kitSubtotal = calcTotal()
   const market = marketTotal()
   const youSave = market - kitSubtotal
-  const savePct = market > 0 ? Math.round((youSave / market) * 100) : 0
 
   const selectableCount = FLAT_SECTIONS.reduce((n, s) => n + kit[s].filter(it => !isOOS(it.name)).length, 0) + kit.notebooks.filter(it => !isOOS(it.name)).length
   const selectedCount = FLAT_SECTIONS.reduce((n, s) => n + kit[s].filter((it, i) => checked[s]?.[i] && !isOOS(it.name)).length, 0) + kit.notebooks.filter((it, i) => checked.notebooks?.[i] && !isOOS(it.name)).length
@@ -253,7 +326,7 @@ export default function SchoolSetsPage() {
 
   function toggleAll() {
     const anyOff = selectedCount < selectableCount
-    if (!anyOff && !window.confirm('This removes every item from the ' + meta.title + ' Class ' + selectedClass + ' kit. These are on the official book list. Are you sure?')) return
+    if (!anyOff && !window.confirm('This removes every item from the ' + shortName + ' Class ' + selectedClass + ' kit. These are on the official book list. Are you sure?')) return
     setChecked({
       ncert: kit.ncert.map(it => anyOff && !isOOS(it.name)),
       pvt: kit.pvt.map(it => anyOff && !isOOS(it.name)),
@@ -262,39 +335,44 @@ export default function SchoolSetsPage() {
     })
   }
 
-  // ── Cart / checkout ────────────────────────────────────────────────────
+  // ── Bag ────────────────────────────────────────────────────────────────
+  function persist(next: CartKit[]) {
+    setCart(next)
+    try { sessionStorage.setItem('buddybooks_cart', JSON.stringify(next)) } catch {}
+  }
+
   function currentKit(): CartKit {
-    return { selectedClass, items: getSelectedItems(), kitSubtotal }
+    return { school: selectedSchool, selectedClass, items: getSelectedItems(), kitSubtotal }
   }
 
-  function handleAddAnotherKit() {
-    const newCart = [...cart, currentKit()]
-    setCart(newCart)
-    sessionStorage.setItem('buddybooks_cart', JSON.stringify(newCart))
-    const used = newCart.map(k => k.selectedClass)
-    const next = availableClasses.find(c => !used.includes(c)) || availableClasses[0]
-    setSelectedClass(next)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+  function handleAddToBag() {
+    if (kitSubtotal <= 0) return
+    const mine = currentKit()
+    const exists = cart.some(k => k.school === mine.school && k.selectedClass === mine.selectedClass)
+    const rest = cart.filter(k => !(k.school === mine.school && k.selectedClass === mine.selectedClass))
+    persist([...rest, mine])
+    setToast(exists ? 'Class ' + selectedClass + ' kit updated in your bag' : 'Class ' + selectedClass + ' kit is in your bag')
   }
 
-  function handleProceedToCheckout() {
-    const allKits = [...cart, currentKit()]
-    sessionStorage.setItem('buddybooks_kit_order', JSON.stringify(allKits))
-    sessionStorage.removeItem('buddybooks_cart')
+  function removeFromBag(idx: number) {
+    persist(cart.filter((_, i) => i !== idx))
+  }
+
+  function handleCheckout() {
+    if (cart.length === 0) return
+    try {
+      sessionStorage.setItem('buddybooks_kit_order', JSON.stringify(cart))
+      sessionStorage.removeItem('buddybooks_cart')
+    } catch {}
     router.push('/checkout')
   }
 
-  const cartOthers = cart.reduce((sum, k) => sum + k.kitSubtotal, 0)
-  const cartTotal = cartOthers + kitSubtotal
-  const totalKits = cart.length + 1
-  const siblingDiscount = totalKits >= 2 ? Math.round(cartTotal * 0.05) : 0
-  const cartAfterDiscount = cartTotal - siblingDiscount
-  const grandTotal = cart.length > 0 ? cartAfterDiscount : kitSubtotal
-  const canAddChild = kitSubtotal > 0
-  const canCheckout = !(kitSubtotal === 0 && cart.length === 0)
+  const bagSubtotal = cart.reduce((sum, k) => sum + (k.kitSubtotal || 0), 0)
+  const siblingDiscount = cart.length >= 2 ? Math.round(bagSubtotal * 0.05) : 0
+  const bagTotal = bagSubtotal - siblingDiscount
+  const canAdd = kitSubtotal > 0
 
   function pickSchool(name: string) {
-    setSchoolOpen(false)
     if (name === selectedSchool) return
     const cl = Object.keys(schools[name]).map(Number).sort((a, b) => a - b)
     setSelectedSchool(name)
@@ -306,474 +384,549 @@ export default function SchoolSetsPage() {
     return itemName(warnModal.section, warnModal.idx) || ''
   }
 
-  const navLink = 'font-label-lg text-label-lg text-on-surface-variant hover:text-primary-container transition-colors px-3 py-2 rounded-full hover:bg-surface-container-low whitespace-nowrap'
+  const placeLine = !place
+    ? 'Choose your delivery area'
+    : place.kind === 'pickup'
+      ? 'Pickup from Sector 40-C'
+      : 'Deliver to ' + place.area.split(',')[0]
 
-  const actionButtons = (
-    <div className="flex items-center gap-2 shrink-0">
-      {isSignedIn ? (
-        <>
-          <button onClick={handleAddAnotherKit} disabled={!canAddChild} title="Add another child's kit and save 5%" aria-label="Add another child's kit"
-            className="h-12 px-3 rounded-xl bg-white/10 lg:bg-surface-container-low text-inverse-on-surface lg:text-on-surface font-label-md text-label-md font-bold flex items-center gap-1 active:scale-95 transition-transform disabled:opacity-40 disabled:cursor-not-allowed">
-            <span className="material-symbols-outlined text-[18px]">person_add</span>
-            <span className="hidden sm:inline">Child</span>
-          </button>
-          <button onClick={handleProceedToCheckout} disabled={!canCheckout}
-            className="h-12 px-4 rounded-xl bg-primary-container text-on-primary font-label-lg text-label-lg font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
-            <span>Checkout</span>
-            <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-          </button>
-        </>
-      ) : (
-        <SignInButton mode="modal">
-          <button className="h-12 px-4 rounded-xl bg-primary-container text-on-primary font-label-lg text-label-lg font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-transform">
-            <span>Sign in to order</span>
-            <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
-          </button>
-        </SignInButton>
-      )}
+  const query = q.trim().toLowerCase()
+  const matches = (name: string) => !query || name.toLowerCase().includes(query)
+  const noMatches = !!query && SECTIONS.every(s => (kit[s] as { name: string }[]).every(it => !matches(it.name)))
+
+  const iconBtn = 'relative w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#1E1B19] active:scale-90 transition-transform ' + SHADOW
+  const sheetInput = 'w-full px-4 py-3 rounded-2xl bg-[#FFF1EA] text-[14px] text-[#1E1B19] placeholder:text-[#9A908A] border border-transparent focus:outline-none focus:bg-white focus:border-[#E8632B] focus:ring-2 focus:ring-[#E8632B]/20'
+  const pill = (on: boolean) => 'px-3.5 py-1.5 rounded-full text-[13px] whitespace-nowrap transition-colors active:scale-95 ' + (on ? 'bg-[#E8632B] text-white font-semibold' : 'bg-[#FFF1EA] text-[#1E1B19] font-medium')
+
+  // The main checkout button inside the bag
+  const bagCheckout = isSignedIn ? (
+    <button onClick={handleCheckout} className="w-full h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform">
+      Checkout · ₹{bagTotal.toLocaleString('en-IN')}
+    </button>
+  ) : (
+    <SignInButton mode="modal">
+      <button className="w-full h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform">
+        Sign in to order
+      </button>
+    </SignInButton>
+  )
+
+  // ── One section of the list ────────────────────────────────────────────
+  function renderSection(s: Section) {
+    const meta = SECTION_META[s]
+    const items = kit[s] as any[]
+    if (items.length === 0) return null
+    const visible = items.map((it, i) => ({ it, i })).filter(({ it }) => matches(it.name))
+    if (visible.length === 0) return null
+    const note = s === 'ncert'
+      ? 'Prices include a ₹' + BINDING_CHARGE + ' binding charge. Every NCERT book is delivered hardbound.'
+      : s === 'notebooks'
+        ? 'Buddy is our own notebook brand, 20% below MRP. Classmate is sold at its printed price.'
+        : ''
+
+    return (
+      <section key={s} className="mb-7">
+        <div className="flex items-start justify-between gap-3 mb-3 px-1">
+          <div className="min-w-0">
+            <h2 className="text-[16px] font-bold">{meta.label}</h2>
+            {note && <p className="text-[12px] text-[#9A908A] mt-0.5 leading-snug">{note}</p>}
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="text-[12px] text-[#9A908A]">{items.length} {items.length === 1 ? 'item' : 'items'}</span>
+            {(s === 'notebooks' || s === 'stationery') && (
+              <button onClick={() => setCustomize(s as 'notebooks' | 'stationery')} className="px-3 py-1 rounded-full bg-[#FFF1EA] text-[#C4501A] text-[12px] font-semibold active:scale-95 transition-transform">
+                Customize
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          {visible.map(({ it, i }) => {
+            const oos = isOOS(it.name)
+            const on = !!checked[s]?.[i] && !oos
+
+            const leading = oos
+              ? <span className="w-6 h-6 rounded-full bg-[#F0E2DA] flex items-center justify-center shrink-0 text-[#9A908A]"><span className="material-symbols-outlined text-[16px]">hourglass_empty</span></span>
+              : <Tick on={on} />
+
+            const notifyBtn = oos ? (
+              <button onClick={e => { e.stopPropagation(); openNotify(it.name) }} className={'px-3 py-1.5 rounded-full bg-white text-[12px] font-semibold flex items-center gap-1 shrink-0 active:scale-95 transition-transform ' + SHADOW}>
+                <span className="material-symbols-outlined text-[14px] text-[#E8632B]">notifications</span>Notify me
+              </button>
+            ) : null
+
+            if (s !== 'notebooks') {
+              return (
+                <div
+                  key={i}
+                  role={oos ? undefined : 'checkbox'} aria-checked={oos ? undefined : on} tabIndex={oos ? -1 : 0}
+                  onClick={() => !oos && handleCheckClick(s, i)}
+                  onKeyDown={e => { if (!oos && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); handleCheckClick(s, i) } }}
+                  className={'bg-white rounded-[22px] p-3.5 flex items-center gap-3 select-none transition-opacity ' + SHADOW + (oos ? '' : ' cursor-pointer') + (!on && !oos ? ' opacity-60' : '')}
+                >
+                  {leading}
+                  <CoverTile src={'/covers/' + slug(it.name) + '.jpg'} icon={meta.icon} square={s === 'stationery'} dim={oos} onOpen={setViewer} />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-[15px] font-semibold leading-tight line-clamp-2">{it.name}</h3>
+                    <p className="text-[12px] text-[#9A908A] mt-0.5">{oos ? 'Out of stock' : it.optional ? 'Optional' : meta.caption}</p>
+                    <div className="text-[16px] font-bold mt-1">{it.price > 0 ? '₹' + it.price : '—'}</div>
+                  </div>
+                  {notifyBtn}
+                </div>
+              )
+            }
+
+            // Notebook / register row
+            const qty = nbQty[i] || 0
+            const recommended = it.qty
+            const brand = nbBrand[i] || 'buddy'
+            const regType = nbRegType[i] || 'slim'
+            const unit = nbUnitPrice(i)
+            const reg = isRegister(it.name)
+            const pages = registerPages(brand, regType)
+
+            return (
+              <div key={i} className={'bg-white rounded-[22px] p-3.5 transition-opacity ' + SHADOW + (!on && !oos ? ' opacity-60' : '')}>
+                <div
+                  role={oos ? undefined : 'checkbox'} aria-checked={oos ? undefined : on} tabIndex={oos ? -1 : 0}
+                  onClick={() => !oos && handleCheckClick('notebooks', i)}
+                  onKeyDown={e => { if (!oos && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); handleCheckClick('notebooks', i) } }}
+                  className={'flex items-center gap-3 select-none ' + (oos ? '' : 'cursor-pointer')}
+                >
+                  {leading}
+                  <CoverTile src={'/covers/' + slug(it.name) + '-' + brand + '.jpg'} icon={reg ? 'import_contacts' : 'edit_note'} dim={oos} onOpen={setViewer} />
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-[15px] font-semibold leading-tight line-clamp-2">{it.name}</h3>
+                    <p className="text-[12px] text-[#9A908A] mt-0.5">
+                      {oos ? 'Out of stock' : (reg ? 'Register · ' + pages + ' pages' : 'Notebook') + ' · ' + (brand === 'buddy' ? 'Buddy' : 'Classmate')}
+                    </p>
+                    {!oos && (
+                      <div className="text-[16px] font-bold mt-1">
+                        {on && qty > 0 ? '₹' + (unit * qty).toLocaleString('en-IN') : '₹' + unit}
+                        <span className="text-[12px] font-normal text-[#9A908A]"> {on && qty > 0 ? 'for ' + qty : 'each'}</span>
+                      </div>
+                    )}
+                  </div>
+                  {notifyBtn}
+                </div>
+
+                {on && (
+                  <div className="mt-3 pt-3 border-t border-[#F0E2DA] flex flex-col gap-3">
+                    <div className="flex flex-wrap gap-2">
+                      {(['buddy', 'classmate'] as const).map(b => {
+                        const price = reg ? (b === 'buddy' ? (regType === 'slim' ? 68 : 88) : (regType === 'slim' ? 85 : 105)) : (b === 'buddy' ? 50 : 55)
+                        return (
+                          <button key={b} onClick={() => { const arr = [...nbBrand]; arr[i] = b; setNbBrand(arr) }} className={pill(brand === b)}>
+                            {b === 'buddy' ? 'Buddy' : 'Classmate'} ₹{price}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {reg && (
+                      <div className="flex flex-wrap gap-2">
+                        {(['slim', 'thick'] as const).map(rt => (
+                          <button key={rt} onClick={() => { const arr = [...nbRegType]; arr[i] = rt; setNbRegType(arr) }} className={pill(regType === rt)}>
+                            {registerPages(brand, rt)} pages
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[13px] font-semibold">Quantity</p>
+                        <p className="text-[12px] text-[#9A908A]">of {recommended} listed</p>
+                      </div>
+                      <div className="flex items-center gap-1.5 bg-[#FFF1EA] p-1 rounded-full">
+                        <button aria-label="Decrease quantity" disabled={qty <= 0} onClick={() => setQty(i, qty - 1)} className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm active:scale-90 transition-transform disabled:opacity-40">
+                          <span className="material-symbols-outlined text-[18px]">remove</span>
+                        </button>
+                        <span className="w-6 text-center text-[14px] font-semibold tabular-nums">{qty}</span>
+                        <button aria-label="Increase quantity" disabled={qty >= recommended * 2} onClick={() => setQty(i, qty + 1)} className="w-8 h-8 rounded-full bg-[#E8632B] text-white flex items-center justify-center active:scale-90 transition-transform disabled:opacity-40">
+                          <span className="material-symbols-outlined text-[18px]">add</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </section>
+    )
+  }
+
+  // ── Summary (desktop right column) ─────────────────────────────────────
+  const summaryCard = (
+    <div className={'bg-white rounded-[22px] p-5 ' + SHADOW}>
+      <h3 className="text-[18px] font-bold">Your set</h3>
+      <p className="text-[13px] text-[#9A908A] mb-4">{shortName} · Class {selectedClass}</p>
+      <div className="flex flex-col gap-2.5 text-[14px]">
+        <div className="flex justify-between"><span className="text-[#5E5650]">Items selected</span><span className="font-semibold">{selectedCount} of {totalListed}</span></div>
+        {youSave > 0 && <div className="flex justify-between"><span className="text-[#5E5650]">Bought separately</span><span className="text-[#9A908A] line-through">₹{market.toLocaleString('en-IN')}</span></div>}
+        {youSave > 0 && <div className="flex justify-between"><span className="text-[#C4501A] font-semibold">You save</span><span className="text-[#C4501A] font-bold">₹{youSave.toLocaleString('en-IN')}</span></div>}
+        <div className="flex justify-between items-baseline border-t border-[#F0E2DA] pt-3 mt-1">
+          <span className="font-semibold">This kit</span>
+          <span className="text-[22px] font-bold">₹{kitSubtotal.toLocaleString('en-IN')}</span>
+        </div>
+      </div>
+      <button onClick={handleAddToBag} disabled={!canAdd} className="w-full h-[52px] mt-4 bg-[#E8632B] text-white text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
+        Add to bag
+      </button>
+      <button onClick={() => setBagOpen(true)} className={'w-full h-11 mt-2.5 bg-white text-[14px] font-semibold rounded-full active:scale-[0.98] transition-transform ' + SHADOW}>
+        {cart.length > 0 ? 'View bag · ' + cart.length + (cart.length === 1 ? ' kit' : ' kits') : 'View bag'}
+      </button>
+      <p className="text-[12px] text-[#9A908A] text-center mt-3">Pickup is free. Home delivery adds ₹{DELIVERY_FEE}.</p>
     </div>
   )
 
   return (
-    <div className="bg-surface text-on-surface font-body-md antialiased flex flex-col min-h-screen">
+    <div
+      className="min-h-screen text-[#1E1B19] antialiased font-['Plus_Jakarta_Sans',sans-serif]"
+      style={{ background: 'linear-gradient(180deg, #FDEADF 0%, #FFF7F2 100%)' }}
+    >
+      <LocationSheet open={sheetOpen} onClose={() => setSheetOpen(false)} place={place} onSelect={setPlace} />
 
-      {/* Warn modal */}
+      {/* Photo viewer */}
+      {viewer && (
+        <div className="fixed inset-0 z-[400] bg-black/85 flex items-center justify-center p-5" onClick={() => setViewer(null)}>
+          <img src={viewer} alt="" className="max-w-full max-h-[85vh] object-contain rounded-[22px]" />
+          <button aria-label="Close" onClick={() => setViewer(null)} className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white flex items-center justify-center">
+            <span className="material-symbols-outlined text-[20px]">close</span>
+          </button>
+        </div>
+      )}
+
+      {/* Remove dialog */}
       {warnModal && (
-        <div className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm flex items-center justify-center p-5" onClick={() => setWarnModal(null)}>
-          <div className="bg-surface-container-lowest rounded-2xl p-6 max-w-sm w-full shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="w-12 h-12 rounded-full bg-primary-fixed text-primary flex items-center justify-center mx-auto mb-3">
-              <span className="material-symbols-outlined text-[26px]">warning</span>
-            </div>
-            <h3 className="font-headline-md text-headline-md text-on-surface text-center mb-2">Remove from kit?</h3>
-            <p className="font-body-sm text-body-sm text-on-surface-variant text-center mb-5">
-              <strong className="text-on-surface">{warnItemName()}</strong> is on the official {meta.title} book list. Remove it?
+        <div className="fixed inset-0 z-[400] bg-black/45 flex items-center justify-center p-5" onClick={() => setWarnModal(null)}>
+          <div className="bg-white rounded-[28px] p-6 max-w-sm w-full shadow-[0_10px_30px_rgba(120,70,40,0.2)]" onClick={e => e.stopPropagation()}>
+            <h3 className="text-[18px] font-bold text-center mb-2">Remove from kit?</h3>
+            <p className="text-[14px] text-[#5E5650] text-center mb-5">
+              <strong className="text-[#1E1B19]">{warnItemName()}</strong> is on the official {shortName} book list.
             </p>
             <div className="flex gap-2.5">
-              <button onClick={() => setWarnModal(null)} className="flex-1 py-3 rounded-xl border border-[#EADFCC] bg-[#FCF4E8] font-label-lg text-label-lg text-on-surface">Keep it</button>
-              <button onClick={confirmUncheck} className="flex-1 py-3 rounded-xl bg-error-container text-on-error-container font-label-lg text-label-lg font-bold">Yes, remove</button>
+              <button onClick={() => setWarnModal(null)} className="flex-1 h-12 rounded-full bg-white border border-[#F0E2DA] text-[15px] font-semibold active:scale-95 transition-transform">Keep it</button>
+              <button onClick={confirmUncheck} className="flex-1 h-12 rounded-full border-2 border-[#E8632B] text-[#C4501A] text-[15px] font-semibold active:scale-95 transition-transform">Yes, remove</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Notify-me modal */}
+      {/* Notify-me sheet */}
       {notifyFor && (
-        <div className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm flex items-center justify-center p-5" onClick={() => setNotifyFor(null)}>
-          <div className="bg-surface-container-lowest rounded-2xl p-6 max-w-sm w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[400] bg-black/45 flex items-end md:items-center justify-center" onClick={() => setNotifyFor(null)}>
+          <div className="bg-white rounded-t-[28px] md:rounded-[28px] p-6 w-full max-w-md shadow-[0_-10px_35px_rgba(30,27,25,0.2)]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }} onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1.5 rounded-full bg-[#F0E2DA] mx-auto mb-4 md:hidden" />
             {notifyDone ? (
               <>
-                <div className="w-12 h-12 rounded-full bg-[#2E8B57]/15 text-[#2E8B57] flex items-center justify-center mx-auto mb-3">
+                <div className="w-12 h-12 rounded-full bg-[#2E8B57]/12 text-[#2E8B57] flex items-center justify-center mx-auto mb-3">
                   <span className="material-symbols-outlined text-[28px]">check_circle</span>
                 </div>
-                <h3 className="font-headline-md text-headline-md text-on-surface text-center mb-2">You&apos;re on the list!</h3>
-                <p className="font-body-sm text-body-sm text-on-surface-variant text-center mb-5">
-                  We&apos;ll WhatsApp you as soon as <strong className="text-on-surface">{notifyFor}</strong> is back in stock.
-                </p>
-                <button onClick={() => setNotifyFor(null)} className="w-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold py-3.5 rounded-xl">Done</button>
+                <h3 className="text-[18px] font-bold text-center mb-1">You are on the list</h3>
+                <p className="text-[14px] text-[#5E5650] text-center mb-5">We will WhatsApp you when <strong className="text-[#1E1B19]">{notifyFor}</strong> is back.</p>
+                <button onClick={() => setNotifyFor(null)} className="w-full h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform">Done</button>
               </>
             ) : (
               <>
-                <div className="w-12 h-12 rounded-full bg-primary-fixed text-primary flex items-center justify-center mx-auto mb-3">
-                  <span className="material-symbols-outlined text-[26px]">notifications</span>
+                <div className="flex items-start justify-between gap-3 mb-1">
+                  <div className="min-w-0">
+                    <h3 className="text-[18px] font-bold">Tell me when it is back</h3>
+                    <p className="text-[13px] text-[#9A908A] mt-0.5 truncate">{notifyFor}</p>
+                  </div>
+                  <button aria-label="Close" onClick={() => setNotifyFor(null)} className="w-9 h-9 rounded-full bg-[#FFF1EA] flex items-center justify-center shrink-0">
+                    <span className="material-symbols-outlined text-[18px]">close</span>
+                  </button>
                 </div>
-                <h3 className="font-headline-md text-headline-md text-on-surface text-center mb-1">Notify me when it&apos;s back</h3>
-                <p className="font-body-sm text-body-sm text-on-surface-variant text-center mb-4">
-                  <strong className="text-on-surface">{notifyFor}</strong> is out of stock. Leave your number and we&apos;ll WhatsApp you.
-                </p>
-                <input value={notifyName} onChange={e => setNotifyName(e.target.value)} placeholder="Your name" type="text"
-                  className="w-full mb-2.5 px-4 py-3 rounded-xl border border-[#EADFCC] bg-white font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-[#E8632B] focus:ring-2 focus:ring-[#E8632B]/20" />
-                <input value={notifyPhone} onChange={e => setNotifyPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="WhatsApp number (10 digits)" type="text" inputMode="numeric"
-                  className="w-full mb-4 px-4 py-3 rounded-xl border border-[#EADFCC] bg-white font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:border-[#E8632B] focus:ring-2 focus:ring-[#E8632B]/20" />
-                <button onClick={submitNotify} disabled={notifyBusy} className="w-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold py-3.5 rounded-xl disabled:opacity-60">
+                <div className="flex flex-col gap-2.5 my-4">
+                  <input value={notifyName} onChange={e => setNotifyName(e.target.value)} placeholder="Your name" type="text" className={sheetInput} />
+                  <div className="flex gap-2">
+                    <div className="flex items-center px-4 rounded-2xl bg-[#FFF1EA] text-[14px] font-medium text-[#5E5650] shrink-0">+91</div>
+                    <input value={notifyPhone} onChange={e => setNotifyPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="WhatsApp number" type="text" inputMode="numeric" className={sheetInput} />
+                  </div>
+                </div>
+                <button onClick={submitNotify} disabled={notifyBusy} className="w-full h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform disabled:opacity-60">
                   {notifyBusy ? 'Saving…' : 'Notify me'}
                 </button>
-                <button onClick={() => setNotifyFor(null)} className="w-full mt-2 py-2 text-on-surface-variant font-label-md text-label-md">Cancel</button>
               </>
             )}
           </div>
         </div>
       )}
 
-      {/* Header */}
-      <header className="fixed top-0 inset-x-0 z-50 bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(45,30,18,0.04)] pt-safe">
-        <div className="h-20 px-margin md:px-margin-desktop flex items-center justify-between gap-space-sm md:gap-6 max-w-md mx-auto md:max-w-[1200px]">
-          <div className="flex items-center gap-space-sm md:gap-4 min-w-0">
-            <button aria-label="Back" onClick={() => router.push('/')} className="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant active:bg-surface-container shrink-0">
-              <span className="material-symbols-outlined text-[22px]">arrow_back</span>
-            </button>
-            {logoOk ? (
-              <img alt="Pageplus" className="h-10 w-auto object-contain shrink-0 cursor-pointer" src="/pageplus-logo.png" onError={() => setLogoOk(false)} onClick={() => router.push('/')} />
+      {/* Customize sheet */}
+      {customize && (
+        <div className="fixed inset-0 z-[400] bg-black/45 flex items-end md:items-center justify-center" onClick={() => setCustomize(null)}>
+          <div className="bg-white rounded-t-[28px] md:rounded-[28px] p-6 w-full max-w-md shadow-[0_-10px_35px_rgba(30,27,25,0.2)]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }} onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1.5 rounded-full bg-[#F0E2DA] mx-auto mb-4 md:hidden" />
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <h3 className="text-[18px] font-bold">Customize {customize === 'notebooks' ? 'notebooks' : 'stationery'}</h3>
+                <p className="text-[13px] text-[#9A908A] mt-0.5">Changes apply to the whole list</p>
+              </div>
+              <button aria-label="Close" onClick={() => setCustomize(null)} className="w-9 h-9 rounded-full bg-[#FFF1EA] flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+
+            {customize === 'notebooks' ? (
+              <div className="flex flex-col gap-5">
+                <div>
+                  <p className="text-[13px] font-semibold mb-2">Brand for every notebook</p>
+                  <div className="flex gap-2">
+                    <button onClick={() => setAllBrand('buddy')} className={pill(nbBrand.length > 0 && nbBrand.every(b => b === 'buddy'))}>Buddy</button>
+                    <button onClick={() => setAllBrand('classmate')} className={pill(nbBrand.length > 0 && nbBrand.every(b => b === 'classmate'))}>Classmate</button>
+                  </div>
+                </div>
+                {kit.notebooks.some(n => isRegister(n.name)) && (
+                  <div>
+                    <p className="text-[13px] font-semibold mb-2">Registers</p>
+                    <div className="flex gap-2">
+                      <button onClick={() => setAllReg('slim')} className={pill(nbRegType.length > 0 && nbRegType.every(r => r === 'slim'))}>Slim</button>
+                      <button onClick={() => setAllReg('thick')} className={pill(nbRegType.length > 0 && nbRegType.every(r => r === 'thick'))}>Thick</button>
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <p className="text-[13px] font-semibold mb-2">Quantities</p>
+                  <button onClick={resetQty} className="px-4 py-2 rounded-full bg-[#FFF1EA] text-[13px] font-medium active:scale-95 transition-transform">Reset to the listed numbers</button>
+                </div>
+              </div>
             ) : (
-              <span className="font-headline-md text-headline-md text-on-surface shrink-0 cursor-pointer" onClick={() => router.push('/')}>Page<span className="text-secondary-container">plus</span></span>
+              <div className="flex flex-col gap-3">
+                <button onClick={stationerySelectAll} className="w-full h-12 rounded-full bg-[#FFF1EA] text-[14px] font-semibold active:scale-[0.98] transition-transform">Select all stationery</button>
+                <button onClick={stationeryClear} className="w-full h-12 rounded-full bg-white border border-[#F0E2DA] text-[14px] font-semibold active:scale-[0.98] transition-transform">Clear stationery</button>
+              </div>
             )}
-          </div>
 
-          <nav className="hidden lg:flex items-center gap-1">
-            <button className={navLink + ' !text-primary-container font-bold'} onClick={() => router.push('/school-sets')}>School Sets</button>
-            <button className={navLink} onClick={() => router.push('/marketplace')}>Marketplace</button>
-            <button className={navLink} onClick={() => router.push('/my-orders')}>My Orders</button>
-          </nav>
-
-          <div className="flex items-center gap-1 shrink-0">
-            <button onClick={() => router.push('/my-orders')} className="flex items-center gap-1 bg-surface-container-low px-3 py-1.5 rounded-full font-label-md text-label-md text-on-surface-variant lg:hidden">
-              <span className="material-symbols-outlined text-[16px]">inventory_2</span>
-              <span>My Orders</span>
-            </button>
-            <a aria-label="WhatsApp Support" className="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant transition-colors active:bg-surface-container relative" href={WA_HELP_LINK} rel="noopener noreferrer" target="_blank">
-              <span className="material-symbols-outlined text-[22px] text-tertiary">chat</span>
-              <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-primary-container ring-2 ring-surface"></span>
-            </a>
+            <button onClick={() => setCustomize(null)} className="w-full h-[52px] mt-6 bg-[#E8632B] text-white text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform">Done</button>
           </div>
         </div>
-      </header>
+      )}
 
-      <main className="flex-1 w-full max-w-md mx-auto md:max-w-[1200px] pt-20 pb-44 md:pb-28 lg:pb-12 px-margin md:px-margin-desktop">
-        <div className="pt-4 md:pt-6 lg:grid lg:grid-cols-12 lg:gap-6 lg:items-start">
+      {/* Bag sheet */}
+      {bagOpen && (
+        <div className="fixed inset-0 z-[400] bg-black/45 flex items-end md:items-center justify-center" onClick={() => setBagOpen(false)}>
+          <div className="bg-white rounded-t-[28px] md:rounded-[28px] p-6 w-full max-w-md max-h-[88vh] overflow-y-auto shadow-[0_-10px_35px_rgba(30,27,25,0.2)]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }} onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1.5 rounded-full bg-[#F0E2DA] mx-auto mb-4 md:hidden" />
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <h3 className="text-[20px] font-bold">Your bag</h3>
+                <p className="text-[13px] text-[#9A908A] mt-0.5">{cart.length === 0 ? 'Nothing here yet' : cart.length + (cart.length === 1 ? ' kit' : ' kits')}</p>
+              </div>
+              <button aria-label="Close" onClick={() => setBagOpen(false)} className="w-9 h-9 rounded-full bg-[#FFF1EA] flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
 
-          {/* LEFT: selector + kit list */}
+            {cart.length === 0 ? (
+              <div className="py-6 text-center">
+                <p className="text-[14px] text-[#5E5650] mb-4">Pick a class, tick what you need and tap Add to bag.</p>
+                <button onClick={() => setBagOpen(false)} className="w-full h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform">Choose a kit</button>
+              </div>
+            ) : (
+              <>
+                <div className="flex flex-col gap-3 mb-4">
+                  {cart.map((k, idx) => (
+                    <div key={idx} className="flex items-center gap-3 bg-[#FFF7F2] rounded-[18px] p-3.5">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[15px] font-semibold truncate">{SHORT_NAME[k.school || ''] || k.school || shortName}</p>
+                        <p className="text-[12px] text-[#9A908A] mt-0.5">Class {k.selectedClass} · {k.items.length} items</p>
+                      </div>
+                      <span className="text-[16px] font-bold shrink-0">₹{(k.kitSubtotal || 0).toLocaleString('en-IN')}</span>
+                      <button aria-label="Remove this kit from the bag" onClick={() => removeFromBag(idx)} className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-[#9A908A] shrink-0 active:scale-90 transition-transform shadow-sm">
+                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex flex-col gap-2 text-[14px] mb-4">
+                  <div className="flex justify-between"><span className="text-[#5E5650]">Sub total</span><span className="font-semibold">₹{bagSubtotal.toLocaleString('en-IN')}</span></div>
+                  {siblingDiscount > 0 && (
+                    <div className="flex justify-between"><span className="text-[#5E5650]">Sibling discount (5%)</span><span className="font-semibold text-[#2E8B57]">−₹{siblingDiscount.toLocaleString('en-IN')}</span></div>
+                  )}
+                  <div className="flex justify-between items-baseline border-t border-[#F0E2DA] pt-3 mt-1">
+                    <span className="font-semibold">Total</span>
+                    <span className="text-[22px] font-bold">₹{bagTotal.toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+
+                <p className="text-[12px] text-[#9A908A] mb-4">Pickup is free from Booth 48, Sector 40-C. Home delivery is ₹{DELIVERY_FEE} within 24 hours. You choose at checkout.</p>
+
+                {bagCheckout}
+                <button onClick={() => setBagOpen(false)} className="w-full h-11 mt-2.5 text-[14px] font-semibold text-[#5E5650] active:opacity-70">Keep shopping</button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Toast after adding to the bag */}
+      {toast && (
+        <div className="fixed inset-x-0 flex justify-center pointer-events-none px-5" style={{ zIndex: 350, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 200px)' }}>
+          <div className="pointer-events-auto bg-[#1E1B19] text-white rounded-full pl-4 pr-1.5 py-1.5 flex items-center gap-3 shadow-[0_10px_28px_rgba(30,27,25,0.28)]">
+            <span className="text-[13px]">{toast}</span>
+            <button onClick={() => { setToast(''); setBagOpen(true) }} className="px-3.5 py-1.5 rounded-full bg-white text-[#1E1B19] text-[13px] font-semibold active:scale-95 transition-transform">View bag</button>
+          </div>
+        </div>
+      )}
+
+      <main
+        className="w-full max-w-md md:max-w-5xl mx-auto px-5 pb-[250px] lg:pb-16"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
+      >
+        {/* App bar */}
+        <header className="mb-4">
+          <div className="flex items-center justify-between">
+            <a href="/" className="text-[26px] font-extrabold tracking-tight leading-none active:scale-95 transition-transform">
+              Page<span className="text-[#E8632B]">plus</span>
+            </a>
+            <div className="flex items-center gap-2.5">
+              <nav className="hidden md:flex items-center gap-1 mr-2">
+                <a href="/" className="px-3 py-2 rounded-full text-[14px] font-medium text-[#5E5650] hover:text-[#1E1B19]">Home</a>
+                <a href="/marketplace" className="px-3 py-2 rounded-full text-[14px] font-medium text-[#5E5650] hover:text-[#1E1B19]">Market</a>
+                <a href="/profile" className="px-3 py-2 rounded-full text-[14px] font-medium text-[#5E5650] hover:text-[#1E1B19]">Profile</a>
+              </nav>
+              <button aria-label={cart.length > 0 ? 'Bag, ' + cart.length + ' kits' : 'Bag'} onClick={() => setBagOpen(true)} className={iconBtn}>
+                <span className="material-symbols-outlined text-[20px]">shopping_bag</span>
+                {cart.length > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#E8632B] text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-[#FFF7F2]">{cart.length}</span>
+                )}
+              </button>
+              {isSignedIn ? (
+                <button aria-label="Profile" onClick={() => router.push('/profile')} className={iconBtn}>
+                  <span className="material-symbols-outlined text-[20px]">person</span>
+                </button>
+              ) : (
+                <SignInButton mode="modal">
+                  <button aria-label="Sign in" className={iconBtn}>
+                    <span className="material-symbols-outlined text-[20px]">person</span>
+                  </button>
+                </SignInButton>
+              )}
+            </div>
+          </div>
+          <button onClick={() => setSheetOpen(true)} className="flex items-center gap-1 text-[13px] font-medium text-[#5E5650] mt-1.5 active:opacity-70">
+            <span>{placeLine}</span>
+            <span className="material-symbols-outlined text-[16px] text-[#9A908A]">expand_more</span>
+          </button>
+        </header>
+
+        {/* Search */}
+        <div className={'flex items-center w-full h-12 bg-white rounded-full pl-4 pr-2 gap-2.5 mb-5 ' + SHADOW}>
+          <span className="material-symbols-outlined text-[20px] text-[#9A908A] shrink-0">search</span>
+          <input
+            value={q}
+            onChange={e => setQ(e.target.value)}
+            placeholder="Search in this kit…"
+            type="text"
+            className="flex-1 min-w-0 bg-transparent text-[14px] text-[#1E1B19] placeholder:text-[#9A908A] focus:outline-none"
+          />
+          {q && (
+            <button aria-label="Clear search" onClick={() => setQ('')} className="w-8 h-8 rounded-full bg-[#FFF1EA] flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-[16px]">close</span>
+            </button>
+          )}
+        </div>
+
+        <div className="lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
           <div className="lg:col-span-8">
 
-            {/* School + class selector */}
-            <section className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm mb-space-md relative">
-              <div className="flex items-center justify-between gap-space-sm mb-space-sm">
-                <div className="relative min-w-0">
-                  <button onClick={() => setSchoolOpen(o => !o)} className="flex items-center gap-1.5 text-left min-w-0 focus:outline-none">
-                    <span className="material-symbols-outlined text-primary text-[22px] shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>school</span>
-                    <span className="font-headline-sm text-headline-sm text-on-surface font-semibold truncate">{meta.title}</span>
-                    <span className="material-symbols-outlined text-[20px] text-primary shrink-0">expand_more</span>
-                  </button>
-                  {schoolOpen && (
-                    <div className="absolute z-20 left-0 mt-2 min-w-[220px] bg-surface-container-lowest rounded-xl shadow-lg overflow-hidden border border-outline-variant">
-                      {schoolNames.map(n => (
-                        <button key={n} onClick={() => pickSchool(n)} className={'w-full text-left px-4 py-3 font-label-lg text-label-lg active:bg-surface-container ' + (n === selectedSchool ? 'text-primary font-bold bg-primary-fixed/40' : 'text-on-surface')}>
-                          {SCHOOL_TITLE[n]?.title || n}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <span className="bg-primary-fixed text-on-primary-fixed-variant font-label-micro text-label-micro uppercase px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1 font-bold">
-                  <span className="material-symbols-outlined text-[12px]">verified</span> 2026–27 Sync
-                </span>
-              </div>
-              <p className="font-body-sm text-body-sm text-on-surface-variant flex items-center gap-1.5 mb-space-md">
-                <span className="material-symbols-outlined text-[16px] text-tertiary shrink-0">location_on</span>
-                {meta.sub} • Official book list
-              </p>
+            {/* Title */}
+            <div className="mb-4">
+              <h1 className="text-[22px] font-bold tracking-tight">{shortName} Class {selectedClass} kit</h1>
+              <p className="text-[14px] text-[#5E5650] mt-0.5">{[SCHOOL_SUB[selectedSchool], 'Official book list'].filter(Boolean).join(' · ')}</p>
+            </div>
 
-              <div className="w-full">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="font-label-micro text-label-micro uppercase tracking-wider text-on-surface-variant">Select Grade</span>
-                  <span className="font-label-micro text-label-micro text-primary font-bold">{availableClasses.length} Classes</span>
-                </div>
-                <div className="flex gap-2 overflow-x-auto pb-1.5 -mx-1 px-1 scrollbar-none md:flex-wrap md:overflow-visible">
-                  {availableClasses.map(c => {
-                    const active = c === selectedClass
-                    return (
-                      <button key={c} onClick={() => setSelectedClass(c)}
-                        className={'px-4 py-2.5 rounded-xl font-label-md text-label-md shrink-0 flex items-center gap-1.5 transition-all ' + (active ? 'bg-primary-container text-on-primary font-semibold shadow-sm' : 'bg-surface-container-low text-on-surface hover:bg-surface-container')}>
-                        <span className={'w-5 h-5 rounded-full flex items-center justify-center font-bold text-[11px] ' + (active ? 'bg-white/20 text-on-primary' : 'bg-surface-container')}>{c}</span>
-                        Class {c}
-                      </button>
-                    )
-                  })}
+            {/* School + class */}
+            <div className="flex flex-col gap-2.5 mb-5">
+              <div className="flex items-center gap-2 overflow-x-auto -mx-5 px-5" style={{ scrollbarWidth: 'none' }}>
+                {schoolNames.map(n => {
+                  const on = n === selectedSchool
+                  return (
+                    <button key={n} onClick={() => pickSchool(n)}
+                      className={'px-4 py-2 rounded-full text-[13px] whitespace-nowrap shrink-0 active:scale-95 transition-transform ' + (on ? 'bg-[#E8632B] text-white font-semibold ' : 'bg-white text-[#1E1B19] font-medium ') + SHADOW}>
+                      {SHORT_NAME[n] || n}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="flex items-center gap-2 overflow-x-auto -mx-5 px-5 pb-1" style={{ scrollbarWidth: 'none' }}>
+                {availableClasses.map(c => {
+                  const on = c === selectedClass
+                  return (
+                    <button key={c} onClick={() => setSelectedClass(c)}
+                      className={'px-3.5 py-1.5 rounded-full text-[12px] whitespace-nowrap shrink-0 transition-colors ' + (on ? 'bg-[#E8632B] text-white font-semibold ' : 'bg-white text-[#1E1B19] font-medium ') + SHADOW}>
+                      Class {c}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Kit summary */}
+            <div className={'bg-white rounded-[22px] p-4 mb-7 ' + SHADOW}>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[15px] font-semibold">{selectedCount} of {totalListed} items selected</span>
+                <div className="flex items-baseline gap-1.5 shrink-0">
+                  {youSave > 0 && <span className="text-[12px] text-[#9A908A] line-through">₹{market.toLocaleString('en-IN')}</span>}
+                  <span className="text-[18px] font-bold">₹{kitSubtotal.toLocaleString('en-IN')}</span>
                 </div>
               </div>
-            </section>
-
-            {/* Savings + pre-loved shortcut */}
-            <section className="mb-space-md flex flex-col gap-2">
-              {youSave > 0 && (
-                <div className="bg-primary-fixed rounded-xl p-3 flex items-center justify-between text-on-primary-fixed-variant shadow-sm">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-full bg-primary-container text-on-primary flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>redeem</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-label-lg text-label-lg font-bold leading-tight">Set Discount: ₹{youSave.toLocaleString('en-IN')} OFF</span>
-                      <span className="font-label-micro text-label-micro opacity-85">Save {savePct}% compared to buying separately</span>
-                    </div>
-                  </div>
-                  <span className="material-symbols-outlined text-primary text-[20px]">auto_awesome</span>
-                </div>
-              )}
-              <button onClick={() => router.push('/marketplace')} className="bg-surface-container-low active:bg-surface-container rounded-xl p-3 flex items-center justify-between transition-colors text-left">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="material-symbols-outlined text-secondary text-[22px] shrink-0" style={{ fontVariationSettings: "'FILL' 1" }}>recycling</span>
-                  <div className="flex flex-col min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-label-md text-label-md text-on-surface font-semibold">Want Pre-Loved copies?</span>
-                      {listingCount > 0 && <span className="bg-surface-container-highest text-on-surface-variant font-label-micro text-label-micro px-1.5 py-0.5 rounded font-bold">{listingCount} Available</span>}
-                    </div>
-                    <span className="font-body-sm text-body-sm text-on-surface-variant truncate">Buy from students nearby • Save up to 60%</span>
-                  </div>
-                </div>
-                <span className="material-symbols-outlined text-primary text-[20px] shrink-0">arrow_forward</span>
-              </button>
-            </section>
-
-            {/* Selection controls */}
-            <section className="flex items-center justify-between mb-space-sm px-1">
-              <div className="flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-primary text-[18px]">checklist</span>
-                <span className="font-label-md text-label-md font-semibold text-on-surface">{selectedCount} of {totalListed} items in set</span>
+              <div className="mt-3 pt-3 border-t border-[#F0E2DA] flex items-center justify-between gap-3">
+                <button onClick={toggleAll} className="text-[13px] font-semibold text-[#C4501A] active:opacity-70">
+                  {selectedCount < selectableCount ? 'Select all available' : 'Deselect all'}
+                </button>
+                {youSave > 0 && <span className="text-[12px] font-semibold text-[#C4501A] bg-[#FFF1EA] px-2.5 py-1 rounded-full">Save ₹{youSave.toLocaleString('en-IN')}</span>}
               </div>
-              <button onClick={toggleAll} className="text-primary font-label-md text-label-md font-semibold active:opacity-75">
-                {selectedCount < selectableCount ? 'Select all available' : 'Deselect all items'}
-              </button>
-            </section>
+            </div>
 
-            {/* Flat sections: NCERT, private, stationery */}
-            {FLAT_SECTIONS.map(s => {
-              const items = kit[s]
-              if (items.length === 0) return null
-              const sec = SECTION_META[s]
-              return (
-                <section key={s} className="mb-space-md">
-                  <div className="flex items-center justify-between bg-surface-container-high px-space-md py-2.5 rounded-t-xl">
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>{sec.icon}</span>
-                      <h2 className="font-headline-sm text-headline-sm text-on-surface font-semibold">{sec.label}</h2>
-                    </div>
-                    <span className="font-label-micro text-label-micro bg-surface-container-lowest text-on-surface-variant px-2 py-0.5 rounded-full font-bold">{items.length} {sec.unit}</span>
-                  </div>
-                  {s === 'ncert' && (
-                    <div className="bg-primary-fixed/50 px-space-md py-2 flex items-center gap-2 font-body-sm text-body-sm text-on-primary-fixed-variant">
-                      <span className="material-symbols-outlined text-[16px] shrink-0">menu_book</span>
-                      <span>Prices include a ₹{BINDING_CHARGE} binding charge. Every NCERT book is delivered hardbound.</span>
-                    </div>
-                  )}
-                  <div className="flex flex-col gap-2 p-2 bg-surface-container-lowest rounded-b-xl shadow-sm">
-                    {items.map((item, i) => {
-                      const oos = isOOS(item.name)
-                      const on = !!checked[s]?.[i] && !oos
-                      return (
-                        <div key={i}
-                          role={oos ? undefined : 'checkbox'} aria-checked={oos ? undefined : on} tabIndex={oos ? -1 : 0}
-                          onClick={() => !oos && handleCheckClick(s, i)}
-                          onKeyDown={e => { if (!oos && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); handleCheckClick(s, i) } }}
-                          className={'flex items-center justify-between gap-2 p-2 rounded-lg transition-colors select-none ' + (oos ? 'bg-surface-container-low opacity-90' : 'bg-surface active:bg-surface-container-low cursor-pointer')}>
-                          <div className="flex items-center gap-3 min-w-0 flex-1">
-                            {oos ? (
-                              <div className="w-6 h-6 rounded-full bg-surface-container-high flex items-center justify-center shrink-0">
-                                <span className="material-symbols-outlined text-[16px] text-outline">block</span>
-                              </div>
-                            ) : <Tick on={on} />}
-                            <div className={'w-12 h-16 rounded bg-primary-fixed/60 flex items-center justify-center shrink-0 ' + (oos ? 'grayscale opacity-60' : '')}>
-                              <span className="material-symbols-outlined text-[24px] text-primary">{sec.icon}</span>
-                            </div>
-                            <div className="flex flex-col min-w-0 pr-1">
-                              <span className="font-label-lg text-label-lg text-on-surface font-semibold leading-snug line-clamp-2">{item.name}</span>
-                              <div className="flex items-center gap-1.5 my-0.5 flex-wrap">
-                                {oos ? (
-                                  <span className="font-label-micro text-label-micro bg-error-container text-on-error-container px-1.5 py-0.5 rounded font-bold uppercase">Out of Stock</span>
-                                ) : item.optional ? (
-                                  <span className="font-label-micro text-label-micro bg-surface-container text-on-surface-variant px-1.5 py-0.5 rounded font-bold uppercase">Optional</span>
-                                ) : s === 'ncert' ? (
-                                  <span className="font-label-micro text-label-micro bg-primary-fixed text-on-primary-fixed-variant px-1.5 py-0.5 rounded font-bold uppercase">Official NCERT</span>
-                                ) : s === 'pvt' ? (
-                                  <span className="font-label-micro text-label-micro bg-secondary-fixed text-on-secondary-fixed-variant px-1.5 py-0.5 rounded font-bold uppercase">Prescribed</span>
-                                ) : (
-                                  <span className="font-label-micro text-label-micro bg-surface-container text-on-surface-variant px-1.5 py-0.5 rounded font-bold uppercase">Stationery</span>
-                                )}
-                              </div>
-                              {oos && (
-                                <button onClick={e => { e.stopPropagation(); openNotify(item.name) }} className="text-left font-label-micro text-label-micro text-primary font-bold flex items-center gap-1 pt-0.5">
-                                  <span className="material-symbols-outlined text-[14px]">notifications</span> Notify Me
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-right shrink-0 pl-2">
-                            <span className={'font-headline-sm text-headline-sm font-bold ' + (oos ? 'text-on-surface-variant font-medium' : 'text-on-surface')}>{item.price > 0 ? '₹' + item.price : '—'}</span>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </section>
-              )
-            })}
+            {/* Item sections */}
+            {SECTIONS.map(s => renderSection(s))}
 
-            {/* Notebooks */}
-            {kit.notebooks.length > 0 && (
-              <section className="mb-space-md">
-                <div className="flex items-center justify-between bg-surface-container-high px-space-md py-2.5 rounded-t-xl">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>{SECTION_META.notebooks.icon}</span>
-                    <h2 className="font-headline-sm text-headline-sm text-on-surface font-semibold">{SECTION_META.notebooks.label}</h2>
-                  </div>
-                  <span className="font-label-micro text-label-micro bg-surface-container-lowest text-on-surface-variant px-2 py-0.5 rounded-full font-bold">{kit.notebooks.length} Types</span>
-                </div>
-                <div className="bg-primary-fixed/50 px-space-md py-2 flex items-center gap-2 font-body-sm text-body-sm text-on-primary-fixed-variant">
-                  <span className="material-symbols-outlined text-[16px] shrink-0">sell</span>
-                  <span>Buddy is our own notebook brand at 20% off MRP. Classmate is sold at its printed price.</span>
-                </div>
-                <div className="flex flex-col gap-2 p-2 bg-surface-container-lowest rounded-b-xl shadow-sm">
-                  {kit.notebooks.map((item, i) => {
-                    const oos = isOOS(item.name)
-                    const on = !!checked.notebooks?.[i] && !oos
-                    const qty = nbQty[i] || 0
-                    const recommended = item.qty
-                    const brand = nbBrand[i] || 'buddy'
-                    const regType = nbRegType[i] || 'slim'
-                    const unit = nbUnitPrice(i)
-                    const isReg = isRegister(item.name)
-                    return (
-                      <div key={i} className={'rounded-lg p-2 ' + (oos ? 'bg-surface-container-low opacity-90' : 'bg-surface')}>
-                        <div
-                          role={oos ? undefined : 'checkbox'} aria-checked={oos ? undefined : on} tabIndex={oos ? -1 : 0}
-                          onClick={() => !oos && handleCheckClick('notebooks', i)}
-                          onKeyDown={e => { if (!oos && (e.key === ' ' || e.key === 'Enter')) { e.preventDefault(); handleCheckClick('notebooks', i) } }}
-                          className={'flex items-center justify-between gap-2 select-none ' + (oos ? '' : 'cursor-pointer')}>
-                          <div className="flex items-center gap-3 min-w-0 flex-1">
-                            {oos ? (
-                              <div className="w-6 h-6 rounded-full bg-surface-container-high flex items-center justify-center shrink-0">
-                                <span className="material-symbols-outlined text-[16px] text-outline">block</span>
-                              </div>
-                            ) : <Tick on={on} />}
-                            <div className={'w-12 h-14 rounded bg-primary-fixed/60 flex items-center justify-center shrink-0 ' + (oos ? 'grayscale opacity-60' : '')}>
-                              <span className="material-symbols-outlined text-[24px] text-primary">{isReg ? 'import_contacts' : 'edit_note'}</span>
-                            </div>
-                            <div className="flex flex-col min-w-0 pr-1">
-                              <span className={'font-label-lg text-label-lg font-semibold leading-snug line-clamp-2 ' + (on || oos ? 'text-on-surface' : 'text-on-surface-variant')}>{item.name}</span>
-                              {oos ? (
-                                <>
-                                  <span className="font-label-micro text-label-micro bg-error-container text-on-error-container px-1.5 py-0.5 rounded font-bold uppercase self-start my-0.5">Out of Stock</span>
-                                  <button onClick={e => { e.stopPropagation(); openNotify(item.name) }} className="text-left font-label-micro text-label-micro text-primary font-bold flex items-center gap-1">
-                                    <span className="material-symbols-outlined text-[14px]">notifications</span> Notify Me
-                                  </button>
-                                </>
-                              ) : (
-                                <span className="font-label-micro text-label-micro text-on-surface-variant">
-                                  {isReg ? 'Register · ' + registerPages(brand, regType) + ' pages' : 'Notebook'} · ₹{unit} each
-                                  {brand === 'buddy' && <span className="text-[#2E8B57] font-bold"> · 20% off</span>}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <div className="text-right shrink-0 pl-2">
-                            {!oos && (
-                              <>
-                                <span className="font-headline-sm text-headline-sm text-on-surface font-bold">{on && qty > 0 ? '₹' + (unit * qty) : '—'}</span>
-                                {on && qty > 0 && <span className="block font-label-micro text-label-micro text-on-surface-variant">{qty} pcs</span>}
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        {on && (
-                          <div className="flex flex-wrap items-center gap-2 mt-2.5 pl-9">
-                            <div className="flex gap-1.5">
-                              {(['buddy', 'classmate'] as const).map(b => {
-                                const active = brand === b
-                                const price = isReg ? (b === 'buddy' ? (regType === 'slim' ? 68 : 88) : (regType === 'slim' ? 85 : 105)) : (b === 'buddy' ? 50 : 55)
-                                return (
-                                  <button key={b} onClick={() => { const arr = [...nbBrand]; arr[i] = b; setNbBrand(arr) }}
-                                    className={'px-3 py-1.5 rounded-full font-label-md text-label-md transition-colors ' + (active ? 'bg-[#FDE7D8] border-[1.5px] border-[#E8632B] text-[#C4501A] font-semibold' : 'bg-white border border-[#EADFCC] text-[#6B6560]')}>
-                                    {NOTEBOOK_BRAND_LABEL[b]} · ₹{price}
-                                  </button>
-                                )
-                              })}
-                            </div>
-                            {isReg && (
-                              <div className="flex gap-1.5">
-                                {(['slim', 'thick'] as const).map(rt => {
-                                  const active = regType === rt
-                                  return (
-                                    <button key={rt} onClick={() => { const arr = [...nbRegType]; arr[i] = rt; setNbRegType(arr) }}
-                                      className={'px-3 py-1.5 rounded-full font-label-md text-label-md transition-colors ' + (active ? 'bg-[#FDE7D8] border-[1.5px] border-[#E8632B] text-[#C4501A] font-semibold' : 'bg-white border border-[#EADFCC] text-[#6B6560]')}>
-                                      {registerPages(brand, rt)} pages
-                                    </button>
-                                  )
-                                })}
-                              </div>
-                            )}
-                            <div className="flex flex-col items-center gap-0.5 ml-auto">
-                              <div className="flex items-center rounded-full border border-[#EADFCC] bg-[#FCF4E8] h-9">
-                                <button aria-label="Decrease quantity" disabled={qty <= 0} onClick={() => setQty(i, qty - 1)} className="w-8 h-8 rounded-full text-on-surface font-bold text-[18px] leading-none disabled:opacity-30">−</button>
-                                <span className="w-7 text-center font-label-md text-label-md font-bold tabular-nums text-on-surface">{qty}</span>
-                                <button aria-label="Increase quantity" disabled={qty >= recommended * 2} onClick={() => setQty(i, qty + 1)} className="w-8 h-8 rounded-full text-on-surface font-bold text-[18px] leading-none disabled:opacity-30">+</button>
-                              </div>
-                              <span className="font-label-micro text-[10px] text-on-surface-variant">of {recommended} listed</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </section>
+            {noMatches && (
+              <div className={'bg-white rounded-[22px] p-6 text-center mb-7 ' + SHADOW}>
+                <p className="text-[14px] text-[#5E5650]">Nothing in this kit matches &ldquo;{q}&rdquo;.</p>
+                <button onClick={() => setQ('')} className="mt-3 text-[13px] font-semibold text-[#C4501A]">Clear search</button>
+              </div>
             )}
 
-            {/* Delivery strip */}
-            <section className="bg-surface-container-lowest rounded-xl p-3 shadow-sm flex items-center justify-between gap-2 mb-space-md">
-              <div className="flex items-center gap-2 min-w-0">
-                <div className="w-8 h-8 rounded-full bg-secondary-fixed flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-secondary text-[18px]">local_shipping</span>
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="font-label-md text-label-md text-on-surface font-bold">Pickup from Sector 40-C or home delivery (₹{DELIVERY_FEE})</span>
-                  <span className="font-body-sm text-[12px] text-on-surface-variant">Every book on the official list • Bedi Book Store</span>
-                </div>
-              </div>
-              <span className="material-symbols-outlined text-primary text-[20px] shrink-0">verified_user</span>
-            </section>
+            {/* Pre-loved shortcut */}
+            <button onClick={() => router.push('/marketplace')} className="w-full flex items-center justify-between gap-3 text-left mb-4 px-1 active:opacity-70">
+              <span className="text-[14px] text-[#5E5650]">
+                Want pre-loved copies?{listingCount > 0 ? ' ' + listingCount + ' available' : ''}
+              </span>
+              <span className="material-symbols-outlined text-[20px] text-[#9A908A]">chevron_right</span>
+            </button>
+
+            <p className="text-[12px] text-[#9A908A] px-1">
+              Pick up free from Booth 48, Sector 40-C, or home delivery for ₹{DELIVERY_FEE} within 24 hours.
+            </p>
           </div>
 
-          {/* RIGHT (desktop): sticky summary */}
-          <aside className="hidden lg:block lg:col-span-4 lg:sticky lg:top-24 self-start">
-            <div className="bg-surface-container-lowest rounded-xl p-5 shadow-sm">
-              <h3 className="font-headline-md text-headline-md text-on-surface">Your set</h3>
-              <p className="font-body-sm text-body-sm text-on-surface-variant mb-4">{meta.title} · Class {selectedClass}</p>
-              <div className="flex flex-col gap-2.5 font-body-md text-body-md">
-                <div className="flex justify-between"><span className="text-on-surface-variant">Items selected</span><span className="font-semibold">{selectedCount} of {totalListed}</span></div>
-                <div className="flex justify-between"><span className="text-on-surface-variant">This kit</span><span className="font-semibold">₹{kitSubtotal.toLocaleString('en-IN')}</span></div>
-                {youSave > 0 && (
-                  <>
-                    <div className="flex justify-between"><span className="text-on-surface-variant">Buying separately</span><span className="text-outline line-through">₹{market.toLocaleString('en-IN')}</span></div>
-                    <div className="flex justify-between"><span className="text-[#2E8B57] font-semibold">You save</span><span className="text-[#2E8B57] font-bold">₹{youSave.toLocaleString('en-IN')}</span></div>
-                  </>
-                )}
-                {cart.length > 0 && (
-                  <>
-                    <div className="flex justify-between"><span className="text-on-surface-variant">{cart.length} other {cart.length > 1 ? 'kits' : 'kit'}</span><span className="font-semibold">₹{cartOthers.toLocaleString('en-IN')}</span></div>
-                    <div className="flex justify-between"><span className="text-[#2E8B57] font-semibold">Sibling discount (5%)</span><span className="text-[#2E8B57] font-bold">−₹{siblingDiscount.toLocaleString('en-IN')}</span></div>
-                  </>
-                )}
-                <div className="flex justify-between items-baseline border-t border-[#EADFCC] pt-3 mt-1">
-                  <span className="font-label-lg text-label-lg font-bold">{cart.length > 0 ? totalKits + ' kits total' : 'Total'}</span>
-                  <span className="font-headline-md text-headline-md font-bold text-primary">₹{grandTotal.toLocaleString('en-IN')}</span>
-                </div>
-              </div>
-              <div className="mt-4 [&>div]:w-full [&>div]:flex-col [&_button]:w-full [&_button]:justify-center">{actionButtons}</div>
-              <p className="font-body-sm text-[12px] text-on-surface-variant mt-3 text-center">Pickup is free. Home delivery adds ₹{DELIVERY_FEE}.</p>
-            </div>
-          </aside>
+          {/* Desktop summary */}
+          <aside className="hidden lg:block lg:col-span-4 lg:sticky lg:top-6 self-start">{summaryCard}</aside>
         </div>
       </main>
 
-      {/* Floating cart bar (phone and tablet) */}
-      <div className="lg:hidden fixed bottom-20 md:bottom-6 inset-x-0 z-40 px-margin flex justify-center pointer-events-none">
-        <div className="w-full max-w-md bg-inverse-surface text-inverse-on-surface rounded-2xl p-3 pl-4 shadow-[0_16px_36px_-6px_rgba(31,29,27,0.3)] flex items-center justify-between gap-3 pointer-events-auto">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-full bg-[#E8632B] text-white flex items-center justify-center font-bold font-label-md text-label-md shrink-0">{selectedCount}</div>
-            <div className="flex flex-col min-w-0">
-              <div className="flex items-baseline gap-1.5 leading-none">
-                <span className="font-headline-md text-headline-md text-inverse-on-surface font-bold">₹{grandTotal.toLocaleString('en-IN')}</span>
-                {youSave > 0 && cart.length === 0 && <span className="font-body-sm text-body-sm line-through opacity-60">₹{market.toLocaleString('en-IN')}</span>}
-              </div>
-              <span className="font-label-micro text-label-micro text-secondary-fixed mt-0.5 truncate">
-                {cart.length > 0 ? totalKits + ' kits · 5% sibling discount' : 'Pickup free · Delivery ₹' + DELIVERY_FEE}
-              </span>
+      {/* Floating add-to-bag bar (phones and tablets), above the navigation */}
+      <div className="lg:hidden fixed inset-x-0 flex justify-center pointer-events-none px-5" style={{ zIndex: 40, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 88px)' }}>
+        <div className={'pointer-events-auto w-full max-w-md bg-white rounded-[26px] p-3.5 flex flex-col gap-2.5 ' + SHADOW}>
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-[14px] font-semibold">{selectedCount} items selected</span>
+            <div className="flex items-baseline gap-1.5">
+              {youSave > 0 && <span className="text-[12px] text-[#9A908A] line-through">₹{market.toLocaleString('en-IN')}</span>}
+              <span className="text-[18px] font-bold">₹{kitSubtotal.toLocaleString('en-IN')}</span>
+              {youSave > 0 && <span className="text-[12px] font-semibold text-[#C4501A] bg-[#FFF1EA] px-2 py-0.5 rounded-full">Save ₹{youSave.toLocaleString('en-IN')}</span>}
             </div>
           </div>
-          {actionButtons}
+          <button onClick={handleAddToBag} disabled={!canAdd} className="w-full h-[52px] rounded-full bg-[#E8632B] text-white text-[17px] font-semibold flex items-center justify-center active:scale-[0.98] transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
+            Add to bag · ₹{kitSubtotal.toLocaleString('en-IN')}
+          </button>
         </div>
       </div>
-
-      {/* Shared bottom bar (phone only) */}
-      <BottomNav />
     </div>
   )
 }
