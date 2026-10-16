@@ -1,13 +1,36 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useUser } from '@clerk/nextjs'
+import { useUser, useClerk, SignInButton } from '@clerk/nextjs'
+import BottomNav from '@/components/BottomNav'
+
+// ── Contact (change here only) ────────────────────────────────────────────
+const WHATSAPP_NUMBER = '919914735738'
+const WA_HELP_LINK = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent('Hi, I need help on Pageplus')
 
 const conditions = ['New', 'Good', 'Fair']
 
+type Tab = 'active' | 'sold' | 'reviews' | 'saved'
+
+function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
+  return (
+    <span className="inline-flex gap-px">
+      {[1, 2, 3, 4, 5].map(i => (
+        <span key={i} style={{ fontSize: size, color: i <= Math.round(rating) ? '#E0A100' : '#D9CFC2' }}>★</span>
+      ))}
+    </span>
+  )
+}
+
+const inputCls = 'w-full px-4 py-3 rounded-xl bg-white font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-[#E8632B]/20 focus:border-[#E8632B] border border-[#EADFCC]'
+const labelCls = 'font-label-micro text-label-micro uppercase text-on-surface-variant block mb-1.5'
+
 export default function ProfilePage() {
   const router = useRouter()
-  const { isSignedIn, user } = useUser()
+  const { isLoaded, isSignedIn, user } = useUser()
+  const { signOut } = useClerk()
+
+  const [logoOk, setLogoOk] = useState(true)
   const [listings, setListings] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -16,24 +39,73 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState('')
   const [savingPhone, setSavingPhone] = useState(false)
   const [phoneSaved, setPhoneSaved] = useState(false)
-  const [activeTab, setActiveTab] = useState<'active' | 'sold'>('active')
+  const [showPhoneEdit, setShowPhoneEdit] = useState(false)
+  const [tab, setTab] = useState<Tab>('active')
 
+  const [reviews, setReviews] = useState<any[]>([])
+  const [reviewAvg, setReviewAvg] = useState(0)
+  const [reviewTotal, setReviewTotal] = useState(0)
+  const [savedCount, setSavedCount] = useState(0)
+  const [chatCounts, setChatCounts] = useState<Record<string, number>>({})
+  const [unread, setUnread] = useState(0)
+
+  const uid = user?.id
+
+  // My listings (and the saved phone number, as before)
   useEffect(() => {
-    if (!isSignedIn) return
+    if (!isSignedIn || !uid) return
     fetch('/api/listings')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
-          const mine = data.filter((l: any) => l.sellerId === user?.id)
+          const mine = data.filter((l: any) => l.sellerId === uid)
           setListings(mine)
           if (mine.length > 0 && mine[0].seller?.phone) setPhone(mine[0].seller.phone)
         }
         setLoading(false)
       })
-  }, [isSignedIn, user])
+      .catch(() => setLoading(false))
+  }, [isSignedIn, uid])
+
+  // Reviews about me
+  useEffect(() => {
+    if (!isSignedIn || !uid) return
+    fetch('/api/reviews?sellerId=' + uid)
+      .then(r => r.json())
+      .then(d => {
+        if (d && Array.isArray(d.reviews)) { setReviews(d.reviews); setReviewAvg(Number(d.avg) || 0); setReviewTotal(Number(d.total) || 0) }
+      })
+      .catch(() => {})
+  }, [isSignedIn, uid])
+
+  // Saved books count
+  useEffect(() => {
+    if (!isSignedIn || !uid) return
+    fetch('/api/wishlist?userId=' + uid)
+      .then(r => r.json())
+      .then(d => { if (Array.isArray(d)) setSavedCount(d.length) })
+      .catch(() => {})
+  }, [isSignedIn, uid])
+
+  // Chats on my books
+  useEffect(() => {
+    if (!isSignedIn) return
+    fetch('/api/chat/conversations', { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (!d || !Array.isArray(d.conversations)) return
+        const counts: Record<string, number> = {}
+        d.conversations.forEach((c: any) => {
+          if (c.role === 'selling' && c.listing?.id) counts[c.listing.id] = (counts[c.listing.id] || 0) + 1
+        })
+        setChatCounts(counts)
+        setUnread(Number(d.unreadCount) || 0)
+      })
+      .catch(() => {})
+  }, [isSignedIn])
 
   async function savePhone() {
-    if (!phone.trim()) return
+    if (phone.trim().length < 10) return
     setSavingPhone(true)
     await fetch('/api/user', {
       method: 'PATCH',
@@ -42,7 +114,7 @@ export default function ProfilePage() {
     })
     setSavingPhone(false)
     setPhoneSaved(true)
-    setTimeout(() => setPhoneSaved(false), 2000)
+    setTimeout(() => { setPhoneSaved(false); setShowPhoneEdit(false) }, 1500)
   }
 
   function startEdit(l: any) {
@@ -73,282 +145,421 @@ export default function ProfilePage() {
   const activeListings = listings.filter(l => !l.sold)
   const soldListings = listings.filter(l => l.sold)
   const totalViews = listings.reduce((sum, l) => sum + (l.views || 0), 0)
-  const totalEarnings = soldListings.reduce((sum, l) => sum + l.price, 0)
-  const tabListings = activeTab === 'active' ? activeListings : soldListings
+  const soldValue = soldListings.reduce((sum, l) => sum + (Number(l.price) || 0), 0)
+  const tabListings = tab === 'active' ? activeListings : soldListings
+  const hasLiveListing = listings.some(l => (!l.status || l.status === 'active') && !l.sold)
+  const isVerifiedSeller = phone.length === 10 && hasLiveListing
 
-  const css = `
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap');
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #FFF9F0; --bg-card: #fff; --bg-input: #FFF9F0; --bg-prefix: #FFF3E0;
-      --nav-bg: #fff; --border: #FFE2C2; --border-strong: #FFCB94; --text-primary: #1A1330; --text-secondary: #6B6280;
-      --text-muted: #A89FC0; --text-label: #A89FC0; --divider: #FFE2C2;
-      --shadow-nav: 0 2px 12px rgba(124,92,252,0.06); --shadow-card: 0 2px 16px rgba(124,92,252,0.08);
-      --img-bg: #FFF3E0; --cond-bg: #fff; --cond-active: #DFFFEF;
-      --relist-bg: #FFF6DD; --relist-color: #B8860B;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #14101F; --bg-card: #221C3A; --bg-input: #1C1730; --bg-prefix: #2A2342;
-        --nav-bg: #1C1730; --border: #352C52; --border-strong: #463A6B; --text-primary: #F3EEFF; --text-secondary: #B0A8CC;
-        --text-muted: #6E6590; --text-label: #6E6590; --divider: #352C52;
-        --shadow-nav: 0 2px 12px rgba(0,0,0,0.3); --shadow-card: 0 2px 16px rgba(0,0,0,0.25);
-        --img-bg: #2A2342; --cond-bg: #2A2342; --cond-active: #0A3A26;
-        --relist-bg: #3D3315; --relist-color: #D4A017;
-      }
-    }
-    body { background: var(--bg); font-family: 'Poppins', sans-serif; color: var(--text-primary); -webkit-font-smoothing: antialiased; }
-    .kalam { font-family: 'Poppins', sans-serif; font-weight: 800; letter-spacing: -0.02em; }
-    input { color: var(--text-primary) !important; font-weight: 500; background: var(--bg-input) !important; font-family: 'Poppins', sans-serif; }
-    input::placeholder { color: var(--text-muted) !important; font-weight: 400; }
-    input:focus { outline: none !important; border-color: #00B86B !important; box-shadow: 0 0 0 3px rgba(0,184,107,0.12) !important; }
-    .stat-card { background: var(--bg-card); border: 2px solid var(--border); border-radius: 16px; padding: 16px; text-align: center; transition: transform 0.15s; }
-    .stat-card:hover { transform: translateY(-2px); }
-    .listing-row { transition: background 0.15s; }
-    .listing-row:hover { background: var(--bg) !important; }
-    .action-btn { border: none; border-radius: 8px; padding: 6px 11px; font-size: 11px; font-weight: 800; cursor: pointer; transition: all 0.15s cubic-bezier(0.34,1.56,0.64,1); white-space: nowrap; }
-    .action-btn:hover { transform: translateY(-2px); }
-    .action-btn:active { transform: scale(0.94); }
-    .btn-3d { transition: transform 0.12s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.12s; }
-    .btn-3d:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 6px 0 #009957 !important; }
-    .btn-3d:not(:disabled):active { transform: translateY(2px); box-shadow: 0 1px 0 #009957 !important; }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-    .s1 { animation: slideUp 0.4s cubic-bezier(0.22,1,0.36,1) both; }
-    .s2 { animation: slideUp 0.4s 0.06s cubic-bezier(0.22,1,0.36,1) both; }
-    .s3 { animation: slideUp 0.4s 0.12s cubic-bezier(0.22,1,0.36,1) both; }
-    @keyframes shimmer { 0% { background-position: -400px 0; } 100% { background-position: 400px 0; } }
-    .skeleton { background: linear-gradient(90deg, var(--bg-card) 25%, var(--divider) 50%, var(--bg-card) 75%); background-size: 800px 100%; animation: shimmer 1.4s infinite; border-radius: 14px; }
-  `
+  const memberSince = user?.createdAt
+    ? new Date(user.createdAt).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })
+    : ''
 
-  if (!isSignedIn) return (
-    <>
-      <style>{css}</style>
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: '48px', marginBottom: '14px' }}>🔒</div>
-          <div className="kalam" style={{ fontSize: '20px', color: 'var(--text-primary)', marginBottom: '16px' }}>Sign in to view your profile</div>
-          <button onClick={() => router.push('/')} className="btn-3d" style={{ background: 'linear-gradient(135deg,#00B86B,#2D7FF9)', color: '#fff', border: 'none', borderRadius: '14px', padding: '13px 28px', cursor: 'pointer', fontSize: '14px', fontWeight: '800', fontFamily: 'Poppins, sans-serif', boxShadow: '0 4px 0 #009957' }}>Go to marketplace</button>
+  const navLink = 'font-label-lg text-label-lg text-on-surface-variant hover:text-primary-container transition-colors px-3 py-2 rounded-full hover:bg-surface-container-low whitespace-nowrap'
+  const tabBtn = (active: boolean) => 'px-4 py-2 rounded-full font-label-md text-label-md whitespace-nowrap shrink-0 transition-colors ' + (active ? 'bg-primary-container text-on-primary font-semibold shadow-sm' : 'bg-surface-container-lowest text-on-surface font-medium hover:bg-surface-container')
+  const smallBtn = 'h-9 rounded-lg font-label-md text-label-md font-semibold flex items-center justify-center gap-1 transition-colors'
+
+  // ── Loading / signed out ─────────────────────────────────────────────────
+  if (!isLoaded) {
+    return (
+      <div className="bg-surface min-h-screen flex items-center justify-center">
+        <span className="material-symbols-outlined text-[36px] text-primary animate-spin">progress_activity</span>
+      </div>
+    )
+  }
+
+  if (!isSignedIn) {
+    return (
+      <div className="bg-surface text-on-surface font-body-md min-h-screen flex items-center justify-center p-5">
+        <div className="text-center">
+          <span className="material-symbols-outlined text-[44px] text-primary">lock</span>
+          <h1 className="font-headline-md text-headline-md mt-2 mb-1">Sign in to view your profile</h1>
+          <p className="font-body-sm text-body-sm text-on-surface-variant mb-4">See your listings, reviews and saved books.</p>
+          <SignInButton mode="modal">
+            <button className="bg-primary-container text-on-primary font-label-lg text-label-lg font-bold px-6 py-3 rounded-xl shadow-md">Sign in</button>
+          </SignInButton>
+          <button onClick={() => router.push('/marketplace')} className="block mx-auto mt-3 text-on-surface-variant font-label-md text-label-md">Back to marketplace</button>
         </div>
       </div>
-    </>
-  )
+    )
+  }
 
   return (
-    <>
-      <style>{css}</style>
-      <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+    <div className="bg-surface text-on-surface font-body-md antialiased flex flex-col min-h-screen">
 
-        {/* Nav */}
-        <nav style={{ background: 'var(--nav-bg)', borderBottom: '2px solid var(--border)', padding: '0 20px', height: '60px', display: 'flex', alignItems: 'center', gap: '10px', position: 'sticky', top: 0, zIndex: 50, boxShadow: 'var(--shadow-nav)' }}>
-          <button onClick={() => router.push('/marketplace')} style={{ background: 'var(--bg-card)', border: '2px solid var(--border)', width: '36px', height: '36px', borderRadius: '10px', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)', transition: 'all 0.15s', flexShrink: 0 }}>←</button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-            <img src="/logo.png" alt="BuddyBooks" style={{ height: '28px', width: 'auto' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-            <span className="kalam" style={{ fontSize: '16px', color: 'var(--text-primary)' }}>My Profile</span>
-          </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
-            <button onClick={() => router.push('/my-orders')}
-              style={{ background: 'var(--bg-card)', border: '2px solid var(--border)', borderRadius: '10px', padding: '7px 12px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.15s' }}>
-              📦 My Orders
+      {/* Header */}
+      <header className="fixed top-0 inset-x-0 z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(45,30,18,0.04)]">
+        <div className="h-16 px-margin md:px-margin-desktop flex items-center justify-between gap-space-sm md:gap-6 max-w-md mx-auto md:max-w-[1100px]">
+          <div className="flex items-center gap-space-sm min-w-0">
+            <button aria-label="Back" onClick={() => router.push('/marketplace')} className="min-w-[44px] min-h-[44px] -ml-space-xs flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container active:scale-95 transition-transform">
+              <span className="material-symbols-outlined text-[24px]">arrow_back</span>
             </button>
-            <button onClick={() => router.push('/wishlist')}
-              style={{ background: 'var(--bg-card)', border: '2px solid var(--border)', borderRadius: '10px', padding: '7px 12px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '5px', transition: 'all 0.15s' }}>
-              ❤️ Wishlist
-            </button>
-            <button onClick={() => router.push('/sell')} className="btn-3d"
-              style={{ background: 'linear-gradient(135deg,#00B86B,#2D7FF9)', color: '#fff', border: 'none', borderRadius: '10px', padding: '8px 14px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', boxShadow: '0 3px 0 #009957' }}>
-              + Sell
-            </button>
-          </div>
-        </nav>
-
-        <div style={{ maxWidth: '680px', margin: '0 auto', padding: '20px 16px 60px' }}>
-
-          {/* Profile hero */}
-          <div className="s1" style={{ background: 'linear-gradient(135deg, #1A1330 0%, #00B86B 60%, #2D7FF9 100%)', backgroundSize: '200% 200%', borderRadius: '24px', padding: '28px 24px', marginBottom: '16px', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: '-30px', right: '-30px', width: '120px', height: '120px', background: 'rgba(255,255,255,0.06)', borderRadius: '50%' }} />
-            <div style={{ position: 'absolute', bottom: '-40px', left: '30%', width: '100px', height: '100px', background: 'rgba(255,255,255,0.04)', borderRadius: '50%' }} />
-            <div style={{ position: 'relative', zIndex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
-                <div className="kalam" style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(255,255,255,0.18)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', flexShrink: 0, border: '2px solid rgba(255,255,255,0.3)', backdropFilter: 'blur(8px)' }}>
-                  {user?.firstName?.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <div style={{ fontSize: '18px', fontWeight: '800', color: '#fff', marginBottom: '2px' }}>{user?.fullName}</div>
-                  <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.65)' }}>{user?.primaryEmailAddress?.emailAddress}</div>
-                  {phone && <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.75)', marginTop: '3px' }}>📱 +91 {phone}</div>}
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px' }}>
-                {[
-                  { label: 'Listed', value: listings.length, icon: '📚' },
-                  { label: 'Active', value: activeListings.length, icon: '✅' },
-                  { label: 'Sold', value: soldListings.length, icon: '🏷️' },
-                  { label: 'Views', value: totalViews, icon: '👁️' },
-                ].map(s => (
-                  <div key={s.label} style={{ background: 'rgba(255,255,255,0.12)', borderRadius: '12px', padding: '10px 8px', textAlign: 'center', backdropFilter: 'blur(4px)', border: '1px solid rgba(255,255,255,0.14)' }}>
-                    <div style={{ fontSize: '16px', marginBottom: '3px' }}>{s.icon}</div>
-                    <div className="kalam" style={{ fontSize: '20px', color: '#fff', lineHeight: 1 }}>{s.value}</div>
-                    <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)', marginTop: '2px', fontWeight: '500' }}>{s.label}</div>
-                  </div>
-                ))}
-              </div>
-              {soldListings.length > 0 && (
-                <div style={{ marginTop: '12px', background: 'rgba(255,255,255,0.1)', borderRadius: '10px', padding: '10px 14px', display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid rgba(255,255,255,0.12)' }}>
-                  <span style={{ fontSize: '16px' }}>💰</span>
-                  <span style={{ fontSize: '13px', color: 'rgba(255,255,255,0.85)', fontWeight: '500' }}>Estimated earnings from sold items:</span>
-                  <span className="kalam" style={{ fontSize: '18px', color: '#FFC83D', marginLeft: 'auto' }}>₹{totalEarnings}</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* WhatsApp number */}
-          <div className="s2" style={{ background: 'var(--bg-card)', borderRadius: '20px', border: '2px solid var(--border)', padding: '20px 22px', marginBottom: '16px', boxShadow: 'var(--shadow-card)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-              <div style={{ width: '32px', height: '32px', background: '#DFFFEF', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>💬</div>
-              <div className="kalam" style={{ fontSize: '14px', color: 'var(--text-primary)' }}>WhatsApp number</div>
-              {phone.length === 10 && <span style={{ fontSize: '10px', background: '#DFFFEF', color: '#009957', padding: '3px 9px', borderRadius: '99px', fontWeight: '800', marginLeft: 'auto' }}>✓ Set</span>}
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '12px', fontWeight: '500' }}>Buyers contact you on this number. Make sure it's correct.</div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-prefix)', border: '2px solid var(--border)', borderRadius: '10px', padding: '0 12px', fontSize: '13px', color: 'var(--text-secondary)', flexShrink: 0, gap: '4px', fontWeight: '600' }}>
-                🇮🇳 <span>+91</span>
-              </div>
-              <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                placeholder="98765 43210"
-                style={{ flex: 1, padding: '11px 13px', borderRadius: '10px', border: `2px solid ${phone.length === 10 ? '#00B86B' : 'var(--border)'}`, fontSize: '13px', fontFamily: 'Poppins, sans-serif', transition: 'all 0.15s' }} />
-              <button onClick={savePhone} disabled={savingPhone || phone.length < 10}
-                style={{ background: phoneSaved ? '#DFFFEF' : 'linear-gradient(135deg,#00B86B,#2D7FF9)', color: phoneSaved ? '#009957' : '#fff', border: 'none', borderRadius: '10px', padding: '9px 16px', fontSize: '12px', fontWeight: '800', cursor: phone.length < 10 ? 'not-allowed' : 'pointer', opacity: phone.length < 10 ? 0.5 : 1, whiteSpace: 'nowrap', fontFamily: 'Poppins, sans-serif', transition: 'all 0.2s', boxShadow: phoneSaved || phone.length < 10 ? 'none' : '0 3px 0 #009957' }}>
-                {phoneSaved ? '✅ Saved!' : savingPhone ? '…' : 'Save'}
-              </button>
-            </div>
-            {phone.length > 0 && phone.length < 10 && (
-              <div style={{ fontSize: '11px', color: '#E24B4A', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>⚠️ Enter a 10-digit number</div>
-            )}
-          </div>
-
-          {/* Listings tabs */}
-          <div className="s3">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <div style={{ display: 'flex', gap: '4px', background: 'var(--bg-card)', borderRadius: '12px', padding: '4px', border: '2px solid var(--border)' }}>
-                {(['active', 'sold'] as const).map(tab => (
-                  <button key={tab} onClick={() => setActiveTab(tab)}
-                    style={{ padding: '8px 16px', borderRadius: '9px', border: 'none', background: activeTab === tab ? 'linear-gradient(135deg,#00B86B,#2D7FF9)' : 'transparent', color: activeTab === tab ? '#fff' : 'var(--text-secondary)', fontSize: '12px', fontWeight: '800', cursor: 'pointer', transition: 'all 0.15s', fontFamily: 'Poppins, sans-serif' }}>
-                    {tab === 'active' ? `Active (${activeListings.length})` : `Sold (${soldListings.length})`}
-                  </button>
-                ))}
-              </div>
-              <button onClick={() => router.push('/sell')}
-                style={{ background: '#DFFFEF', color: '#009957', border: '2px solid #9DEAC4', borderRadius: '10px', padding: '8px 14px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                + New listing
-              </button>
-            </div>
-
-            {loading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {[...Array(3)].map((_, i) => <div key={i} className="skeleton" style={{ height: '76px' }} />)}
-              </div>
-            ) : tabListings.length === 0 ? (
-              <div style={{ background: 'var(--bg-card)', borderRadius: '20px', padding: '48px 24px', textAlign: 'center', border: '2px solid var(--border)' }}>
-                <div style={{ fontSize: '40px', marginBottom: '12px' }}>{activeTab === 'active' ? '📭' : '🏷️'}</div>
-                <div className="kalam" style={{ fontSize: '18px', color: 'var(--text-primary)', marginBottom: '6px' }}>
-                  {activeTab === 'active' ? 'No active listings' : 'No sold listings yet'}
-                </div>
-                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px', fontWeight: '500' }}>
-                  {activeTab === 'active' ? 'Post your first item and start selling!' : 'Mark items as sold when they are gone.'}
-                </div>
-                {activeTab === 'active' && (
-                  <button onClick={() => router.push('/sell')} className="btn-3d" style={{ background: 'linear-gradient(135deg,#00B86B,#2D7FF9)', color: '#fff', border: 'none', borderRadius: '12px', padding: '11px 24px', cursor: 'pointer', fontSize: '13px', fontWeight: '800', fontFamily: 'Poppins, sans-serif', boxShadow: '0 4px 0 #009957' }}>Post a listing</button>
-                )}
-              </div>
+            {logoOk ? (
+              <img alt="Pageplus" className="h-8 w-auto object-contain cursor-pointer" src="/pageplus-logo.png" onError={() => setLogoOk(false)} onClick={() => router.push('/')} />
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {tabListings.map(l => (
-                  <div key={l.id} style={{ background: 'var(--bg-card)', borderRadius: '16px', border: editingId === l.id ? '2px solid #00B86B' : '2px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
-                    {editingId === l.id ? (
-                      <div style={{ padding: '18px' }}>
-                        <div className="kalam" style={{ fontSize: '15px', color: '#00B86B', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>✏️ Edit listing</div>
-                        {['title', 'subtitle'].map(field => (
-                          <div key={field} style={{ marginBottom: '10px' }}>
-                            <label style={{ fontSize: '11px', color: 'var(--text-label)', display: 'block', marginBottom: '5px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{field.charAt(0).toUpperCase() + field.slice(1)}</label>
-                            <input value={form[field]} onChange={e => setForm({ ...form, [field]: e.target.value })}
-                              style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '2px solid var(--border)', fontSize: '13px', fontFamily: 'Poppins, sans-serif' }} />
-                          </div>
-                        ))}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
-                          {['price', 'origPrice'].map(field => (
-                            <div key={field}>
-                              <label style={{ fontSize: '11px', color: 'var(--text-label)', display: 'block', marginBottom: '5px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{field === 'origPrice' ? 'Original (₹)' : 'Price (₹)'}</label>
-                              <input type="number" value={form[field]} onChange={e => setForm({ ...form, [field]: e.target.value })}
-                                style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '2px solid var(--border)', fontSize: '13px', fontFamily: 'Poppins, sans-serif' }} />
-                            </div>
-                          ))}
-                        </div>
-                        <div style={{ marginBottom: '10px' }}>
-                          <label style={{ fontSize: '11px', color: 'var(--text-label)', display: 'block', marginBottom: '6px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Condition</label>
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            {conditions.map(c => (
-                              <button key={c} onClick={() => setForm({ ...form, condition: c })}
-                                style={{ flex: 1, padding: '9px', borderRadius: '10px', border: form.condition === c ? '2px solid #00B86B' : '2px solid var(--border)', background: form.condition === c ? 'var(--cond-active)' : 'var(--cond-bg)', cursor: 'pointer', fontSize: '12px', color: form.condition === c ? '#009957' : 'var(--text-secondary)', fontWeight: form.condition === c ? '800' : '500', fontFamily: 'Poppins, sans-serif', transition: 'all 0.15s' }}>
-                                {c}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <div style={{ marginBottom: '16px' }}>
-                          <label style={{ fontSize: '11px', color: 'var(--text-label)', display: 'block', marginBottom: '5px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Location</label>
-                          <input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })}
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '2px solid var(--border)', fontSize: '13px', fontFamily: 'Poppins, sans-serif' }} />
-                        </div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button onClick={() => handleSave(l.id)} disabled={saving} className="btn-3d"
-                            style={{ flex: 1, background: 'linear-gradient(135deg,#00B86B,#2D7FF9)', color: '#fff', border: 'none', borderRadius: '10px', padding: '12px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', boxShadow: '0 3px 0 #009957' }}>
-                            {saving ? 'Saving…' : '✅ Save changes'}
-                          </button>
-                          <button onClick={() => setEditingId(null)}
-                            style={{ flex: 1, background: 'var(--bg-input)', color: 'var(--text-secondary)', border: '2px solid var(--border)', borderRadius: '10px', padding: '12px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="listing-row" style={{ display: 'flex', gap: '12px', padding: '14px', alignItems: 'center', cursor: 'pointer' }}
-                        onClick={() => window.location.href = '/listing/' + l.id}>
-                        <div style={{ width: '58px', height: '58px', background: 'var(--img-bg)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
-                          {l.images?.[0] ? <img src={l.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : l.emoji}
-                          {l.sold && (
-                            <div style={{ position: 'absolute', inset: 0, background: 'rgba(26,19,48,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '12px' }}>
-                              <span style={{ fontSize: '7px', fontWeight: '900', color: '#fff', letterSpacing: '1px' }}>SOLD</span>
-                            </div>
-                          )}
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }} onClick={e => e.stopPropagation()}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
-                            <div style={{ fontSize: '13px', fontWeight: '700', color: l.sold ? 'var(--text-muted)' : 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.title}</div>
-                            {l.sold && <span style={{ fontSize: '9px', fontWeight: '900', background: '#E24B4A', color: '#fff', padding: '2px 7px', borderRadius: '99px', flexShrink: 0 }}>SOLD</span>}
-                          </div>
-                          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '3px', fontWeight: '500' }}>{l.condition} · {l.location}</div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            <span className="kalam" style={{ fontSize: '16px', color: l.sold ? 'var(--text-muted)' : '#00B86B' }}>₹{l.price}</span>
-                            <span style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '3px', fontWeight: '500' }}>👁️ {l.views || 0} views</span>
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                          <button className="action-btn" onClick={() => toggleSold(l.id, l.sold)}
-                            style={{ background: l.sold ? 'var(--relist-bg)' : '#DFFFEF', color: l.sold ? 'var(--relist-color)' : '#009957' }}>
-                            {l.sold ? '🔄 Relist' : '✅ Sold'}
-                          </button>
-                          <button className="action-btn" onClick={() => { startEdit(l) }} style={{ background: '#E3F0FF', color: '#1D4ED8' }}>✏️ Edit</button>
-                          <button className="action-btn" onClick={() => handleDelete(l.id)} style={{ background: '#FEF2F2', color: '#E24B4A' }}>🗑️ Delete</button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <span className="font-headline-md text-headline-md text-primary cursor-pointer" onClick={() => router.push('/')}>Pageplus</span>
             )}
+          </div>
+
+          <nav className="hidden lg:flex items-center gap-1">
+            <button className={navLink} onClick={() => router.push('/school-sets')}>School Sets</button>
+            <button className={navLink} onClick={() => router.push('/marketplace')}>Marketplace</button>
+            <button className={navLink} onClick={() => router.push('/my-orders')}>My Orders</button>
+            <button className={navLink + ' !text-primary-container font-bold'} onClick={() => router.push('/profile')}>Profile</button>
+          </nav>
+
+          <div className="flex items-center gap-1 shrink-0">
+            <button aria-label="My orders" onClick={() => router.push('/my-orders')} className="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant active:bg-surface-container">
+              <span className="material-symbols-outlined text-[22px]">inventory_2</span>
+            </button>
+            <button aria-label={unread > 0 ? 'Messages, ' + unread + ' unread' : 'Messages'} onClick={() => router.push('/messages')} className="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant active:bg-surface-container relative">
+              <span className="material-symbols-outlined text-[22px]">forum</span>
+              {unread > 0 && <span className="absolute top-1.5 right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-primary-container text-on-primary text-[10px] font-bold flex items-center justify-center ring-2 ring-surface">{unread > 9 ? '9+' : unread}</span>}
+            </button>
+            <button aria-label="Saved books" onClick={() => router.push('/wishlist')} className="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant active:bg-surface-container">
+              <span className="material-symbols-outlined text-[22px]">favorite</span>
+            </button>
           </div>
         </div>
+      </header>
+
+      <main className="flex-1 w-full max-w-md mx-auto md:max-w-[1100px] pt-16 pb-28 md:pb-12 px-margin md:px-margin-desktop">
+        <div className="pt-space-md lg:pt-6 lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
+
+          {/* LEFT: profile summary */}
+          <div className="lg:col-span-4 lg:sticky lg:top-24 flex flex-col gap-space-md">
+
+            {/* Profile card */}
+            <section className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+              <div className="flex gap-space-md">
+                <div className="relative shrink-0">
+                  {user?.imageUrl
+                    ? <img className="w-16 h-16 rounded-full object-cover" src={user.imageUrl} alt="" />
+                    : <div className="w-16 h-16 rounded-full bg-primary-fixed text-primary flex items-center justify-center font-headline-md text-headline-md">{user?.firstName?.charAt(0).toUpperCase()}</div>}
+                  {isVerifiedSeller && (
+                    <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[#2E8B57] text-white flex items-center justify-center shadow-sm">
+                      <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <h1 className="font-headline-md text-headline-md text-on-surface leading-tight truncate">{user?.fullName || 'Your profile'}</h1>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    {reviewTotal > 0 ? (
+                      <>
+                        <span className="material-symbols-outlined text-[15px] text-[#E0A100]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                        <span className="font-label-md text-label-md text-on-surface font-semibold">{reviewAvg}</span>
+                        <span className="font-body-sm text-body-sm text-on-surface-variant">({reviewTotal} review{reviewTotal !== 1 ? 's' : ''})</span>
+                      </>
+                    ) : (
+                      <span className="font-body-sm text-body-sm text-on-surface-variant">No reviews yet</span>
+                    )}
+                  </div>
+                  {memberSince && <span className="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Member since {memberSince}</span>}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-space-xs mt-space-md">
+                {isVerifiedSeller && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#2E8B57]/10 text-[#2E8B57] font-label-micro text-label-micro font-semibold uppercase tracking-wider">
+                    <span className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: "'FILL' 1" }}>verified_user</span>Verified seller
+                  </span>
+                )}
+                {phone.length === 10 && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container text-on-surface font-label-micro text-label-micro">
+                    <span className="material-symbols-outlined text-[13px] text-primary">call</span>+91 {phone}
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-space-sm mt-space-md">
+                <button onClick={() => setShowPhoneEdit(s => !s)} className="w-full h-10 rounded-lg bg-surface-container text-on-surface font-label-md text-label-md font-semibold flex items-center justify-center gap-1.5 hover:bg-surface-variant transition-colors">
+                  <span className="material-symbols-outlined text-[16px]">edit</span>Edit number
+                </button>
+                <button onClick={() => router.push('/my-orders')} className="w-full h-10 rounded-lg bg-surface-container text-on-surface font-label-md text-label-md font-semibold flex items-center justify-center gap-1.5 hover:bg-surface-variant transition-colors">
+                  <span className="material-symbols-outlined text-[16px]">inventory_2</span>My orders
+                </button>
+              </div>
+
+              {(showPhoneEdit || phone.length < 10) && (
+                <div className="mt-space-md bg-surface-container-low rounded-lg p-3">
+                  <label className={labelCls}>WhatsApp number</label>
+                  <div className="flex gap-2">
+                    <div className="flex items-center px-3 rounded-xl bg-white border border-[#EADFCC] font-label-md text-label-md text-on-surface-variant shrink-0">+91</div>
+                    <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="98765 43210" type="text" inputMode="numeric"
+                      className={inputCls + (phone.length === 10 ? ' !border-[#2E8B57]' : '')} />
+                    <button onClick={savePhone} disabled={savingPhone || phone.length < 10}
+                      className="px-4 rounded-xl bg-primary-container text-on-primary font-label-md text-label-md font-bold disabled:opacity-50 disabled:cursor-not-allowed shrink-0">
+                      {phoneSaved ? 'Saved' : savingPhone ? '…' : 'Save'}
+                    </button>
+                  </div>
+                  {phone.length > 0 && phone.length < 10 && <p className="font-body-sm text-body-sm text-error mt-1.5">Enter a 10-digit number.</p>}
+                  <p className="font-body-sm text-[12px] text-on-surface-variant mt-1.5">We use this to alert you on WhatsApp about new messages.</p>
+                </div>
+              )}
+            </section>
+
+            {/* Stats */}
+            <section className="bg-surface-container rounded-xl p-space-md">
+              <div className="flex items-center justify-between mb-space-sm">
+                <span className="font-label-micro text-label-micro uppercase font-bold text-tertiary tracking-wider">Your selling</span>
+                <span className="inline-flex items-center gap-1 text-[#2E8B57] font-label-micro text-label-micro font-semibold bg-surface-container-lowest px-2 py-0.5 rounded-full">
+                  <span className="material-symbols-outlined text-[12px]">eco</span>0% Commission
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-surface-container-lowest p-space-sm rounded-lg flex flex-col items-center text-center">
+                  <span className="font-headline-md text-headline-md text-primary font-bold">{soldListings.length}</span>
+                  <span className="font-body-sm text-body-sm text-on-surface-variant leading-tight mt-0.5">Books sold</span>
+                </div>
+                <div className="bg-surface-container-lowest p-space-sm rounded-lg flex flex-col items-center text-center">
+                  <span className="font-headline-md text-headline-md text-on-surface font-bold">₹{soldValue.toLocaleString('en-IN')}</span>
+                  <span className="font-body-sm text-body-sm text-on-surface-variant leading-tight mt-0.5">Sold value</span>
+                </div>
+                <div className="bg-surface-container-lowest p-space-sm rounded-lg flex flex-col items-center text-center">
+                  <span className="font-headline-md text-headline-md text-[#2E8B57] font-bold">{totalViews}</span>
+                  <span className="font-body-sm text-body-sm text-on-surface-variant leading-tight mt-0.5">Total views</span>
+                </div>
+              </div>
+              <p className="font-body-sm text-[12px] text-on-surface-variant mt-2">Sold value adds up the prices of the books you marked sold. Buyers pay you directly.</p>
+            </section>
+
+            {/* Trust card (desktop sidebar keeps it close) */}
+            <section className="bg-surface-container-low rounded-xl p-space-md hidden lg:block">
+              <TrustCard phoneSet={phone.length === 10} />
+            </section>
+          </div>
+
+          {/* RIGHT: tabs and content */}
+          <div className="lg:col-span-8 mt-space-lg lg:mt-0 flex flex-col gap-space-md">
+
+            <div className="flex gap-space-xs overflow-x-auto pb-1 scrollbar-none">
+              <button onClick={() => setTab('active')} className={tabBtn(tab === 'active')}>Active Listings ({activeListings.length})</button>
+              <button onClick={() => setTab('sold')} className={tabBtn(tab === 'sold')}>Sold ({soldListings.length})</button>
+              <button onClick={() => setTab('reviews')} className={tabBtn(tab === 'reviews')}>Reviews ({reviewTotal})</button>
+              <button onClick={() => setTab('saved')} className={tabBtn(tab === 'saved')}>Saved ({savedCount})</button>
+            </div>
+
+            {/* Listings (active / sold) */}
+            {(tab === 'active' || tab === 'sold') && (
+              <>
+                <div className="flex items-center justify-between">
+                  <h2 className="font-headline-sm text-headline-sm text-on-surface">{tab === 'active' ? 'Your books on sale' : 'Books you sold'}</h2>
+                  <span className="font-body-sm text-body-sm text-on-surface-variant">{tabListings.length} item{tabListings.length !== 1 ? 's' : ''}</span>
+                </div>
+
+                {loading ? (
+                  <div className="flex flex-col gap-3">
+                    {[...Array(3)].map((_, i) => <div key={i} className="h-40 rounded-xl bg-surface-container animate-pulse" />)}
+                  </div>
+                ) : tabListings.length === 0 ? (
+                  <div className="bg-surface-container-lowest rounded-xl p-8 text-center shadow-sm">
+                    <span className="material-symbols-outlined text-[40px] text-primary">{tab === 'active' ? 'inbox' : 'sell'}</span>
+                    <h3 className="font-headline-sm text-headline-sm mt-2 mb-1">{tab === 'active' ? 'No active listings' : 'No sold books yet'}</h3>
+                    <p className="font-body-sm text-body-sm text-on-surface-variant mb-4">{tab === 'active' ? 'Post your first book and start selling.' : 'Mark a book as sold when it is gone.'}</p>
+                    {tab === 'active' && <button onClick={() => router.push('/sell')} className="bg-primary-container text-on-primary font-label-lg text-label-lg font-bold px-6 py-3 rounded-xl shadow-md">Post a listing</button>}
+                  </div>
+                ) : (
+                  tabListings.map(l => {
+                    const off = Number(l.origPrice) > Number(l.price) ? Math.round((1 - l.price / l.origPrice) * 100) : 0
+                    const chats = chatCounts[l.id] || 0
+                    const pending = l.status && l.status !== 'active'
+                    return (
+                      <div key={l.id} className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm">
+                        {editingId === l.id ? (
+                          <div>
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-9 h-9 rounded-full bg-primary/10 text-primary flex items-center justify-center"><span className="material-symbols-outlined text-[18px]">edit</span></div>
+                              <h3 className="font-headline-sm text-headline-sm text-on-surface">Edit listing</h3>
+                            </div>
+                            {(['title', 'subtitle'] as const).map(field => (
+                              <div key={field} className="mb-2.5">
+                                <label className={labelCls}>{field}</label>
+                                <input value={form[field]} onChange={e => setForm({ ...form, [field]: e.target.value })} className={inputCls} />
+                              </div>
+                            ))}
+                            <div className="grid grid-cols-2 gap-2.5 mb-2.5">
+                              {(['price', 'origPrice'] as const).map(field => (
+                                <div key={field}>
+                                  <label className={labelCls}>{field === 'origPrice' ? 'Original (₹)' : 'Price (₹)'}</label>
+                                  <input type="number" value={form[field]} onChange={e => setForm({ ...form, [field]: e.target.value })} className={inputCls} />
+                                </div>
+                              ))}
+                            </div>
+                            <div className="mb-2.5">
+                              <label className={labelCls}>Condition</label>
+                              <div className="flex gap-2">
+                                {conditions.map(c => (
+                                  <button key={c} onClick={() => setForm({ ...form, condition: c })}
+                                    className={'flex-1 py-2.5 rounded-xl font-label-md text-label-md transition-colors ' + (form.condition === c ? 'bg-[#FDE7D8] border-[1.5px] border-[#E8632B] text-[#C4501A] font-semibold' : 'bg-white border border-[#EADFCC] text-[#6B6560]')}>{c}</button>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="mb-4">
+                              <label className={labelCls}>Location</label>
+                              <input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} className={inputCls} />
+                            </div>
+                            <div className="flex gap-2.5">
+                              <button onClick={() => handleSave(l.id)} disabled={saving} className="flex-1 bg-primary-container text-on-primary font-label-lg text-label-lg font-bold py-3 rounded-xl shadow-md disabled:opacity-60">{saving ? 'Saving…' : 'Save changes'}</button>
+                              <button onClick={() => setEditingId(null)} className="flex-1 bg-surface-container-low text-on-surface font-label-lg text-label-lg font-semibold py-3 rounded-xl border border-[#EADFCC]">Cancel</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex gap-space-md cursor-pointer" onClick={() => router.push('/listing/' + l.id)}>
+                              <div className="relative w-20 h-24 rounded-lg overflow-hidden shrink-0 bg-primary-fixed/50 flex items-center justify-center text-[30px]">
+                                {l.images?.[0] ? <img className="w-full h-full object-cover" src={l.images[0]} alt={l.title} /> : <span>{l.emoji || '📚'}</span>}
+                                {l.condition && <span className="absolute top-1 left-1 px-1.5 py-0.5 rounded bg-primary-fixed text-on-primary-fixed font-label-micro text-[10px] font-bold">{l.condition}</span>}
+                                {l.sold && <div className="absolute inset-0 bg-inverse-surface/55 flex items-center justify-center"><span className="text-white font-label-micro text-[10px] tracking-widest font-bold">SOLD</span></div>}
+                              </div>
+                              <div className="flex flex-col justify-between flex-1 min-w-0">
+                                <div>
+                                  <span className="font-label-micro text-label-micro uppercase font-bold text-primary tracking-wider capitalize">{l.category}</span>
+                                  <h3 className={'font-headline-sm text-headline-sm line-clamp-1 mt-0.5 ' + (l.sold ? 'text-outline' : 'text-on-surface')}>{l.title}</h3>
+                                  <div className="flex items-baseline gap-2 mt-1 flex-wrap">
+                                    <span className={'font-headline-sm text-headline-sm font-bold ' + (l.sold ? 'text-outline' : 'text-primary')}>₹{l.price}</span>
+                                    {Number(l.origPrice) > Number(l.price) && <span className="font-body-sm text-body-sm text-on-surface-variant line-through">MRP ₹{l.origPrice}</span>}
+                                    {off > 0 && !l.sold && <span className="font-label-micro text-label-micro text-[#2E8B57] font-semibold">{off}% OFF</span>}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-on-surface-variant font-body-sm text-body-sm flex-wrap">
+                                  {chats > 0 && <><span className="material-symbols-outlined text-[15px] text-secondary-container">forum</span><span className="font-medium text-on-surface">{chats} chat{chats !== 1 ? 's' : ''}</span><span>•</span></>}
+                                  <span>{l.views || 0} views</span>
+                                  {l.location && <><span>•</span><span className="truncate max-w-[140px]">{l.location}</span></>}
+                                </div>
+                                {pending && (
+                                  <span className={'inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-label-micro text-[10px] font-bold w-fit mt-1 ' + (l.status === 'rejected' ? 'bg-error-container text-on-error-container' : 'bg-[#E0A100]/15 text-[#9A6B00]')}>
+                                    {l.status === 'rejected' ? 'Not approved' : 'Waiting for approval'}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-space-sm pt-space-xs">
+                              <button onClick={() => startEdit(l)} className={smallBtn + ' bg-surface-container text-on-surface hover:bg-surface-variant'}>
+                                <span className="material-symbols-outlined text-[15px]">edit_note</span>Edit
+                              </button>
+                              <button onClick={() => toggleSold(l.id, l.sold)} className={smallBtn + (l.sold ? ' bg-[#E0A100]/15 text-[#9A6B00]' : ' bg-primary-fixed text-on-primary-fixed-variant hover:bg-primary-fixed-dim')}>
+                                <span className="material-symbols-outlined text-[15px]">{l.sold ? 'replay' : 'check'}</span>{l.sold ? 'Relist' : 'Mark as sold'}
+                              </button>
+                            </div>
+                            <div className="flex items-center gap-4 flex-wrap">
+                              {chats > 0 && <button onClick={() => router.push('/messages')} className="font-label-md text-label-md text-primary font-semibold flex items-center gap-1"><span className="material-symbols-outlined text-[15px]">forum</span>Open chats</button>}
+                              {!l.sold && !l.featured && !pending && <button onClick={() => router.push('/listing/' + l.id)} className="font-label-md text-label-md text-primary font-semibold flex items-center gap-1"><span className="material-symbols-outlined text-[15px]">star</span>Feature this listing</button>}
+                              {l.featured && !l.sold && <span className="font-label-md text-label-md text-[#9A6B00] font-semibold flex items-center gap-1"><span className="material-symbols-outlined text-[15px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>Featured</span>}
+                              <button onClick={() => handleDelete(l.id)} className="font-label-md text-label-md text-error font-semibold flex items-center gap-1 ml-auto"><span className="material-symbols-outlined text-[15px]">delete</span>Delete</button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )
+                  })
+                )}
+
+                {tab === 'active' && (
+                  <button onClick={() => router.push('/sell')} className="w-full h-12 rounded-xl bg-primary-container text-on-primary font-label-lg text-label-lg font-bold flex items-center justify-center gap-2 shadow-md active:scale-[0.99] transition-transform">
+                    <span className="material-symbols-outlined text-[20px]">add_circle</span>List another book
+                  </button>
+                )}
+              </>
+            )}
+
+            {/* Reviews */}
+            {tab === 'reviews' && (
+              <>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="font-headline-sm text-headline-sm text-on-surface">Reviews about you</h2>
+                    {reviewTotal > 0 && <div className="flex items-center gap-1.5 mt-0.5"><Stars rating={reviewAvg} size={14} /><span className="font-label-md text-label-md font-semibold">{reviewAvg}</span><span className="font-body-sm text-body-sm text-on-surface-variant">from {reviewTotal}</span></div>}
+                  </div>
+                </div>
+                {reviews.length === 0 ? (
+                  <div className="bg-surface-container-lowest rounded-xl p-8 text-center shadow-sm">
+                    <span className="material-symbols-outlined text-[40px] text-primary">star</span>
+                    <h3 className="font-headline-sm text-headline-sm mt-2 mb-1">No reviews yet</h3>
+                    <p className="font-body-sm text-body-sm text-on-surface-variant">Buyers can leave a review on your listings after you meet.</p>
+                  </div>
+                ) : (
+                  reviews.map((r: any) => (
+                    <div key={r.id} className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-space-sm min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 text-primary font-bold font-label-md text-label-md flex items-center justify-center shrink-0">{r.reviewer?.name?.charAt(0).toUpperCase() || '?'}</div>
+                          <div className="min-w-0">
+                            <p className="font-label-md text-label-md text-on-surface font-semibold truncate">{r.reviewer?.name || 'Anonymous'}</p>
+                            <p className="font-body-sm text-[12px] text-on-surface-variant">{new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                          </div>
+                        </div>
+                        <Stars rating={r.rating} size={14} />
+                      </div>
+                      {r.comment && <p className="font-body-md text-body-md text-on-surface mt-space-sm italic">&ldquo;{r.comment}&rdquo;</p>}
+                    </div>
+                  ))
+                )}
+              </>
+            )}
+
+            {/* Saved */}
+            {tab === 'saved' && (
+              <div className="bg-surface-container-lowest rounded-xl p-8 text-center shadow-sm">
+                <span className="material-symbols-outlined text-[40px] text-primary">favorite</span>
+                <h3 className="font-headline-sm text-headline-sm mt-2 mb-1">{savedCount} saved book{savedCount !== 1 ? 's' : ''}</h3>
+                <p className="font-body-sm text-body-sm text-on-surface-variant mb-4">Books you hearted are kept in your wishlist.</p>
+                <button onClick={() => router.push('/wishlist')} className="bg-primary-container text-on-primary font-label-lg text-label-lg font-bold px-6 py-3 rounded-xl shadow-md">Open wishlist</button>
+              </div>
+            )}
+
+            {/* Trust (phones) */}
+            <section className="bg-surface-container-low rounded-xl p-space-md lg:hidden">
+              <TrustCard phoneSet={phone.length === 10} />
+            </section>
+
+            {/* Help */}
+            <section className="bg-surface-container p-space-md rounded-xl flex items-center justify-between gap-3">
+              <div className="flex items-center gap-space-sm min-w-0">
+                <span className="material-symbols-outlined text-primary text-[22px] shrink-0">support_agent</span>
+                <div className="min-w-0">
+                  <p className="font-label-md text-label-md text-on-surface font-semibold">Need help?</p>
+                  <p className="font-body-sm text-body-sm text-on-surface-variant">Chat with Pageplus support on WhatsApp</p>
+                </div>
+              </div>
+              <a href={WA_HELP_LINK} target="_blank" rel="noopener noreferrer" className="h-8 px-3 rounded-full bg-[#25D366] text-white font-label-micro text-label-micro font-bold flex items-center shadow-sm shrink-0">Chat</a>
+            </section>
+
+            <button onClick={() => signOut({ redirectUrl: '/' })} className="w-full py-3 rounded-xl border border-[#EADFCC] text-on-surface-variant font-label-lg text-label-lg font-semibold flex items-center justify-center gap-1.5 hover:bg-surface-container-low">
+              <span className="material-symbols-outlined text-[18px]">logout</span>Sign out
+            </button>
+          </div>
+        </div>
+      </main>
+
+      <BottomNav />
+    </div>
+  )
+}
+
+function TrustCard({ phoneSet }: { phoneSet: boolean }) {
+  const rows = [
+    { ok: phoneSet, t: 'Phone number added', s: phoneSet ? 'Used for WhatsApp alerts about new messages' : 'Add your number to get message alerts' },
+    { ok: true, t: 'Listings approved by Pageplus', s: 'Every listing is checked before it goes live' },
+    { ok: true, t: 'Buyers message you inside Pageplus', s: 'Chats show first names only' },
+  ]
+  return (
+    <>
+      <div className="flex items-center gap-2 mb-space-sm">
+        <span className="material-symbols-outlined text-[#2E8B57] text-[20px]" style={{ fontVariationSettings: "'FILL' 1" }}>shield</span>
+        <h3 className="font-headline-sm text-headline-sm text-on-surface">How Pageplus protects you</h3>
+      </div>
+      <div className="flex flex-col gap-space-sm">
+        {rows.map(r => (
+          <div key={r.t} className="flex items-start gap-space-sm">
+            <div className={'w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ' + (r.ok ? 'bg-[#2E8B57]/15 text-[#2E8B57]' : 'bg-surface-container-high text-outline')}>
+              <span className="material-symbols-outlined text-[13px] font-bold">{r.ok ? 'check' : 'remove'}</span>
+            </div>
+            <div>
+              <p className="font-label-md text-label-md text-on-surface font-semibold">{r.t}</p>
+              <p className="font-body-sm text-body-sm text-on-surface-variant">{r.s}</p>
+            </div>
+          </div>
+        ))}
       </div>
     </>
   )

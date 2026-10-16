@@ -6,10 +6,10 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/admin', '/api/', '/profile', '/wishlist'],
+        disallow: ['/admin', '/api/', '/profile', '/wishlist', '/messages', '/my-orders'],
       },
     ],
-    sitemap: 'https://buddybooks.in/sitemap.xml',
-    host: 'https://buddybooks.in',
+    sitemap: 'https://pageplus.in/sitemap.xml',
+    host: 'https://pageplus.in',
   }
 }

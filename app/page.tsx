@@ -2,7 +2,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser, SignInButton } from '@clerk/nextjs'
-import { schools, isRegister } from '@/lib/kit-prices'
+import { schools, isRegister, DELIVERY_FEE } from '@/lib/kit-prices'
+import BottomNav from '@/components/BottomNav'
+import LocationSheet, { useDeliveryPlace, placeShortLabel } from '@/components/LocationSheet'
 
 // ── Contact (change here only) ────────────────────────────────────────────
 const WHATSAPP_NUMBER = '918872235738'
@@ -29,8 +31,8 @@ const essentials = [
 ]
 
 const faqs = [
-  { q: 'Edition change after buying?', a: 'Free replacement within 7 days at Sector 40-C store or next sector delivery.' },
-  { q: 'How are used books verified?', a: 'Physically inspected for torn pages, scribble-free condition, and correct curriculum.' },
+  { q: 'Edition change after buying?', a: 'Exchange is available within 24 hours of pickup or delivery, at the Sector 40-C store.' },
+  { q: 'How are used books verified?', a: 'Every listing is checked by our team before it goes live. Meet the seller, check the book, then pay.' },
   { q: 'Can I remove books I already have?', a: 'Yes! Simply uncheck any items you own in the set screen before checkout.' },
 ]
 
@@ -71,6 +73,8 @@ export default function HomePage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null)
   const [listings, setListings] = useState<any[]>([])
   const [cart, setCart] = useState<{ selectedClass: number; items: string[]; kitSubtotal: number }[]>([])
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const [place, setPlace] = useDeliveryPlace()
 
   useEffect(() => {
     fetch('/api/listings')
@@ -151,6 +155,8 @@ export default function HomePage() {
   return (
     <div className="bg-surface text-on-surface font-body-md antialiased flex flex-col min-h-screen">
 
+      <LocationSheet open={sheetOpen} onClose={() => setSheetOpen(false)} place={place} onSelect={setPlace} />
+
       {/* Header */}
       <header className="fixed top-0 inset-x-0 z-50 bg-surface/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(45,30,18,0.04)] pt-safe">
         <div className="h-20 px-margin md:px-margin-desktop flex items-center justify-between gap-space-sm md:gap-6 max-w-md mx-auto md:max-w-[1200px]">
@@ -160,9 +166,9 @@ export default function HomePage() {
             ) : (
               <span className="font-headline-md text-headline-md text-on-surface shrink-0 cursor-pointer" onClick={() => router.push('/')}>Page<span className="text-secondary-container">plus</span></span>
             )}
-            <button className="flex items-center gap-1 bg-surface-container-low px-space-sm py-1 rounded-full text-left transition-colors active:bg-surface-container min-w-0">
+            <button onClick={() => setSheetOpen(true)} aria-label="Choose delivery location" className="flex items-center gap-1 bg-surface-container-low px-space-sm py-1 rounded-full text-left transition-colors active:bg-surface-container min-w-0">
               <span className="material-symbols-outlined text-[16px] text-primary shrink-0">location_on</span>
-              <span className="font-label-micro text-label-micro text-on-surface-variant font-bold truncate max-w-[130px] sm:max-w-[200px]">Sector 40-C • Chandigarh</span>
+              <span className="font-label-micro text-label-micro text-on-surface-variant font-bold truncate max-w-[130px] sm:max-w-[200px]">{placeShortLabel(place)}</span>
               <span className="material-symbols-outlined text-[16px] text-outline shrink-0">keyboard_arrow_down</span>
             </button>
           </div>
@@ -183,7 +189,6 @@ export default function HomePage() {
             <button className={navLink} onClick={() => router.push('/school-sets')}>School Sets</button>
             <button className={navLink} onClick={() => router.push('/marketplace')}>Marketplace</button>
             <button className={navLink} onClick={() => router.push('/school-sets')}>Stationery</button>
-            <button className={navLink} onClick={() => router.push('/projects')}>Projects</button>
           </nav>
 
           <div className="flex items-center gap-1 shrink-0">
@@ -196,7 +201,7 @@ export default function HomePage() {
               <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-primary-container ring-2 ring-surface"></span>
             </a>
             {isSignedIn ? (
-              <button aria-label="My orders" onClick={() => router.push('/my-orders')} className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0 ml-1 shadow-[0_2px_8px_-2px_rgba(45,30,18,0.06)]">
+              <button aria-label="Profile" onClick={() => router.push('/profile')} className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0 ml-1 shadow-[0_2px_8px_-2px_rgba(45,30,18,0.06)]">
                 <span className="material-symbols-outlined text-on-primary text-[18px]">person</span>
               </button>
             ) : (
@@ -220,14 +225,14 @@ export default function HomePage() {
             <div className="bg-surface-container-high text-on-surface rounded-xl p-3 mb-space-md shadow-sm flex items-center justify-between gap-3 lg:col-span-5 lg:col-start-8 lg:row-start-1">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-[22px]">electric_bolt</span>
+                  <span className="material-symbols-outlined text-[22px]">local_shipping</span>
                 </div>
                 <div>
-                  <p className="font-label-lg text-label-lg font-bold text-on-surface">3-Hour Express Delivery</p>
-                  <p className="font-body-sm text-[13px] text-on-surface-variant font-medium">Chandigarh • Mohali • Panchkula</p>
+                  <p className="font-label-lg text-label-lg font-bold text-on-surface">Home delivery within 24 hours</p>
+                  <p className="font-body-sm text-[13px] text-on-surface-variant font-medium">₹{DELIVERY_FEE} • Chandigarh • Mohali • Panchkula</p>
                 </div>
               </div>
-              <span className="bg-primary text-on-primary text-[11px] font-bold px-2.5 py-1 rounded-full uppercase shrink-0">Fast</span>
+              <span className="bg-primary text-on-primary text-[11px] font-bold px-2.5 py-1 rounded-full uppercase shrink-0">24h</span>
             </div>
 
             {/* 2. Mobile search (desktop uses the header search) */}
@@ -366,17 +371,17 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Free gifts banner */}
+            {/* Free pickup banner */}
             <div className="bg-secondary-fixed text-on-secondary-fixed rounded-xl p-3 mb-space-md shadow-sm flex items-center gap-3 lg:col-span-5 lg:col-start-8 lg:row-start-3">
               <div className="w-10 h-10 rounded-full bg-primary-container text-on-primary flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-[22px]">redeem</span>
+                <span className="material-symbols-outlined text-[22px]">storefront</span>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-label-lg text-label-lg font-bold text-on-secondary-fixed-variant">Free Gifts This Week</span>
-                  <span className="bg-primary text-on-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Rush</span>
+                  <span className="font-label-lg text-label-lg font-bold text-on-secondary-fixed-variant">Free Store Pickup</span>
+                  <span className="bg-primary text-on-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">Free</span>
                 </div>
-                <p className="font-body-sm text-[13px] text-on-secondary-fixed font-medium truncate">Name stickers + waterproof covers free with every kit!</p>
+                <p className="font-body-sm text-[13px] text-on-secondary-fixed font-medium truncate">Collect your kit from Booth 48, Sector 40-C.</p>
               </div>
             </div>
           </div>
@@ -432,14 +437,6 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-
-              <div className="bg-surface-container-low rounded-xl p-3 flex items-center justify-between gap-2 shadow-sm md:col-span-3">
-                <div className="min-w-0">
-                  <p className="font-label-md text-label-md font-semibold text-on-surface truncate">Custom School Science Models &amp; Projects?</p>
-                  <p className="font-body-sm text-body-sm text-on-surface-variant truncate">Working DIY kits for exhibitions &amp; holiday homework</p>
-                </div>
-                <button onClick={() => router.push('/projects')} className="bg-surface-container-lowest text-primary font-label-micro text-label-micro uppercase font-bold px-3 py-1.5 rounded-full shrink-0 shadow-sm">Get Kit Quote →</button>
-              </div>
             </div>
           </div>
 
@@ -471,7 +468,7 @@ export default function HomePage() {
             <div className="flex items-center justify-between mb-space-sm">
               <div>
                 <h3 className="font-headline-sm md:font-headline-md text-headline-sm md:text-headline-md text-on-surface">Pre-Loved Books Nearby</h3>
-                <p className="font-body-sm text-body-sm text-on-surface-variant">Cleaned, inspected &amp; page-verified</p>
+                <p className="font-body-sm text-body-sm text-on-surface-variant">Every listing is checked by our team</p>
               </div>
               <button onClick={() => router.push('/marketplace')} className="font-label-md text-label-md text-primary font-semibold">View All</button>
             </div>
@@ -566,13 +563,13 @@ export default function HomePage() {
                 </div>
                 <div className="bg-surface-container-low p-2.5 rounded-xl flex flex-col items-center">
                   <span className="material-symbols-outlined text-primary text-[24px] mb-1">check_circle</span>
-                  <span className="font-label-md text-label-md font-bold text-on-surface">Zero Error</span>
-                  <span className="font-body-sm text-[11px] text-on-surface-variant">Booklist</span>
+                  <span className="font-label-md text-label-md font-bold text-on-surface">100% Correct</span>
+                  <span className="font-body-sm text-[11px] text-on-surface-variant">Syllabus</span>
                 </div>
                 <div className="bg-surface-container-low p-2.5 rounded-xl flex flex-col items-center">
                   <span className="material-symbols-outlined text-primary text-[24px] mb-1">swap_horiz</span>
                   <span className="font-label-md text-label-md font-bold text-on-surface">Easy 24h</span>
-                  <span className="font-body-sm text-[11px] text-on-surface-variant">Swap</span>
+                  <span className="font-body-sm text-[11px] text-on-surface-variant">Exchange</span>
                 </div>
               </div>
             </div>
@@ -632,47 +629,8 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* Bottom nav (phone only) */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface/95 backdrop-blur-xl shadow-[0_-2px_12px_rgba(45,30,18,0.06)]">
-        <div className="flex justify-around items-center h-16 px-space-xs relative max-w-md mx-auto">
-          <button onClick={() => router.push('/')} className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] h-12 text-primary-container font-semibold transition-colors relative">
-            <span className="material-symbols-outlined text-[22px]">storefront</span>
-            <span className="font-label-micro text-label-micro uppercase tracking-wider">Home</span>
-          </button>
-          <button onClick={() => router.push('/school-sets')} className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] h-12 text-on-surface-variant transition-colors relative">
-            <div className="relative flex items-center justify-center">
-              <span className="material-symbols-outlined text-[22px]">local_library</span>
-              <span className="absolute -top-1 -right-2 px-1 bg-primary-fixed text-on-primary-fixed-variant rounded-full text-[9px] font-bold leading-tight uppercase">Kit</span>
-            </div>
-            <span className="font-label-micro text-label-micro uppercase tracking-wider">Sets</span>
-          </button>
-          {isSignedIn ? (
-            <button onClick={() => router.push('/sell')} className="flex flex-col items-center justify-center -mt-6 group">
-              <div className="w-12 h-12 rounded-full bg-primary-container text-on-primary shadow-[0_4px_14px_rgba(196,80,26,0.35)] flex items-center justify-center transition-transform active:scale-95">
-                <span className="material-symbols-outlined text-[28px]">add</span>
-              </div>
-              <span className="font-label-micro text-label-micro uppercase tracking-wider text-on-surface-variant mt-1 font-semibold">Sell</span>
-            </button>
-          ) : (
-            <SignInButton mode="modal">
-              <button className="flex flex-col items-center justify-center -mt-6 group">
-                <div className="w-12 h-12 rounded-full bg-primary-container text-on-primary shadow-[0_4px_14px_rgba(196,80,26,0.35)] flex items-center justify-center transition-transform active:scale-95">
-                  <span className="material-symbols-outlined text-[28px]">add</span>
-                </div>
-                <span className="font-label-micro text-label-micro uppercase tracking-wider text-on-surface-variant mt-1 font-semibold">Sell</span>
-              </button>
-            </SignInButton>
-          )}
-          <button onClick={() => router.push('/marketplace')} className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] h-12 text-on-surface-variant transition-colors">
-            <span className="material-symbols-outlined text-[22px]">sell</span>
-            <span className="font-label-micro text-label-micro uppercase tracking-wider">Market</span>
-          </button>
-          <button onClick={() => router.push('/school-sets')} className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] h-12 text-on-surface-variant transition-colors">
-            <span className="material-symbols-outlined text-[22px]">draw</span>
-            <span className="font-label-micro text-label-micro uppercase tracking-wider">Stationery</span>
-          </button>
-        </div>
-      </nav>
+      {/* Shared bottom bar (phone only) */}
+      <BottomNav />
     </div>
   )
 }

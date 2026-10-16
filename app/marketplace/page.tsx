@@ -1,7 +1,8 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { useUser, SignInButton } from '@clerk/nextjs'
+import { useUser, SignInButton, useClerk } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
+import BottomNav from '@/components/BottomNav'
 
 // ── Contact (change here only) ────────────────────────────────────────────
 const WHATSAPP_NUMBER = '918872235738'
@@ -21,6 +22,7 @@ function areaMatch(location: string, area: string) {
 export default function Marketplace() {
   const router = useRouter()
   const { isSignedIn, user } = useUser()
+  const { openSignIn } = useClerk()
 
   const [logoOk, setLogoOk] = useState(true)
   const [listings, setListings] = useState<any[]>([])
@@ -35,6 +37,7 @@ export default function Marketplace() {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [unread, setUnread] = useState(0)
 
   const searchRef = useRef<HTMLDivElement>(null)
   const sortRef = useRef<HTMLDivElement>(null)
@@ -50,6 +53,24 @@ export default function Marketplace() {
       })
     }
   }, [isSignedIn, user])
+
+  // Unread message count for the header icon
+  useEffect(() => {
+    if (!isSignedIn) { setUnread(0); return }
+    let stop = false
+    async function loadUnread() {
+      if (document.visibilityState !== 'visible') return
+      try {
+        const res = await fetch('/api/chat/conversations', { cache: 'no-store' })
+        if (!res.ok) return
+        const d = await res.json()
+        if (!stop) setUnread(Number(d.unreadCount) || 0)
+      } catch {}
+    }
+    loadUnread()
+    const t = setInterval(loadUnread, 30000)
+    return () => { stop = true; clearInterval(t) }
+  }, [isSignedIn])
 
   // Load listings, and refresh when the tab becomes visible again
   useEffect(() => {
@@ -123,17 +144,12 @@ export default function Marketplace() {
     return o > p && p > 0 ? Math.round((1 - p / o) * 100) : 0
   }
 
-  // ── Chat with seller ─────────────────────────────────────────────────────
-  // One place to change when Pageplus gets its own messaging: replace the body
-  // of this function. For now it opens WhatsApp with the seller.
+  // ── Chat with seller (opens the in-app chat) ─────────────────────────────
   function openChat(l: any, e: React.MouseEvent) {
     e.stopPropagation()
-    const phone = String(l.seller?.phone || '').replace(/\D/g, '').slice(-10)
-    if (phone.length === 10) {
-      window.open('https://wa.me/91' + phone + '?text=' + encodeURIComponent('Hi, I am interested in your listing "' + l.title + '" on Pageplus'), '_blank')
-    } else {
-      router.push('/listing/' + l.id)
-    }
+    if (!isSignedIn) { openSignIn(); return }
+    if (user?.id === l.sellerId) { router.push('/listing/' + l.id); return }
+    router.push('/messages/new?listing=' + l.id)
   }
 
   const sellButton = (className: string, children: React.ReactNode) =>
@@ -156,7 +172,7 @@ export default function Marketplace() {
             ) : (
               <span className="font-headline-md text-headline-md text-on-surface shrink-0 cursor-pointer" onClick={() => router.push('/')}>Page<span className="text-secondary-container">plus</span></span>
             )}
-            <span className="flex items-center gap-1 bg-surface-container-low px-space-sm py-1 rounded-full min-w-0">
+            <span className="hidden sm:flex items-center gap-1 bg-surface-container-low px-space-sm py-1 rounded-full min-w-0">
               <span className="material-symbols-outlined text-[16px] text-primary shrink-0">location_on</span>
               <span className="font-label-micro text-label-micro text-on-surface-variant font-bold truncate max-w-[110px] sm:max-w-[200px]">Sector 40-C • Chandigarh</span>
             </span>
@@ -165,7 +181,6 @@ export default function Marketplace() {
           <nav className="hidden lg:flex items-center gap-1">
             <button className={navLink} onClick={() => router.push('/school-sets')}>School Sets</button>
             <button className={navLink + ' !text-primary-container font-bold'} onClick={() => router.push('/marketplace')}>Marketplace</button>
-            <button className={navLink} onClick={() => router.push('/projects')}>Projects</button>
             <button className={navLink} onClick={() => router.push('/requests')}>Requests</button>
           </nav>
 
@@ -174,9 +189,14 @@ export default function Marketplace() {
             <button aria-label="Saved books" onClick={() => router.push('/wishlist')} className="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant transition-colors active:bg-surface-container">
               <span className="material-symbols-outlined text-[22px]">favorite</span>
             </button>
+            <button aria-label={unread > 0 ? 'Messages, ' + unread + ' unread' : 'Messages'} onClick={() => router.push('/messages')} className="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant transition-colors active:bg-surface-container relative">
+              <span className="material-symbols-outlined text-[22px]">forum</span>
+              {unread > 0 && (
+                <span className="absolute top-1.5 right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-primary-container text-on-primary text-[10px] font-bold flex items-center justify-center ring-2 ring-surface">{unread > 9 ? '9+' : unread}</span>
+              )}
+            </button>
             <a aria-label="WhatsApp Support" className="w-11 h-11 flex items-center justify-center rounded-full text-on-surface-variant transition-colors active:bg-surface-container relative" href={WA_HELP_LINK} rel="noopener noreferrer" target="_blank">
-              <span className="material-symbols-outlined text-[22px] text-tertiary">chat</span>
-              <span className="absolute top-2.5 right-2.5 w-2 h-2 rounded-full bg-primary-container ring-2 ring-surface"></span>
+              <span className="material-symbols-outlined text-[22px] text-tertiary">support_agent</span>
             </a>
             {isSignedIn ? (
               <button aria-label="Profile" onClick={() => router.push('/profile')} className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0 ml-1 shadow-[0_2px_8px_-2px_rgba(45,30,18,0.06)]">
@@ -379,7 +399,7 @@ export default function Marketplace() {
                       </div>
                       <div className="grid grid-cols-2 gap-1.5 mt-2.5 pt-2 border-t border-surface-container">
                         <button disabled={l.sold} onClick={e => openChat(l, e)} className="h-8 rounded-lg bg-surface-container-high text-on-surface-variant flex items-center justify-center gap-1 active:scale-95 transition-transform disabled:opacity-40">
-                          <span className="material-symbols-outlined text-[15px] text-tertiary">chat</span>
+                          <span className="material-symbols-outlined text-[15px] text-tertiary">forum</span>
                           <span className="font-label-micro text-label-micro">Chat</span>
                         </button>
                         <button disabled={l.sold} onClick={e => { e.stopPropagation(); router.push('/listing/' + l.id) }} className="h-8 rounded-lg bg-primary-container text-on-primary flex items-center justify-center font-label-micro text-label-micro shadow-sm active:scale-95 transition-transform disabled:opacity-40">Buy</button>
@@ -435,47 +455,8 @@ export default function Marketplace() {
         </div>
       </main>
 
-      {/* Bottom nav (phone only) */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface/95 backdrop-blur-xl shadow-[0_-2px_12px_rgba(45,30,18,0.06)]">
-        <div className="flex justify-around items-center h-16 px-space-xs relative max-w-md mx-auto">
-          <button onClick={() => router.push('/')} className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] h-12 text-on-surface-variant transition-colors">
-            <span className="material-symbols-outlined text-[22px]">storefront</span>
-            <span className="font-label-micro text-label-micro uppercase tracking-wider">Home</span>
-          </button>
-          <button onClick={() => router.push('/school-sets')} className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] h-12 text-on-surface-variant transition-colors relative">
-            <div className="relative flex items-center justify-center">
-              <span className="material-symbols-outlined text-[22px]">local_library</span>
-              <span className="absolute -top-1 -right-2 px-1 bg-primary-fixed text-on-primary-fixed-variant rounded-full text-[9px] font-bold leading-tight uppercase">Kit</span>
-            </div>
-            <span className="font-label-micro text-label-micro uppercase tracking-wider">Sets</span>
-          </button>
-          {isSignedIn ? (
-            <button onClick={() => router.push('/sell')} className="flex flex-col items-center justify-center -mt-6">
-              <div className="w-12 h-12 rounded-full bg-primary-container text-on-primary shadow-[0_4px_14px_rgba(196,80,26,0.35)] flex items-center justify-center transition-transform active:scale-95">
-                <span className="material-symbols-outlined text-[28px]">add</span>
-              </div>
-              <span className="font-label-micro text-label-micro uppercase tracking-wider text-on-surface-variant mt-1 font-semibold">Sell</span>
-            </button>
-          ) : (
-            <SignInButton mode="modal">
-              <button className="flex flex-col items-center justify-center -mt-6">
-                <div className="w-12 h-12 rounded-full bg-primary-container text-on-primary shadow-[0_4px_14px_rgba(196,80,26,0.35)] flex items-center justify-center transition-transform active:scale-95">
-                  <span className="material-symbols-outlined text-[28px]">add</span>
-                </div>
-                <span className="font-label-micro text-label-micro uppercase tracking-wider text-on-surface-variant mt-1 font-semibold">Sell</span>
-              </button>
-            </SignInButton>
-          )}
-          <button onClick={() => router.push('/marketplace')} className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] h-12 text-primary-container font-semibold transition-colors">
-            <span className="material-symbols-outlined text-[22px]">sell</span>
-            <span className="font-label-micro text-label-micro uppercase tracking-wider">Market</span>
-          </button>
-          <button onClick={() => router.push('/my-orders')} className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] h-12 text-on-surface-variant transition-colors">
-            <span className="material-symbols-outlined text-[22px]">inventory_2</span>
-            <span className="font-label-micro text-label-micro uppercase tracking-wider">Orders</span>
-          </button>
-        </div>
-      </nav>
+      {/* Shared bottom bar (phone only) */}
+      <BottomNav />
     </div>
   )
 }

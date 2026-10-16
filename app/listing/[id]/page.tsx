@@ -5,8 +5,7 @@ import { useUser, useClerk } from '@clerk/nextjs'
 
 // ── Contact / links (change here only) ────────────────────────────────────
 const ADMIN_WA = '919914735738'
-const SHARE_BASE = 'https://buddybooks.in' // switch to https://pageplus.in once the domain is verified
-const WA_HELP_LINK = 'https://wa.me/' + ADMIN_WA + '?text=' + encodeURIComponent('Hi, I need help on Pageplus')
+const SHARE_BASE = 'https://pageplus.in'
 
 const conditions = ['New', 'Good', 'Fair']
 
@@ -138,17 +137,10 @@ export default function ListingPage() {
     setReported(true)
   }
 
-  // ── Chat with seller ─────────────────────────────────────────────────────
-  // One place to change when Pageplus gets its own messaging: replace the body
-  // of this function. For now it opens WhatsApp with the seller.
+  // ── Chat with seller (opens the in-app chat) ─────────────────────────────
   function openChat() {
     if (!isSignedIn) { openSignIn(); return }
-    const phone = String(listing?.seller?.phone || '').replace(/\D/g, '').slice(-10)
-    const text = 'Hi, I am interested in your listing on Pageplus: ' + listing.title + ' for Rs.' + listing.price
-    const link = phone.length === 10
-      ? 'https://wa.me/91' + phone + '?text=' + encodeURIComponent(text)
-      : 'https://wa.me/?text=' + encodeURIComponent(text)
-    window.open(link, '_blank')
+    router.push('/messages/new?listing=' + id)
   }
 
   async function handleFeaturePayment(tier: string, price: number) {
@@ -527,6 +519,9 @@ export default function ListingPage() {
                           )}
                         </div>
                       ) : null}
+                      <button onClick={() => router.push('/messages')} className="w-full rounded-xl py-3 bg-surface-container-low text-on-surface font-label-lg text-label-lg font-semibold flex items-center justify-center gap-1.5 hover:bg-surface-container">
+                        <span className="material-symbols-outlined text-[18px]">forum</span>View messages
+                      </button>
                       <button onClick={() => router.push('/marketplace')} className="w-full rounded-xl py-3 border border-[#EADFCC] text-on-surface font-label-lg text-label-lg font-semibold hover:bg-surface-container-low">Back to listings</button>
                     </section>
                   ) : listing.sold ? (

@@ -16,31 +16,31 @@ export default async function Image() {
           flexDirection: 'column',
           alignItems: 'flex-start',
           justifyContent: 'center',
-          background: 'linear-gradient(135deg, #1a237e 0%, #0d47a1 60%, #1565c0 100%)',
+          background: 'linear-gradient(135deg, #7f2b00 0%, #a23900 45%, #c4501a 100%)',
           padding: '80px',
           fontFamily: 'sans-serif',
           position: 'relative',
           overflow: 'hidden',
         }}
       >
-        {/* Decorative circle */}
+        {/* Decorative circles */}
         <div style={{
           position: 'absolute', right: '-60px', top: '-60px',
           width: '400px', height: '400px', borderRadius: '50%',
-          background: 'rgba(255,255,255,0.06)',
+          background: 'rgba(255,255,255,0.07)',
           display: 'flex',
         }} />
         <div style={{
           position: 'absolute', right: '120px', bottom: '-80px',
           width: '280px', height: '280px', borderRadius: '50%',
-          background: 'rgba(255,255,255,0.04)',
+          background: 'rgba(255,255,255,0.05)',
           display: 'flex',
         }} />
 
         {/* Logo row */}
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '36px' }}>
           <div style={{
-            background: '#FF6B35',
+            background: '#fef8f4',
             borderRadius: '14px',
             width: '60px', height: '60px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -50,16 +50,16 @@ export default async function Image() {
             📚
           </div>
           <span style={{
-            color: 'white', fontSize: '34px', fontWeight: '700', letterSpacing: '-0.5px',
+            color: 'white', fontSize: '38px', fontWeight: '700', letterSpacing: '-0.5px',
           }}>
-            Pageplus
+            Page<span style={{ color: '#ff743b' }}>plus</span>
           </span>
         </div>
 
         {/* Headline */}
         <div style={{
           color: 'white', fontSize: '68px', fontWeight: '800',
-          lineHeight: '1.1', margin: '0 0 24px 0', maxWidth: '720px',
+          lineHeight: '1.1', margin: '0 0 24px 0', maxWidth: '760px',
           display: 'flex', flexWrap: 'wrap',
         }}>
           Buy &amp; Sell Books in Chandigarh
@@ -67,11 +67,11 @@ export default async function Image() {
 
         {/* Subline */}
         <div style={{
-          color: 'rgba(255,255,255,0.75)', fontSize: '28px',
-          margin: '0 0 44px 0', maxWidth: '580px', lineHeight: '1.4',
+          color: 'rgba(255,255,255,0.82)', fontSize: '28px',
+          margin: '0 0 44px 0', maxWidth: '680px', lineHeight: '1.4',
           display: 'flex',
         }}>
-          Student marketplace · Save up to 60% on school &amp; college books
+          School book sets &amp; pre-loved books · Bedi Book Store, Sector 40-C
         </div>
 
         {/* Tags */}
@@ -80,8 +80,8 @@ export default async function Image() {
             <div
               key={tag}
               style={{
-                background: 'rgba(255,255,255,0.12)',
-                border: '1.5px solid rgba(255,255,255,0.25)',
+                background: 'rgba(255,255,255,0.14)',
+                border: '1.5px solid rgba(255,255,255,0.3)',
                 borderRadius: '100px',
                 padding: '10px 22px',
                 color: 'white', fontSize: '20px',
@@ -96,10 +96,10 @@ export default async function Image() {
         {/* Domain */}
         <div style={{
           position: 'absolute', bottom: '48px', right: '80px',
-          color: 'rgba(255,255,255,0.5)', fontSize: '22px',
+          color: 'rgba(255,255,255,0.7)', fontSize: '24px',
           display: 'flex',
         }}>
-          buddybooks.in
+          pageplus.in
         </div>
       </div>
     ),

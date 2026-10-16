@@ -1,11 +1,27 @@
 import { PrismaClient } from '@prisma/client'
 import { NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
 
 export const dynamic = 'force-dynamic'
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 const prisma = globalForPrisma.prisma ?? new PrismaClient()
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+
+// Same admin as the admin pages (set ADMIN_CLERK_ID in Vercel to override)
+const ADMIN_ID = process.env.ADMIN_CLERK_ID || 'user_3EMHmiU5Qw2vZpxYOFM7viVRYZD'
+
+const CATEGORIES = ['textbook', 'novel', 'notebook', 'art', 'stationery', 'competitive']
+const CONDITIONS = ['New', 'Good', 'Fair']
+
+async function getUserId(): Promise<string | null> {
+  try {
+    const { userId } = await auth()
+    return userId || null
+  } catch {
+    return null
+  }
+}
 
 async function moderateListing(title: string, subtitle: string, category: string): Promise<{ approved: boolean; reason: string }> {
   try {
@@ -22,7 +38,7 @@ async function moderateListing(title: string, subtitle: string, category: string
         messages: [
           {
             role: 'user',
-            content: `You are a content moderator for BuddyBooks, a student marketplace in Chandigarh, India for buying and selling books, notebooks, stationery and art supplies.
+            content: `You are a content moderator for Pageplus, a student marketplace in Chandigarh, India for buying and selling books, notebooks, stationery and art supplies.
 
 Review this listing and respond with ONLY a JSON object like: {"approved": true} or {"approved": false, "reason": "short explanation"}
 
@@ -41,7 +57,7 @@ Respond with JSON only, nothing else.`,
     })
 
     const data = await response.json()
-    const text = data.content?.[0]?.text?.trim() || ''
+    const text = (data.content?.[0]?.text || '').trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim()
     const parsed = JSON.parse(text)
     return { approved: parsed.approved === true, reason: parsed.reason || '' }
   } catch (err) {
@@ -53,11 +69,33 @@ Respond with JSON only, nothing else.`,
 
 export async function GET() {
   try {
-    const listings = await prisma.listing.findMany({
+    const userId = await getUserId()
+    const isAdmin = !!userId && userId === ADMIN_ID
+
+    // Admin: everything. Everyone else: live listings, plus their own.
+    const where = isAdmin
+      ? undefined
+      : userId
+        ? { OR: [{ status: 'active' }, { sellerId: userId }] }
+        : { status: 'active' }
+
+    const rows = await prisma.listing.findMany({
+      where,
       include: { seller: true },
-   orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     })
-    return NextResponse.json(listings)
+
+    // Phone numbers and emails are never sent to other people.
+    const out = isAdmin
+      ? rows
+      : rows.map(l => ({
+          ...l,
+          seller: l.sellerId === userId
+            ? { id: l.seller.id, name: l.seller.name, phone: l.seller.phone }
+            : { id: l.seller.id, name: l.seller.name },
+        }))
+
+    return NextResponse.json(out)
   } catch (error) {
     console.error('GET error:', error)
     return NextResponse.json({ error: String(error) }, { status: 500 })
@@ -66,10 +104,40 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
+    const userId = await getUserId()
+    if (!userId) return NextResponse.json({ error: 'Sign in required' }, { status: 401 })
+
+    const body = await request.json().catch(() => ({}))
+
+    // The seller is always the signed-in person
+    if (body.sellerId && body.sellerId !== userId) {
+      return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
+    }
+
+    const title = String(body.title || '').replace(/\s+/g, ' ').trim()
+    const subtitle = String(body.subtitle || '').replace(/\s+/g, ' ').trim()
+    const location = String(body.location || '').trim()
+    const category = String(body.category || '')
+    const condition = String(body.condition || '')
+    const price = Number(body.price)
+    const origPrice = body.origPrice ? Number(body.origPrice) : null
+    const images: string[] = Array.isArray(body.images)
+      ? body.images.filter((u: unknown) => typeof u === 'string' && u.startsWith('https://') && u.length < 600).slice(0, 3)
+      : []
+
+    if (title.length < 3 || title.length > 120) return NextResponse.json({ error: 'Title must be 3 to 120 characters' }, { status: 400 })
+    if (subtitle.length > 120) return NextResponse.json({ error: 'Subtitle is too long' }, { status: 400 })
+    if (location.length < 2 || location.length > 100) return NextResponse.json({ error: 'Choose a location' }, { status: 400 })
+    if (!CATEGORIES.includes(category)) return NextResponse.json({ error: 'Invalid category' }, { status: 400 })
+    if (!CONDITIONS.includes(condition)) return NextResponse.json({ error: 'Invalid condition' }, { status: 400 })
+    if (!Number.isInteger(price) || price < 1 || price > 10000) return NextResponse.json({ error: 'Price must be between ₹1 and ₹10,000' }, { status: 400 })
+    if (origPrice !== null) {
+      if (!Number.isInteger(origPrice) || origPrice <= price) return NextResponse.json({ error: 'Original price must be higher than your price' }, { status: 400 })
+      if (Math.round((1 - price / origPrice) * 100) > 90) return NextResponse.json({ error: 'Discount cannot exceed 90%' }, { status: 400 })
+    }
 
     // AI moderation check
-    const moderation = await moderateListing(body.title, body.subtitle || '', body.category)
+    const moderation = await moderateListing(title, subtitle, category)
     if (!moderation.approved) {
       return NextResponse.json(
         { error: 'listing_rejected', reason: moderation.reason || 'This listing does not meet our guidelines. Please post only books, stationery, or educational materials.' },
@@ -77,18 +145,19 @@ export async function POST(request: Request) {
       )
     }
 
+    // status is left to the database default ("pending") so it waits for approval
     const listing = await prisma.listing.create({
       data: {
-        title: body.title,
-        subtitle: body.subtitle || '',
-        price: Number(body.price),
-        origPrice: body.origPrice ? Number(body.origPrice) : null,
-        condition: body.condition,
-        category: body.category,
-        emoji: body.emoji || '📗',
-        location: body.location,
-        sellerId: body.sellerId,
-        images: body.images || [],
+        title,
+        subtitle,
+        price,
+        origPrice,
+        condition,
+        category,
+        emoji: String(body.emoji || '📗').slice(0, 8),
+        location,
+        sellerId: userId,
+        images,
       },
     })
     return NextResponse.json(listing)

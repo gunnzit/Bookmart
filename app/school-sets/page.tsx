@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser, SignInButton } from '@clerk/nextjs'
 import { schools, isRegister, BINDING_CHARGE, DELIVERY_FEE } from '@/lib/kit-prices'
+import BottomNav from '@/components/BottomNav'
 
 // ── Contact (change here only) ────────────────────────────────────────────
 const WHATSAPP_NUMBER = '918872235738'
@@ -410,12 +411,11 @@ export default function SchoolSetsPage() {
           <nav className="hidden lg:flex items-center gap-1">
             <button className={navLink + ' !text-primary-container font-bold'} onClick={() => router.push('/school-sets')}>School Sets</button>
             <button className={navLink} onClick={() => router.push('/marketplace')}>Marketplace</button>
-            <button className={navLink} onClick={() => router.push('/projects')}>Projects</button>
             <button className={navLink} onClick={() => router.push('/my-orders')}>My Orders</button>
           </nav>
 
           <div className="flex items-center gap-1 shrink-0">
-            <button onClick={() => router.push('/my-orders')} className="hidden sm:flex items-center gap-1 bg-surface-container-low px-3 py-1.5 rounded-full font-label-md text-label-md text-on-surface-variant lg:hidden">
+            <button onClick={() => router.push('/my-orders')} className="flex items-center gap-1 bg-surface-container-low px-3 py-1.5 rounded-full font-label-md text-label-md text-on-surface-variant lg:hidden">
               <span className="material-symbols-outlined text-[16px]">inventory_2</span>
               <span>My Orders</span>
             </button>
@@ -772,47 +772,8 @@ export default function SchoolSetsPage() {
         </div>
       </div>
 
-      {/* Bottom nav (phone only) */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface/95 backdrop-blur-xl shadow-[0_-2px_12px_rgba(45,30,18,0.06)]">
-        <div className="flex justify-around items-center h-16 px-space-xs relative max-w-md mx-auto">
-          <button onClick={() => router.push('/')} className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] h-12 text-on-surface-variant transition-colors">
-            <span className="material-symbols-outlined text-[22px]">storefront</span>
-            <span className="font-label-micro text-label-micro uppercase tracking-wider">Home</span>
-          </button>
-          <button onClick={() => router.push('/school-sets')} className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] h-12 text-primary-container font-semibold transition-colors relative">
-            <div className="relative flex items-center justify-center">
-              <span className="material-symbols-outlined text-[22px]">local_library</span>
-              <span className="absolute -top-1 -right-2 px-1 bg-primary-fixed text-on-primary-fixed-variant rounded-full text-[9px] font-bold leading-tight uppercase">Kit</span>
-            </div>
-            <span className="font-label-micro text-label-micro uppercase tracking-wider">Sets</span>
-          </button>
-          {isSignedIn ? (
-            <button onClick={() => router.push('/sell')} className="flex flex-col items-center justify-center -mt-6">
-              <div className="w-12 h-12 rounded-full bg-primary-container text-on-primary shadow-[0_4px_14px_rgba(196,80,26,0.35)] flex items-center justify-center transition-transform active:scale-95">
-                <span className="material-symbols-outlined text-[28px]">add</span>
-              </div>
-              <span className="font-label-micro text-label-micro uppercase tracking-wider text-on-surface-variant mt-1 font-semibold">Sell</span>
-            </button>
-          ) : (
-            <SignInButton mode="modal">
-              <button className="flex flex-col items-center justify-center -mt-6">
-                <div className="w-12 h-12 rounded-full bg-primary-container text-on-primary shadow-[0_4px_14px_rgba(196,80,26,0.35)] flex items-center justify-center transition-transform active:scale-95">
-                  <span className="material-symbols-outlined text-[28px]">add</span>
-                </div>
-                <span className="font-label-micro text-label-micro uppercase tracking-wider text-on-surface-variant mt-1 font-semibold">Sell</span>
-              </button>
-            </SignInButton>
-          )}
-          <button onClick={() => router.push('/marketplace')} className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] h-12 text-on-surface-variant transition-colors">
-            <span className="material-symbols-outlined text-[22px]">sell</span>
-            <span className="font-label-micro text-label-micro uppercase tracking-wider">Market</span>
-          </button>
-          <button onClick={() => router.push('/my-orders')} className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] h-12 text-on-surface-variant transition-colors">
-            <span className="material-symbols-outlined text-[22px]">inventory_2</span>
-            <span className="font-label-micro text-label-micro uppercase tracking-wider">Orders</span>
-          </button>
-        </div>
-      </nav>
+      {/* Shared bottom bar (phone only) */}
+      <BottomNav />
     </div>
   )
 }

@@ -3,6 +3,7 @@ import Script from 'next/script'
 import type { Metadata } from 'next'
 import './globals.css'
 import { Analytics } from '@vercel/analytics/react'
+import GlassNav from '@/components/GlassNav'
 
 const APP_URL = 'https://buddybooks.in'
 
@@ -120,6 +121,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </head>
         <body>
           {children}
+          <GlassNav />
           <Analytics />
           <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
         </body>

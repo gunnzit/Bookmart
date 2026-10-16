@@ -95,7 +95,7 @@ export default function AdminHubPage() {
           <div style={{ marginTop: '24px', background: 'var(--card)', border: '1.5px solid var(--border)', borderRadius: '14px', padding: '16px 18px' }}>
             <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text)', marginBottom: '6px' }}>💡 Make this even faster</div>
             <div style={{ fontSize: '12px', color: 'var(--text-2)', lineHeight: 1.6, fontWeight: '500' }}>
-              Bookmark <strong>buddybooks.in/admin/hub</strong> in your phone/browser. On a phone you can “Add to Home Screen” so it opens like an app — one tap, no typing.
+              Bookmark <strong>pageplus.in/admin/hub</strong> in your phone/browser. On a phone you can “Add to Home Screen” so it opens like an app — one tap, no typing.
             </div>
           </div>
         </div>

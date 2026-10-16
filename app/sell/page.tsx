@@ -9,20 +9,36 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
+// ── Settings (change here only) ───────────────────────────────────────────
+const WHATSAPP_NUMBER = '919914735738'
+const WA_HELP_LINK = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent('Hi, I need help listing a book on Pageplus')
+const MAX_PHOTOS = 3                          // slots: Cover, MRP tag, Extra
+const MAX_PHOTO_MB = 10
+const PRICE_SUGGESTIONS = [0.4, 0.5, 0.6]     // shares of the MRP shown as suggestion buttons
+const DRAFT_KEY = 'pageplus_sell_draft'
+
 const categories = ['textbook', 'novel', 'notebook', 'art', 'stationery', 'competitive']
 const conditions = ['New', 'Good', 'Fair']
 const conditionDesc: Record<string, string> = {
-  New: 'Unused, sealed', Good: 'Minor wear only', Fair: 'Used but readable'
+  New: 'Unused, sealed or as good as new',
+  Good: 'Minor wear only, nothing missing',
+  Fair: 'Used but fully readable, may have marks',
 }
+const conditionTag: Record<string, string> = { New: 'Fastest sale', Good: 'Popular', Fair: '' }
 const emojis: Record<string, string> = {
   textbook: '📗', novel: '📘', notebook: '📓',
-  art: '🎨', stationery: '✏️', competitive: '📙'
+  art: '🎨', stationery: '✏️', competitive: '📙',
 }
 const catDesc: Record<string, string> = {
   textbook: 'School & college', novel: 'Fiction & lit',
   notebook: 'Ruled, plain', art: 'Supplies',
-  stationery: 'Pens, files', competitive: 'JEE, NEET'
+  stationery: 'Pens, files', competitive: 'JEE, NEET',
 }
+const SLOTS = [
+  { label: 'Cover', hint: 'Front cover', required: true },
+  { label: 'MRP tag', hint: 'Price tag visible', required: true },
+  { label: 'Extra', hint: 'Optional', required: false },
+]
 
 const LOCATIONS = [
   'Sector 1, Chandigarh', 'Sector 2, Chandigarh', 'Sector 3, Chandigarh',
@@ -62,27 +78,39 @@ const LOCATIONS = [
   'Kharar, Mohali', 'Zirakpur', 'Derabassi', 'Dera Bassi',
 ]
 
-const STEPS = ['Photos', 'Details', 'Pricing & Location']
+const inputBase = 'w-full px-4 py-3 rounded-xl bg-white font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-[#E8632B]/20 focus:border-[#E8632B] border '
+const inputOk = 'border-[#EADFCC]'
+const inputBad = 'border-error'
+const labelCls = 'font-label-micro text-label-micro uppercase text-on-surface-variant block mb-1.5'
+
+function scrollToId(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
 
 export default function SellPage() {
   const router = useRouter()
   const { isSignedIn, user } = useUser()
-  const [step, setStep] = useState(0)
+
+  const [logoOk, setLogoOk] = useState(true)
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
-  const [images, setImages] = useState<File[]>([])
-  const [previews, setPreviews] = useState<string[]>([])
+  const [touched, setTouched] = useState(false)
+  const [showGuide, setShowGuide] = useState(false)
+  const [draftMsg, setDraftMsg] = useState('')
   const [uploadProgress, setUploadProgress] = useState('')
+
+  const [files, setFiles] = useState<(File | null)[]>(Array(MAX_PHOTOS).fill(null))
+  const [previews, setPreviews] = useState<(string | null)[]>(Array(MAX_PHOTOS).fill(null))
+
   const [locationSearch, setLocationSearch] = useState('')
   const [showLocationDropdown, setShowLocationDropdown] = useState(false)
   const locationRef = useRef<HTMLDivElement>(null)
 
-  // Phone — no OTP, just collect and save directly
+  // Phone — collected once and saved (no OTP check yet)
   const [phoneChecked, setPhoneChecked] = useState(false)
   const [hasPhone, setHasPhone] = useState(false)
   const [phone, setPhone] = useState('')
   const [savingPhone, setSavingPhone] = useState(false)
-  const [phoneSaved, setPhoneSaved] = useState(false)
 
   const [form, setForm] = useState({
     title: '', subtitle: '', price: '',
@@ -93,6 +121,29 @@ export default function SellPage() {
   useEffect(() => {
     if (isSignedIn === false) router.push('/')
   }, [isSignedIn])
+
+  // Restore a draft saved on this device (text only — photos are never stored)
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY)
+      if (!raw) return
+      const d = JSON.parse(raw)
+      if (d && typeof d.form === 'object') {
+        const f = d.form
+        setForm(prev => ({
+          title: typeof f.title === 'string' ? f.title : prev.title,
+          subtitle: typeof f.subtitle === 'string' ? f.subtitle : prev.subtitle,
+          price: typeof f.price === 'string' ? f.price : prev.price,
+          origPrice: typeof f.origPrice === 'string' ? f.origPrice : prev.origPrice,
+          condition: conditions.includes(f.condition) ? f.condition : prev.condition,
+          category: categories.includes(f.category) ? f.category : prev.category,
+          location: typeof f.location === 'string' ? f.location : prev.location,
+        }))
+        setLocationSearch(typeof f.location === 'string' ? f.location : '')
+        setDraftMsg('Draft restored. Add your photos again.')
+      }
+    } catch {}
+  }, [])
 
   useEffect(() => {
     if (!isSignedIn || !user) return
@@ -118,6 +169,44 @@ export default function SellPage() {
 
   if (!isSignedIn) return null
 
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  function update(field: string, value: string) {
+    setForm(prev => ({ ...prev, [field]: value }))
+  }
+
+  function pickPhoto(slot: number, e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    if (!file.type.startsWith('image/')) { alert('Please choose an image file.'); return }
+    if (file.size > MAX_PHOTO_MB * 1024 * 1024) { alert('That photo is too large (max ' + MAX_PHOTO_MB + ' MB).'); return }
+    setFiles(prev => { const n = [...prev]; n[slot] = file; return n })
+    const reader = new FileReader()
+    reader.onload = ev => setPreviews(prev => { const n = [...prev]; n[slot] = ev.target?.result as string; return n })
+    reader.readAsDataURL(file)
+  }
+
+  function removePhoto(slot: number) {
+    setFiles(prev => { const n = [...prev]; n[slot] = null; return n })
+    setPreviews(prev => { const n = [...prev]; n[slot] = null; return n })
+  }
+
+  function selectLocation(loc: string) {
+    setForm(prev => ({ ...prev, location: loc }))
+    setLocationSearch(loc)
+    setShowLocationDropdown(false)
+  }
+
+  function saveDraft() {
+    try {
+      localStorage.setItem(DRAFT_KEY, JSON.stringify({ form }))
+      setDraftMsg('Draft saved on this device (photos are not saved).')
+    } catch {
+      setDraftMsg('Could not save the draft on this device.')
+    }
+    setTimeout(() => setDraftMsg(''), 4000)
+  }
+
   async function savePhone() {
     if (phone.length < 10) return
     setSavingPhone(true)
@@ -127,60 +216,19 @@ export default function SellPage() {
       body: JSON.stringify({ clerkId: user?.id, phone: phone.trim() }),
     })
     setSavingPhone(false)
-    setPhoneSaved(true)
     setHasPhone(true)
   }
 
-  const filteredLocations = locationSearch.length > 0
-    ? LOCATIONS.filter(l => l.toLowerCase().includes(locationSearch.toLowerCase())).slice(0, 8)
-    : LOCATIONS.slice(0, 8)
-
-  function selectLocation(loc: string) {
-    setForm(prev => ({ ...prev, location: loc }))
-    setLocationSearch(loc)
-    setShowLocationDropdown(false)
-  }
-
-  function update(field: string, value: string) {
-    setForm(prev => ({ ...prev, [field]: value }))
-  }
-
-  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files || [])
-    const toAdd = files.slice(0, 3 - images.length)
-    setImages(prev => [...prev, ...toAdd])
-    toAdd.forEach(file => {
-      const reader = new FileReader()
-      reader.onload = ev => setPreviews(prev => [...prev, ev.target?.result as string])
-      reader.readAsDataURL(file)
-    })
-  }
-
-  function removeImage(index: number) {
-    setImages(prev => prev.filter((_, i) => i !== index))
-    setPreviews(prev => prev.filter((_, i) => i !== index))
-  }
-
-  function nextStep() {
-    if (step === 0) {
-      if (images.length < 2) { alert('Please add at least 2 photos. One must show the MRP/price tag.'); return }
-      setStep(1); return
-    }
-    if (step === 1) {
-      if (!form.title) { alert('Please enter a title'); return }
-      setStep(2); return
-    }
-  }
-
   async function uploadImages(): Promise<string[]> {
+    const toUpload = files.filter((f): f is File => !!f)
     const urls: string[] = []
-    for (let i = 0; i < images.length; i++) {
-      setUploadProgress(`Uploading image ${i + 1} of ${images.length}…`)
-      const file = images[i]
+    for (let i = 0; i < toUpload.length; i++) {
+      setUploadProgress('Uploading photo ' + (i + 1) + ' of ' + toUpload.length + '…')
+      const file = toUpload[i]
       const ext = file.name.split('.').pop()
-      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+      const fileName = Date.now() + '-' + Math.random().toString(36).slice(2) + '.' + ext
       const { error } = await supabase.storage.from('Listings').upload(fileName, file, { cacheControl: '3600', upsert: false })
-      if (error) throw new Error('Image upload failed: ' + error.message)
+      if (error) throw new Error('Photo upload failed: ' + error.message)
       const { data } = supabase.storage.from('Listings').getPublicUrl(fileName)
       urls.push(data.publicUrl)
     }
@@ -188,437 +236,455 @@ export default function SellPage() {
     return urls
   }
 
-  async function submit() {
-    if (!form.title || !form.price || !form.location) { alert('Please fill in title, price and location'); return }
-    const price = parseInt(form.price)
-    const origPrice = form.origPrice ? parseInt(form.origPrice) : null
-    if (price <= 0) { alert('Price must be greater than ₹0'); return }
-    if (price > 10000) { alert('Maximum price is ₹10,000'); return }
-    if (origPrice !== null) {
-      if (origPrice <= price) { alert('Original price must be higher than selling price'); return }
-      if (Math.round((1 - price / origPrice) * 100) > 90) { alert('Discount cannot exceed 90%'); return }
-    }
+  // ── Validation (shown inline once the seller tries to publish) ───────────
+  const priceNum = parseInt(form.price) || 0
+  const origNum = parseInt(form.origPrice) || 0
+  const photoCount = files.filter(Boolean).length
+  const photosOk = !!files[0] && !!files[1]
+  const discount = priceNum > 0 && origNum > priceNum ? Math.round((1 - priceNum / origNum) * 100) : 0
+
+  const errs = {
+    photos: photosOk ? '' : 'Add the cover photo and a photo of the MRP tag.',
+    title: form.title.trim() ? '' : 'Please enter a title.',
+    price: !priceNum ? 'Enter your price.' : priceNum > 10000 ? 'Maximum price is ₹10,000.' : '',
+    orig: origNum && origNum <= priceNum ? 'Original price must be higher than your price.' : origNum && discount > 90 ? 'Discount cannot exceed 90%.' : '',
+    location: form.location.trim() ? '' : 'Choose where you can meet the buyer.',
+  }
+  const firstErrId = errs.title ? 'sec-title' : errs.photos ? 'sec-photos' : errs.price || errs.orig ? 'sec-price' : errs.location ? 'sec-location' : ''
+
+  const doneCount = [photosOk, !errs.title, !errs.price, !errs.location].filter(Boolean).length
+  const progress = Math.round((doneCount / 4) * 100)
+
+  async function publish() {
+    setTouched(true)
+    if (firstErrId) { scrollToId(firstErrId); return }
     setLoading(true)
     try {
-      const imageUrls = images.length > 0 ? await uploadImages() : []
+      const imageUrls = await uploadImages()
       const res = await fetch('/api/listings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: form.title, subtitle: form.subtitle,
-          price: parseInt(form.price),
-          origPrice: form.origPrice ? parseInt(form.origPrice) : null,
+          price: priceNum,
+          origPrice: origNum || null,
           condition: form.condition, category: form.category,
           emoji: emojis[form.category], location: form.location,
           sellerId: user?.id!, images: imageUrls,
         }),
       })
-      if (res.ok) { setDone(true) }
-      else {
-        const data = await res.json()
+      if (res.ok) {
+        try { localStorage.removeItem(DRAFT_KEY) } catch {}
+        setDone(true)
+      } else {
+        const data = await res.json().catch(() => ({}))
         if (data.error === 'listing_rejected') alert('❌ Listing not approved\n\n' + data.reason)
         else alert('Something went wrong. Try again.')
       }
     } catch (err: any) { alert(err.message || 'Could not connect.') }
+    setUploadProgress('')
     setLoading(false)
   }
 
-  const css = `
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap');
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #FFF9F0; --bg-card: #fff; --bg-input: #FFF9F0;
-      --bg-cat-active: #DFFFEF; --bg-cat: #fff;
-      --bg-condition: #fff; --bg-condition-active: #DFFFEF;
-      --nav-bg: #fff; --border: #FFE2C2; --border-strong: #FFCB94;
-      --text-primary: #1A1330; --text-secondary: #6B6280;
-      --text-muted: #A89FC0; --text-label: #A89FC0;
-      --shadow-nav: 0 2px 12px rgba(124,92,252,0.06);
-      --shadow-card: 0 2px 16px rgba(124,92,252,0.08);
-      --dropdown-bg: #fff; --dropdown-border: #FFE2C2;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #14101F; --bg-card: #221C3A; --bg-input: #1C1730;
-        --bg-cat-active: #0A3A26; --bg-cat: #2A2342;
-        --bg-condition: #2A2342; --bg-condition-active: #0A3A26;
-        --nav-bg: #1C1730; --border: #352C52; --border-strong: #463A6B;
-        --text-primary: #F3EEFF; --text-secondary: #B0A8CC;
-        --text-muted: #6E6590; --text-label: #6E6590;
-        --shadow-nav: 0 2px 12px rgba(0,0,0,0.3);
-        --shadow-card: 0 2px 16px rgba(0,0,0,0.25);
-        --dropdown-bg: #221C3A; --dropdown-border: #352C52;
-      }
-    }
-    body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--text-primary); -webkit-font-smoothing: antialiased; }
-    .kalam { font-family: 'Poppins', sans-serif; font-weight: 800; letter-spacing: -0.02em; }
-    input { color: var(--text-primary) !important; font-weight: 500; background: var(--bg-input) !important; font-family: 'Poppins', sans-serif; }
-    input::placeholder { color: var(--text-muted) !important; font-weight: 400; }
-    input:focus { outline: none !important; border-color: #00B86B !important; box-shadow: 0 0 0 3px rgba(0,184,107,0.12) !important; }
-    .card { background: var(--bg-card); border-radius: 20px; border: 2px solid var(--border); padding: 24px; margin-bottom: 16px; box-shadow: var(--shadow-card); }
-    .label { font-size: 11px; color: var(--text-label); display: block; margin-bottom: 7px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; }
-    .input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--border); font-size: 14px; transition: all 0.15s; font-family: 'Poppins', sans-serif; }
-    .cat-btn { padding: 12px 8px; border-radius: 14px; border: 2px solid var(--border); background: var(--bg-cat); cursor: pointer; transition: transform 0.14s cubic-bezier(0.34,1.56,0.64,1), border-color 0.15s, background 0.15s; text-align: left; }
-    .cat-btn.active { border: 2px solid #00B86B; background: var(--bg-cat-active); }
-    .cat-btn:hover { border-color: #00B86B; transform: translateY(-2px); }
-    .cat-btn:active { transform: scale(0.96); }
-    .cond-btn { flex: 1; padding: 12px 8px; border-radius: 12px; border: 2px solid var(--border); background: var(--bg-condition); cursor: pointer; transition: transform 0.14s cubic-bezier(0.34,1.56,0.64,1), border-color 0.15s, background 0.15s; text-align: center; }
-    .cond-btn.active { border: 2px solid #00B86B; background: var(--bg-condition-active); }
-    .cond-btn:active { transform: scale(0.96); }
-    .loc-item:hover { background: #F0FDF8 !important; }
-    @media (prefers-color-scheme: dark) { .loc-item:hover { background: #0A3A26 !important; } }
-    .add-photo:hover { border-color: #00B86B !important; background: #DFFFEF !important; }
-    @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-    .step-content { animation: slideIn 0.3s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
-    .fade-in { animation: fadeIn 0.4s ease; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    /* Candy 3D primary button */
-    .btn-3d { transition: transform 0.12s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.12s; }
-    .btn-3d:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 6px 0 #009957, 0 12px 28px rgba(0,184,107,0.4) !important; }
-    .btn-3d:not(:disabled):active { transform: translateY(2px); box-shadow: 0 1px 0 #009957 !important; }
-    .photo-slot { width: 100px; height: 100px; }
-    @media (max-width: 400px) { .photo-slot { width: 85px; height: 85px; } }
-  `
+  function resetForm() {
+    setDone(false); setTouched(false)
+    setForm({ title: '', subtitle: '', price: '', origPrice: '', condition: 'Good', category: 'textbook', location: '' })
+    setFiles(Array(MAX_PHOTOS).fill(null)); setPreviews(Array(MAX_PHOTOS).fill(null)); setLocationSearch('')
+  }
 
-  const discount = form.price && form.origPrice && parseInt(form.price) < parseInt(form.origPrice)
-    ? Math.round((1 - parseInt(form.price) / parseInt(form.origPrice)) * 100) : 0
+  const filteredLocations = locationSearch.length > 0
+    ? LOCATIONS.filter(l => l.toLowerCase().includes(locationSearch.toLowerCase())).slice(0, 8)
+    : LOCATIONS.slice(0, 8)
 
-  if (!phoneChecked) return (
-    <>
-      <style>{css}</style>
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ width: '24px', height: '24px', border: '3px solid #00B86B', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+  const suggestions = origNum > 0
+    ? PRICE_SUGGESTIONS.map(p => ({ pct: Math.round(p * 100), value: Math.max(5, Math.round((origNum * p) / 5) * 5) })).filter(s => s.value < origNum)
+    : []
+
+  // ── Screens ──────────────────────────────────────────────────────────────
+  const wrap = 'bg-surface text-on-surface font-body-md antialiased min-h-screen'
+
+  if (!phoneChecked) {
+    return (
+      <div className={wrap + ' flex items-center justify-center'}>
+        <span className="material-symbols-outlined text-[36px] text-primary animate-spin">progress_activity</span>
       </div>
-    </>
-  )
+    )
+  }
 
-  // Phone number gate — no OTP, just collect and save
-  if (!hasPhone) return (
-    <>
-      <style>{css}</style>
-      <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-        <nav style={{ background: 'var(--nav-bg)', borderBottom: '2px solid var(--border)', padding: '0 20px', height: '60px', display: 'flex', alignItems: 'center', gap: '12px', position: 'sticky', top: 0, zIndex: 50, boxShadow: 'var(--shadow-nav)' }}>
-          <button onClick={() => router.push('/marketplace')} style={{ background: 'var(--bg-card)', border: '2px solid var(--border)', width: '38px', height: '38px', borderRadius: '12px', cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)', flexShrink: 0 }}>←</button>
-          <span className="kalam" style={{ fontSize: '16px', color: '#00B86B' }}>Add your WhatsApp number</span>
-        </nav>
-        <div style={{ maxWidth: '460px', margin: '48px auto', padding: '0 16px' }}>
-          <div className="card fade-in">
-            <div style={{ width: '64px', height: '64px', background: '#DFFFEF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', margin: '0 auto 20px' }}>💬</div>
-            <h2 className="kalam" style={{ fontSize: '22px', color: 'var(--text-primary)', textAlign: 'center', marginBottom: '8px' }}>Your WhatsApp number</h2>
-            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.6, marginBottom: '24px', fontWeight: '500' }}>
-              Buyers will contact you on this number. Add it once and you're good to go.
-            </p>
-
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg)', border: '2px solid var(--border)', borderRadius: '10px', padding: '0 12px', fontSize: '13px', color: 'var(--text-secondary)', flexShrink: 0, gap: '4px', fontWeight: '600' }}>🇮🇳 +91</div>
-              <input
-                value={phone}
-                onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                placeholder="98765 43210"
-                style={{ flex: 1, padding: '12px 13px', borderRadius: '10px', border: `2px solid ${phone.length === 10 ? '#00B86B' : 'var(--border)'}`, fontSize: '14px', fontFamily: 'Poppins, sans-serif', background: 'var(--bg-input)', color: 'var(--text-primary)', transition: 'all 0.15s' }}
-              />
-            </div>
-
-            {phone.length > 0 && phone.length < 10 && (
-              <div style={{ fontSize: '11px', color: '#E24B4A', marginBottom: '10px', fontWeight: '600' }}>⚠️ Enter a 10-digit number</div>
-            )}
-
-            <div style={{ background: 'var(--bg)', borderRadius: '12px', padding: '12px 14px', marginBottom: '16px', border: '2px dashed var(--border)' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.8, fontWeight: '500' }}>
-                <div>✅ Buyers contact you directly on WhatsApp</div>
-                <div>✅ Only shown when someone taps "Contact seller"</div>
-                <div>✅ You only need to add this once</div>
-              </div>
-            </div>
-
-            <button
-              onClick={savePhone}
-              disabled={savingPhone || phone.length < 10}
-              className="btn-3d"
-              style={{ width: '100%', background: phone.length === 10 ? 'linear-gradient(135deg,#00B86B,#2D7FF9)' : '#ccc', color: '#fff', border: 'none', borderRadius: '12px', padding: '14px', fontSize: '15px', fontWeight: '800', cursor: phone.length < 10 ? 'not-allowed' : 'pointer', fontFamily: 'Poppins, sans-serif', boxShadow: phone.length === 10 ? '0 4px 0 #009957' : 'none' }}>
-              {savingPhone ? 'Saving…' : 'Save & continue →'}
+  if (!hasPhone) {
+    return (
+      <div className={wrap + ' flex flex-col'}>
+        <header className="fixed top-0 inset-x-0 z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(45,30,18,0.04)]">
+          <div className="h-16 px-margin flex items-center gap-space-sm max-w-md mx-auto">
+            <button aria-label="Back" onClick={() => router.push('/marketplace')} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container active:scale-95 transition-transform">
+              <span className="material-symbols-outlined text-[24px]">arrow_back</span>
             </button>
-
-            <button onClick={() => router.push('/marketplace')} style={{ width: '100%', background: 'transparent', color: 'var(--text-muted)', border: 'none', padding: '12px', fontSize: '13px', cursor: 'pointer', marginTop: '4px', fontWeight: '600' }}>
-              Cancel — go back to marketplace
-            </button>
+            <h1 className="font-headline-sm text-headline-sm text-on-surface">Add your number</h1>
           </div>
+        </header>
+        <main className="flex-1 w-full max-w-md mx-auto pt-20 pb-10 px-margin">
+          <div className="bg-surface-container-lowest rounded-2xl p-6 shadow-sm">
+            <div className="w-14 h-14 rounded-full bg-primary-fixed text-primary flex items-center justify-center mx-auto mb-4">
+              <span className="material-symbols-outlined text-[28px]">call</span>
+            </div>
+            <h2 className="font-headline-md text-headline-md text-on-surface text-center mb-1">Your WhatsApp number</h2>
+            <p className="font-body-sm text-body-sm text-on-surface-variant text-center mb-5">Buyers message you inside Pageplus. We use your number to alert you on WhatsApp when a new message arrives. You only add it once.</p>
+            <label className={labelCls}>WhatsApp number</label>
+            <div className="flex gap-2 mb-2">
+              <div className="flex items-center px-3 rounded-xl bg-surface-container-low border border-[#EADFCC] font-label-md text-label-md text-on-surface-variant shrink-0">+91</div>
+              <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="98765 43210" type="text" inputMode="numeric"
+                className={inputBase + (phone.length === 10 ? 'border-[#2E8B57]' : inputOk)} />
+            </div>
+            {phone.length > 0 && phone.length < 10 && <p className="font-body-sm text-body-sm text-error mb-2">Enter a 10-digit number.</p>}
+            <button onClick={savePhone} disabled={savingPhone || phone.length < 10}
+              className="w-full mt-3 bg-primary-container text-on-primary font-label-lg text-label-lg font-bold py-3.5 rounded-xl shadow-md active:scale-[0.98] transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
+              {savingPhone ? 'Saving…' : 'Save & continue'}
+            </button>
+            <button onClick={() => router.push('/marketplace')} className="w-full mt-2 py-3 text-on-surface-variant font-label-md text-label-md">Cancel</button>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  if (done) {
+    return (
+      <div className={wrap + ' flex items-center justify-center p-5'}>
+        <div className="bg-surface-container-lowest rounded-2xl p-8 max-w-sm w-full text-center shadow-[0_8px_20px_-4px_rgba(45,30,18,0.10)] border border-[#EADFCC]">
+          <div className="w-16 h-16 rounded-full bg-[#E0A100]/15 text-[#9A6B00] flex items-center justify-center mx-auto mb-4">
+            <span className="material-symbols-outlined text-[34px]">hourglass_top</span>
+          </div>
+          <h2 className="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mb-2">Listing submitted!</h2>
+          <div className="bg-surface-container-low rounded-xl p-3.5 mb-5 text-left">
+            <p className="font-label-md text-label-md text-on-surface font-semibold mb-0.5">Under review</p>
+            <p className="font-body-sm text-body-sm text-on-surface-variant">Our team checks every listing. Yours goes live once it&apos;s approved, usually within a few hours.</p>
+          </div>
+          <button onClick={() => router.push('/marketplace')} className="w-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold py-3.5 rounded-xl shadow-md active:scale-[0.98] transition-transform mb-2.5">Browse marketplace</button>
+          <button onClick={resetForm} className="w-full bg-surface-container-low text-on-surface font-label-lg text-label-lg font-semibold py-3.5 rounded-xl border border-[#EADFCC]">Post another listing</button>
         </div>
       </div>
-    </>
-  )
+    )
+  }
 
-  // Success screen
-  if (done) return (
-    <>
-      <style>{css}</style>
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-        <div style={{ background: 'var(--bg-card)', borderRadius: '28px', padding: '48px 36px', textAlign: 'center', maxWidth: '400px', width: '100%', border: '2px solid var(--border)', boxShadow: '0 12px 40px rgba(124,92,252,0.16)' }}>
-          <div style={{ width: '80px', height: '80px', background: 'linear-gradient(135deg, #FFF6DD, #FFC83D)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '36px', margin: '0 auto 24px', boxShadow: '0 4px 20px rgba(255,200,61,0.3)' }}>⏳</div>
-          <h2 className="kalam" style={{ color: 'var(--text-primary)', fontSize: '26px', marginBottom: '8px' }}>Listing submitted!</h2>
-          <div style={{ background: '#FFF6DD', border: '2px solid #FDE68A', borderRadius: '14px', padding: '16px', marginBottom: '20px' }}>
-            <div style={{ fontSize: '13px', color: '#92400E', fontWeight: '700', marginBottom: '6px' }}>🔍 Under review</div>
-            <div style={{ fontSize: '12px', color: '#A16207', lineHeight: 1.7, fontWeight: '500' }}>
-              Your listing is being reviewed and will go live once approved — usually within a few hours.
-            </div>
-          </div>
-          <button onClick={() => router.push('/marketplace')} className="btn-3d" style={{ background: 'linear-gradient(135deg,#00B86B,#2D7FF9)', color: '#fff', border: 'none', borderRadius: '14px', padding: '14px 24px', fontSize: '15px', fontWeight: '800', cursor: 'pointer', width: '100%', marginBottom: '10px', fontFamily: 'Poppins, sans-serif', boxShadow: '0 4px 0 #009957' }}>
-            Browse marketplace →
-          </button>
-          <button onClick={() => { setDone(false); setStep(0); setForm({ title: '', subtitle: '', price: '', origPrice: '', condition: 'Good', category: 'textbook', location: '' }); setImages([]); setPreviews([]); setLocationSearch('') }}
-            style={{ background: 'transparent', color: '#00B86B', border: '2px solid #00B86B', borderRadius: '14px', padding: '13px 24px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', width: '100%' }}>
-            Post another listing
-          </button>
-        </div>
-      </div>
-    </>
-  )
+  const publishLabel = loading ? (uploadProgress || 'Publishing…') : 'Publish'
+  const publishDisabled = loading
 
   return (
-    <>
-      <style>{css}</style>
-      <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
+    <div className={wrap + ' flex flex-col'}>
 
-        {/* Nav */}
-        <nav style={{ background: 'var(--nav-bg)', borderBottom: '2px solid var(--border)', padding: '0 20px', height: '60px', display: 'flex', alignItems: 'center', gap: '12px', position: 'sticky', top: 0, zIndex: 50, boxShadow: 'var(--shadow-nav)' }}>
-          <button onClick={() => step > 0 ? setStep(step - 1) : router.push('/marketplace')}
-            style={{ background: 'var(--bg-card)', border: '2px solid var(--border)', width: '38px', height: '38px', borderRadius: '12px', cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)', flexShrink: 0 }}>←</button>
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-              <img src="/logo.png" alt="BuddyBooks" style={{ height: '26px', width: 'auto' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-              <span className="kalam" style={{ fontSize: '15px', color: '#00B86B' }}>Post a listing</span>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '4px', fontWeight: '600' }}>Step {step + 1} of 3</span>
+      {/* Grading guide */}
+      {showGuide && (
+        <div className="fixed inset-0 z-[70] bg-black/50 backdrop-blur-sm flex items-center justify-center p-5" onClick={() => setShowGuide(false)}>
+          <div className="bg-surface-container-lowest rounded-2xl p-6 max-w-sm w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+            <h3 className="font-headline-md text-headline-md text-on-surface mb-3">Condition guide</h3>
+            <div className="flex flex-col gap-2.5 mb-4">
+              {conditions.map(c => (
+                <div key={c} className="bg-surface-container-low rounded-xl p-3">
+                  <p className="font-label-lg text-label-lg font-semibold text-on-surface">{c}</p>
+                  <p className="font-body-sm text-body-sm text-on-surface-variant">{conditionDesc[c]}</p>
+                </div>
+              ))}
             </div>
-            <div style={{ height: '4px', background: 'var(--border)', borderRadius: '99px', overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${((step + 1) / 3) * 100}%`, background: 'linear-gradient(90deg, #00B86B, #2D7FF9)', borderRadius: '99px', transition: 'width 0.4s ease' }} />
-            </div>
+            <p className="font-body-sm text-body-sm text-on-surface-variant mb-4">Be honest. Photos must match, or the buyer may not buy when you meet.</p>
+            <button onClick={() => setShowGuide(false)} className="w-full bg-primary-container text-on-primary font-label-lg text-label-lg font-bold py-3 rounded-xl">Got it</button>
           </div>
-        </nav>
-
-        {/* Step indicators */}
-        <div style={{ background: 'var(--nav-bg)', borderBottom: '2px solid var(--border)', padding: '12px 20px', display: 'flex', gap: '4px' }}>
-          {STEPS.map((s, i) => (
-            <div key={s} onClick={() => i < step ? setStep(i) : null}
-              style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px', cursor: i < step ? 'pointer' : 'default', opacity: i > step ? 0.4 : 1 }}>
-              <div style={{ width: '22px', height: '22px', borderRadius: '50%', background: i <= step ? '#00B86B' : 'var(--border)', color: i <= step ? '#fff' : 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: '800', flexShrink: 0, transition: 'all 0.2s' }}>
-                {i < step ? '✓' : i + 1}
-              </div>
-              <span style={{ fontSize: '11px', fontWeight: i === step ? '700' : '500', color: i === step ? 'var(--text-primary)' : 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{s}</span>
-              {i < STEPS.length - 1 && <div style={{ flex: 1, height: '2px', background: i < step ? '#00B86B' : 'var(--border)', marginLeft: '4px', transition: 'background 0.3s' }} />}
-            </div>
-          ))}
         </div>
+      )}
 
-        <div style={{ maxWidth: '560px', margin: '24px auto', padding: '0 16px 40px' }}>
+      {/* Header */}
+      <header className="fixed top-0 inset-x-0 z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(45,30,18,0.04)]">
+        <div className="h-16 px-margin md:px-margin-desktop flex items-center justify-between gap-space-sm max-w-md mx-auto md:max-w-[1100px]">
+          <div className="flex items-center gap-space-xs min-w-0">
+            <button aria-label="Back" onClick={() => router.push('/marketplace')} className="min-w-[44px] min-h-[44px] -ml-space-xs flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container active:scale-95 transition-transform">
+              <span className="material-symbols-outlined text-[24px]">arrow_back</span>
+            </button>
+            {logoOk ? (
+              <img alt="Pageplus" className="h-8 w-auto object-contain cursor-pointer" src="/pageplus-logo.png" onError={() => setLogoOk(false)} onClick={() => router.push('/')} />
+            ) : (
+              <span className="font-headline-sm text-headline-sm text-on-surface cursor-pointer" onClick={() => router.push('/')}>Page<span className="text-secondary-container">plus</span></span>
+            )}
+            <h1 className="font-headline-sm text-headline-sm text-on-surface truncate ml-1">Post a listing</h1>
+          </div>
+          <a aria-label="Get help" href={WA_HELP_LINK} target="_blank" rel="noopener noreferrer" className="w-11 h-11 flex items-center justify-center text-on-surface-variant hover:text-primary rounded-full transition-colors">
+            <span className="material-symbols-outlined text-[22px]">help_outline</span>
+          </a>
+        </div>
+      </header>
 
-          {/* STEP 0 — Photos */}
-          {step === 0 && (
-            <div className="step-content">
-              <div className="card">
-                <div className="kalam" style={{ fontSize: '18px', color: 'var(--text-primary)', marginBottom: '4px' }}>📷 Add photos</div>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px', fontWeight: '500' }}>Minimum 2 photos required. Must include MRP/price tag.</p>
-                <div style={{ background: '#FFF6DD', border: '2px solid #FDE68A', borderRadius: '12px', padding: '12px 14px', marginBottom: '16px', display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: '16px', flexShrink: 0 }}>📋</span>
-                  <div style={{ fontSize: '12px', color: '#92400E', lineHeight: 1.7, fontWeight: '500' }}>
-                    <div style={{ fontWeight: '800', marginBottom: '3px' }}>Required photos:</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ color: images.length >= 1 ? '#00B86B' : '#D97706' }}>{images.length >= 1 ? '✅' : '⏺'}</span> Photo 1 — front cover of the book
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ color: images.length >= 2 ? '#00B86B' : '#D97706' }}>{images.length >= 2 ? '✅' : '⏺'}</span> Photo 2 — MRP / price tag clearly visible
-                    </div>
-                    {images.length >= 3 && <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ color: '#00B86B' }}>✅</span> Photo 3 — optional extra</div>}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginBottom: '16px' }}>
-                  {previews.map((src, i) => (
-                    <div key={i} className="photo-slot" style={{ position: 'relative' }}>
-                      <img src={src} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '14px', border: i === 0 ? '3px solid #00B86B' : i === 1 ? '3px solid #FF6B2C' : '2px solid var(--border)' }} />
-                      <span style={{ position: 'absolute', bottom: '6px', left: '6px', fontSize: '8px', background: i === 0 ? '#00B86B' : i === 1 ? '#FF6B2C' : 'rgba(0,0,0,0.5)', color: '#fff', padding: '2px 6px', borderRadius: '99px', fontWeight: '800' }}>
-                        {i === 0 ? 'COVER' : i === 1 ? 'MRP TAG' : 'EXTRA'}
-                      </span>
-                      <button onClick={() => removeImage(i)} style={{ position: 'absolute', top: '-7px', right: '-7px', width: '24px', height: '24px', borderRadius: '50%', background: '#E24B4A', color: '#fff', border: '2.5px solid var(--bg-card)', cursor: 'pointer', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
-                    </div>
-                  ))}
-                  {images.length < 3 && (
-                    <label className="add-photo photo-slot" style={{ border: `2px dashed ${images.length < 2 ? '#FF6B2C' : 'var(--border)'}`, borderRadius: '14px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: 'var(--text-muted)', gap: '4px', transition: 'all 0.15s', background: images.length < 2 ? 'rgba(255,107,44,0.05)' : 'transparent' }}>
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                      <span style={{ fontSize: '10px', fontWeight: '700', color: images.length === 0 ? '#D97706' : images.length === 1 ? '#D97706' : 'var(--text-muted)' }}>
-                        {images.length === 0 ? 'Cover photo' : images.length === 1 ? 'MRP tag photo' : 'Add photo'}
-                      </span>
-                      <input type="file" accept="image/*" multiple onChange={handleImageSelect} style={{ display: 'none' }} />
-                    </label>
-                  )}
-                </div>
-                <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                  {[0, 1, 2].map(i => (
-                    <div key={i} style={{ height: '4px', flex: 1, borderRadius: '99px', background: images.length > i ? (i < 2 ? '#00B86B' : '#A89FC0') : 'var(--border)', transition: 'background 0.3s' }} />
-                  ))}
-                  <span style={{ fontSize: '11px', color: images.length >= 2 ? '#00B86B' : '#D97706', fontWeight: '700', flexShrink: 0 }}>{images.length}/3 {images.length < 2 ? `(${2 - images.length} more needed)` : '✓'}</span>
+      <main className="flex-1 w-full max-w-md mx-auto md:max-w-[1100px] pt-16 pb-40 lg:pb-12 px-margin md:px-margin-desktop">
+        <div className="pt-space-md lg:pt-6 lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
+
+          {/* LEFT: the form */}
+          <div className="lg:col-span-8 flex flex-col gap-space-md">
+
+            {/* Banner + progress */}
+            <section className="bg-surface-container-low rounded-xl p-space-md shadow-sm">
+              <div className="flex items-center justify-between gap-space-xs mb-space-xs">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary-fixed text-on-primary-fixed font-label-micro text-label-micro uppercase tracking-wider">
+                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>0% Commission
+                </span>
+                <span className="font-label-md text-label-md text-on-surface-variant font-medium">{doneCount} of 4 done</span>
+              </div>
+              <h2 className="font-headline-md text-headline-md text-on-surface mt-1">List in 2 Minutes</h2>
+              <p className="font-body-sm text-body-sm text-on-surface-variant mt-1 leading-relaxed">Free to list, and you keep 100% of the price. Every listing is checked by our team before it goes live.</p>
+              <div className="w-full bg-surface-container-highest h-1.5 rounded-full mt-3 overflow-hidden">
+                <div className="bg-primary h-full rounded-full transition-all duration-500 ease-out" style={{ width: progress + '%' }}></div>
+              </div>
+              {draftMsg && <p className="font-label-md text-label-md text-primary mt-2">{draftMsg}</p>}
+            </section>
+
+            {/* Book details */}
+            <section id="sec-title" className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm">
+              <h2 className="font-headline-sm text-headline-sm text-on-surface">Book details</h2>
+              <div>
+                <label className={labelCls}>Title *</label>
+                <input value={form.title} onChange={e => update('title', e.target.value)} placeholder="e.g. NCERT Physics Part 1 — Class 12" type="text" className={inputBase + (touched && errs.title ? inputBad : inputOk)} />
+                {touched && errs.title && <p className="font-body-sm text-body-sm text-error mt-1">{errs.title}</p>}
+              </div>
+              <div>
+                <label className={labelCls}>Subtitle <span className="normal-case tracking-normal font-normal">(optional)</span></label>
+                <input value={form.subtitle} onChange={e => update('subtitle', e.target.value)} placeholder="e.g. 2023 edition, lightly used" type="text" className={inputBase + inputOk} />
+              </div>
+              <div>
+                <label className={labelCls}>Category *</label>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {categories.map(cat => {
+                    const on = form.category === cat
+                    return (
+                      <button key={cat} type="button" onClick={() => update('category', cat)}
+                        className={'text-left p-3 rounded-xl transition-colors ' + (on ? 'bg-[#FDE7D8] border-[1.5px] border-[#E8632B]' : 'bg-white border border-[#EADFCC] hover:bg-surface-container-low')}>
+                        <div className="text-[22px] leading-none mb-1">{emojis[cat]}</div>
+                        <div className={'font-label-md text-label-md font-semibold capitalize ' + (on ? 'text-[#C4501A]' : 'text-on-surface')}>{cat}</div>
+                        <div className="font-body-sm text-[11px] text-on-surface-variant">{catDesc[cat]}</div>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
-              {images.length < 2 && (
-                <div style={{ background: '#FEF2F2', border: '2px solid #FCA5A5', borderRadius: '12px', padding: '12px 16px', marginBottom: '14px', fontSize: '12px', color: '#E24B4A', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}>
-                  <span>⚠️</span>
-                  <span>Add at least 2 photos — cover + MRP tag. Listings without price proof may be rejected.</span>
-                </div>
-              )}
-              <button onClick={nextStep} disabled={images.length < 2} className="btn-3d"
-                style={{ width: '100%', background: images.length >= 2 ? 'linear-gradient(135deg,#00B86B,#2D7FF9)' : '#ccc', color: '#fff', border: 'none', borderRadius: '14px', padding: '15px', fontSize: '15px', fontWeight: '800', cursor: images.length < 2 ? 'not-allowed' : 'pointer', fontFamily: 'Poppins, sans-serif', boxShadow: images.length >= 2 ? '0 4px 0 #009957' : 'none' }}>
-                {images.length < 2 ? `Add ${2 - images.length} more photo${2 - images.length > 1 ? 's' : ''} to continue` : 'Continue → Item details'}
-              </button>
-            </div>
-          )}
+            </section>
 
-          {/* STEP 1 — Details */}
-          {step === 1 && (
-            <div className="step-content">
-              <div className="card">
-                <div className="kalam" style={{ fontSize: '18px', color: 'var(--text-primary)', marginBottom: '4px' }}>📝 Item details</div>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px', fontWeight: '500' }}>Tell buyers what you are selling.</p>
-                <div style={{ marginBottom: '16px' }}>
-                  <label className="label">Title *</label>
-                  <input value={form.title} onChange={e => update('title', e.target.value)} placeholder="e.g. NCERT Physics Part 1 — Class 12" className="input" />
-                </div>
-                <div style={{ marginBottom: '20px' }}>
-                  <label className="label">Subtitle <span style={{ color: 'var(--text-muted)', fontWeight: '400', textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
-                  <input value={form.subtitle} onChange={e => update('subtitle', e.target.value)} placeholder="e.g. 2023 edition, lightly used" className="input" />
-                </div>
-                <div style={{ marginBottom: '20px' }}>
-                  <label className="label">Category *</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                    {categories.map(cat => (
-                      <button key={cat} onClick={() => update('category', cat)} className={`cat-btn${form.category === cat ? ' active' : ''}`}>
-                        <div style={{ fontSize: '22px', marginBottom: '4px' }}>{emojis[cat]}</div>
-                        <div style={{ fontSize: '12px', fontWeight: '700', color: form.category === cat ? '#009957' : 'var(--text-primary)', fontFamily: 'Poppins, sans-serif', textTransform: 'capitalize' }}>{cat}</div>
-                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '1px', fontWeight: '500' }}>{catDesc[cat]}</div>
-                      </button>
-                    ))}
-                  </div>
+            {/* Photos */}
+            <section id="sec-photos" className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+              <div className="flex items-baseline justify-between mb-1">
+                <h2 className="font-headline-sm text-headline-sm text-on-surface">Upload book photos</h2>
+                <span className="font-label-md text-label-md text-secondary font-semibold">{photoCount} of {MAX_PHOTOS} added</span>
+              </div>
+              <p className="font-body-sm text-body-sm text-on-surface-variant mb-space-sm">Add a clear cover photo and a photo of the MRP / price tag. Listings without price proof may be rejected.</p>
+              <div className="grid grid-cols-3 gap-2.5">
+                {SLOTS.slice(0, MAX_PHOTOS).map((slot, i) => (
+                  previews[i] ? (
+                    <div key={i} className="relative rounded-xl overflow-hidden aspect-[4/3] bg-surface-container shadow-sm">
+                      <img src={previews[i]!} alt={slot.label} className="absolute inset-0 w-full h-full object-cover" />
+                      <div className="absolute top-1.5 left-1.5 right-1.5 flex items-center justify-between">
+                        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-surface-container-lowest/90 text-primary font-label-micro text-[10px] uppercase font-bold">
+                          <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>{slot.label}
+                        </span>
+                        <button type="button" aria-label={'Remove ' + slot.label + ' photo'} onClick={() => removePhoto(i)} className="w-6 h-6 rounded-full bg-inverse-surface/75 text-inverse-on-surface flex items-center justify-center">
+                          <span className="material-symbols-outlined text-[14px]">close</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <label key={i} className={'rounded-xl aspect-[4/3] flex flex-col items-center justify-center gap-1 p-2 text-center cursor-pointer transition-colors ' + (slot.required ? 'bg-surface-container-low hover:bg-surface-container-high' : 'bg-surface-container-low hover:bg-surface-container-high') + (touched && slot.required ? ' ring-1 ring-error' : '')}>
+                      <span className="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-primary">
+                        <span className="material-symbols-outlined text-[20px]">add_a_photo</span>
+                      </span>
+                      <span className="font-label-md text-label-md text-on-surface font-semibold">{slot.label}</span>
+                      <span className="font-label-micro text-[10px] text-on-surface-variant uppercase tracking-wide">{slot.required ? 'Required' : 'Optional'}</span>
+                      <input type="file" accept="image/*" onChange={e => pickPhoto(i, e)} className="hidden" />
+                    </label>
+                  )
+                ))}
+              </div>
+              {touched && errs.photos && <p className="font-body-sm text-body-sm text-error mt-2">{errs.photos}</p>}
+            </section>
+
+            {/* Condition */}
+            <section className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm">
+              <div className="flex items-center justify-between mb-space-xs">
+                <h2 className="font-headline-sm text-headline-sm text-on-surface">Select book condition</h2>
+                <button type="button" onClick={() => setShowGuide(true)} className="text-secondary font-label-md text-label-md flex items-center gap-0.5">
+                  <span className="material-symbols-outlined text-[16px]">info</span>Guide
+                </button>
+              </div>
+              <div className="flex flex-col gap-2">
+                {conditions.map(c => {
+                  const on = form.condition === c
+                  return (
+                    <button key={c} type="button" onClick={() => update('condition', c)} role="radio" aria-checked={on}
+                      className={'flex items-start gap-3 p-3.5 rounded-xl text-left transition-colors ' + (on ? 'bg-surface-container-low ring-1 ring-primary-container' : 'bg-surface hover:bg-surface-container-low')}>
+                      <span className={'w-5 h-5 mt-0.5 rounded-full shrink-0 flex items-center justify-center ' + (on ? 'bg-primary-container text-on-primary' : 'border-2 border-outline-variant bg-white')}>
+                        {on && <span className="material-symbols-outlined text-[14px]">check</span>}
+                      </span>
+                      <span className="flex-1">
+                        <span className="flex items-center justify-between gap-2">
+                          <span className="font-label-lg text-label-lg text-on-surface font-semibold">{c}</span>
+                          {conditionTag[c] && <span className="px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-label-micro text-[10px] uppercase font-bold">{conditionTag[c]}</span>}
+                        </span>
+                        <span className="block font-body-sm text-body-sm text-on-surface-variant mt-0.5">{conditionDesc[c]}</span>
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </section>
+
+            {/* Price */}
+            <section id="sec-price" className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-3">
+              <div className="flex items-baseline justify-between">
+                <h2 className="font-headline-sm text-headline-sm text-on-surface">Set selling price</h2>
+                {origNum > 0 && <span className="font-label-md text-label-md text-on-surface-variant">MRP ₹{origNum}</span>}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelCls}>Your price (₹) *</label>
+                  <input type="text" inputMode="numeric" value={form.price} onChange={e => update('price', e.target.value.replace(/\D/g, '').slice(0, 5))} placeholder="160"
+                    className={inputBase + (touched && errs.price ? inputBad : inputOk)} />
                 </div>
                 <div>
-                  <label className="label">Condition *</label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    {conditions.map(c => (
-                      <button key={c} onClick={() => update('condition', c)} className={`cond-btn${form.condition === c ? ' active' : ''}`}>
-                        <div style={{ fontSize: '18px', marginBottom: '4px' }}>{c === 'New' ? '✨' : c === 'Good' ? '👍' : '📖'}</div>
-                        <div style={{ fontSize: '12px', fontWeight: '700', color: form.condition === c ? '#009957' : 'var(--text-primary)', fontFamily: 'Poppins, sans-serif' }}>{c}</div>
-                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px', fontWeight: '500' }}>{conditionDesc[c]}</div>
+                  <label className={labelCls}>Original price / MRP (₹)</label>
+                  <input type="text" inputMode="numeric" value={form.origPrice} onChange={e => update('origPrice', e.target.value.replace(/\D/g, '').slice(0, 5))} placeholder="450"
+                    className={inputBase + (touched && errs.orig ? inputBad : inputOk)} />
+                </div>
+              </div>
+              {touched && errs.price && <p className="font-body-sm text-body-sm text-error -mt-1">{errs.price}</p>}
+              {touched && errs.orig && <p className="font-body-sm text-body-sm text-error -mt-1">{errs.orig}</p>}
+
+              {suggestions.length > 0 && (
+                <div>
+                  <p className="font-label-micro text-label-micro uppercase text-on-surface-variant mb-1.5">Suggestions from your MRP</p>
+                  <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1">
+                    {suggestions.map(s => (
+                      <button key={s.pct} type="button" onClick={() => update('price', String(s.value))}
+                        className={'px-2.5 py-1 rounded-full font-label-md text-label-md whitespace-nowrap active:scale-95 ' + (priceNum === s.value ? 'bg-primary text-on-primary font-semibold' : 'bg-surface-container text-on-surface')}>
+                        ₹{s.value} ({s.pct}% of MRP)
                       </button>
                     ))}
                   </div>
                 </div>
-              </div>
-              <button onClick={nextStep} disabled={!form.title} className="btn-3d"
-                style={{ width: '100%', background: form.title ? 'linear-gradient(135deg,#00B86B,#2D7FF9)' : '#ccc', color: '#fff', border: 'none', borderRadius: '14px', padding: '15px', fontSize: '15px', fontWeight: '800', cursor: form.title ? 'pointer' : 'not-allowed', fontFamily: 'Poppins, sans-serif', boxShadow: form.title ? '0 4px 0 #009957' : 'none' }}>
-                Continue → Pricing & Location
-              </button>
-            </div>
-          )}
+              )}
 
-          {/* STEP 2 — Pricing + Location */}
-          {step === 2 && (
-            <div className="step-content">
-              <div className="card">
-                <div className="kalam" style={{ fontSize: '18px', color: 'var(--text-primary)', marginBottom: '4px' }}>💰 Pricing</div>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px', fontWeight: '500' }}>Set a fair price — buyers are students too!</p>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                  <div>
-                    <label className="label">Your price (₹) *</label>
-                    <div style={{ position: 'relative' }}>
-                      <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: '#00B86B', fontWeight: '800', fontSize: '15px' }}>₹</span>
-                      <input type="number" value={form.price} onChange={e => update('price', e.target.value)} placeholder="180" className="input" style={{ paddingLeft: '28px' }} />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="label">Original price (₹)</label>
-                    <div style={{ position: 'relative' }}>
-                      <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '15px', fontWeight: '700' }}>₹</span>
-                      <input type="number" value={form.origPrice} onChange={e => update('origPrice', e.target.value)} placeholder="320" className="input" style={{ paddingLeft: '28px' }} />
-                    </div>
-                  </div>
+              {discount > 0 && !errs.orig && (
+                <div className="bg-[#2E8B57]/10 text-[#2E8B57] rounded-xl p-3 font-label-md text-label-md font-semibold flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[18px]">sell</span>{discount}% off the MRP. Buyers love a good deal.
                 </div>
-                {discount > 0 && (
-                  <div style={{ background: 'linear-gradient(135deg, #DFFFEF, #B6F5D8)', borderRadius: '12px', padding: '12px 16px', fontSize: '13px', color: '#009957', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px', border: '2px solid rgba(0,184,107,0.2)' }}>
-                    🎉 <span>{discount}% off — buyers love a great deal!</span>
+              )}
+
+              <div className="rounded-lg bg-surface-container-low/70 p-3 space-y-2">
+                <div className="flex justify-between items-center font-body-sm text-body-sm text-on-surface-variant">
+                  <span>Buyer pays you</span><span className="font-medium text-on-surface">₹{priceNum || 0}</span>
+                </div>
+                <div className="flex justify-between items-center font-body-sm text-body-sm text-on-surface-variant">
+                  <span className="flex items-center gap-1">Pageplus fee <span className="px-1.5 bg-primary-fixed text-on-primary-fixed rounded text-[10px] font-bold uppercase">0% free</span></span>
+                  <span className="font-medium text-primary">₹0</span>
+                </div>
+                <div className="flex justify-between items-center pt-2 font-label-lg text-label-lg text-on-surface font-semibold">
+                  <span>You receive</span><span className="font-headline-sm text-headline-sm text-primary font-bold">₹{priceNum || 0}</span>
+                </div>
+                <p className="font-label-micro text-[10px] text-outline text-right">You get the full price from the buyer when you meet.</p>
+              </div>
+            </section>
+
+            {/* Meetup & location */}
+            <section id="sec-location" className="bg-surface-container-lowest rounded-xl p-space-md shadow-sm flex flex-col gap-space-sm">
+              <div className="flex items-center justify-between">
+                <h2 className="font-headline-sm text-headline-sm text-on-surface">Meetup area</h2>
+                <span className="font-label-micro text-label-micro uppercase tracking-wider text-secondary font-bold">Meet nearby</span>
+              </div>
+              <div ref={locationRef} className="relative">
+                <span className="material-symbols-outlined absolute left-3.5 top-1/2 -translate-y-1/2 text-primary text-[20px] pointer-events-none">location_on</span>
+                <input value={locationSearch}
+                  onChange={e => { setLocationSearch(e.target.value); setForm(prev => ({ ...prev, location: e.target.value })); setShowLocationDropdown(true) }}
+                  onFocus={() => setShowLocationDropdown(true)}
+                  placeholder="Type your sector or area…" type="text"
+                  className={inputBase + 'pl-11 pr-10 ' + (touched && errs.location ? inputBad : form.location ? 'border-[#2E8B57]' : inputOk)} />
+                {form.location && (
+                  <button type="button" aria-label="Clear location" onClick={() => { setForm(prev => ({ ...prev, location: '' })); setLocationSearch(''); setShowLocationDropdown(true) }} className="absolute right-3 top-1/2 -translate-y-1/2 text-outline">
+                    <span className="material-symbols-outlined text-[18px]">close</span>
+                  </button>
+                )}
+                {showLocationDropdown && filteredLocations.length > 0 && (
+                  <div className="absolute z-30 left-0 right-0 top-12 bg-surface-container-lowest rounded-xl shadow-lg overflow-y-auto max-h-60 border border-outline-variant">
+                    {filteredLocations.map(loc => (
+                      <button key={loc} type="button" onClick={() => selectLocation(loc)} className="w-full flex items-center gap-2.5 px-4 py-3 text-left active:bg-surface-container border-b border-[#EADFCC]/70 last:border-0">
+                        <span className="material-symbols-outlined text-[16px] text-primary">location_on</span>
+                        <span className="font-label-md text-label-md text-on-surface">
+                          <b className="font-semibold">{loc.split(',')[0]}</b>
+                          <span className="text-on-surface-variant">{loc.includes(',') ? ', ' + loc.split(',').slice(1).join(',').trim() : ''}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {showLocationDropdown && locationSearch.length > 0 && filteredLocations.length === 0 && (
+                  <div className="absolute z-30 left-0 right-0 top-12 bg-surface-container-lowest rounded-xl shadow-lg border border-outline-variant p-4 text-center font-body-sm text-body-sm text-on-surface-variant">
+                    No matches. Try &quot;Sector 22&quot; or &quot;Mohali&quot;.
                   </div>
                 )}
               </div>
+              {touched && errs.location && <p className="font-body-sm text-body-sm text-error -mt-1">{errs.location}</p>}
+              <div className="flex items-start gap-2.5 bg-surface-container-low p-3 rounded-lg">
+                <span className="material-symbols-outlined text-[20px] text-primary mt-0.5 shrink-0">handshake</span>
+                <p className="font-body-sm text-body-sm text-on-surface-variant">Meet the buyer in a public place nearby. Agree the time and place in the Pageplus chat. The buyer checks the book, then pays you directly.</p>
+              </div>
+            </section>
 
-              <div className="card">
-                <div className="kalam" style={{ fontSize: '18px', color: 'var(--text-primary)', marginBottom: '4px' }}>📍 Location</div>
-                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px', fontWeight: '500' }}>Where can the buyer meet you?</p>
-                <div ref={locationRef} style={{ position: 'relative' }}>
-                  <div style={{ position: 'relative' }}>
-                    <span style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', fontSize: '16px', pointerEvents: 'none' }}>📍</span>
-                    <input value={locationSearch}
-                      onChange={e => { setLocationSearch(e.target.value); setForm(prev => ({ ...prev, location: e.target.value })); setShowLocationDropdown(true) }}
-                      onFocus={() => setShowLocationDropdown(true)}
-                      placeholder="Type your sector or area…"
-                      className="input" style={{ paddingLeft: '42px', paddingRight: form.location ? '36px' : '14px', border: `2px solid ${form.location ? '#00B86B' : 'var(--border)'}` }} />
-                    {form.location && (
-                      <button onClick={() => { setForm(prev => ({ ...prev, location: '' })); setLocationSearch(''); setShowLocationDropdown(true) }}
-                        style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', color: 'var(--text-muted)', padding: 0 }}>×</button>
-                    )}
-                  </div>
-                  {showLocationDropdown && filteredLocations.length > 0 && (
-                    <div style={{ position: 'absolute', top: '50px', left: 0, right: 0, background: 'var(--dropdown-bg)', border: '2px solid var(--border)', borderRadius: '16px', boxShadow: '0 12px 40px rgba(124,92,252,0.16)', zIndex: 100, overflow: 'hidden', maxHeight: '240px', overflowY: 'auto' }}>
-                      {filteredLocations.map(loc => (
-                        <div key={loc} className="loc-item" onClick={() => selectLocation(loc)}
-                          style={{ padding: '11px 16px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-primary)', borderBottom: '1px solid var(--dropdown-border)', display: 'flex', alignItems: 'center', gap: '10px', transition: 'background 0.1s' }}>
-                          <span style={{ fontSize: '14px' }}>📍</span>
-                          <div>
-                            <span style={{ fontWeight: '700' }}>{loc.split(',')[0]}</span>
-                            <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{loc.includes(',') ? ', ' + loc.split(',').slice(1).join(',').trim() : ''}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {showLocationDropdown && locationSearch.length > 0 && filteredLocations.length === 0 && (
-                    <div style={{ position: 'absolute', top: '50px', left: 0, right: 0, background: 'var(--dropdown-bg)', border: '2px solid var(--border)', borderRadius: '16px', padding: '16px', textAlign: 'center', fontSize: '13px', color: 'var(--text-muted)', zIndex: 100 }}>
-                      No matches. Try "Sector 22" or "Mohali".
-                    </div>
-                  )}
+            {/* Privacy note */}
+            <section className="bg-surface-container-low rounded-xl p-3.5 flex items-start gap-3">
+              <span className="material-symbols-outlined text-secondary text-[22px] shrink-0 mt-0.5">forum</span>
+              <div>
+                <h3 className="font-label-md text-label-md text-on-surface font-semibold">Buyers message you in Pageplus</h3>
+                <p className="font-body-sm text-body-sm text-on-surface-variant mt-0.5 leading-relaxed">Chats happen inside the app. We use your number to alert you on WhatsApp when a new message arrives.</p>
+              </div>
+            </section>
+          </div>
+
+          {/* RIGHT (desktop): preview and publish */}
+          <aside className="hidden lg:block lg:col-span-4 lg:sticky lg:top-24 self-start">
+            <div className="bg-surface-container-lowest rounded-xl p-5 shadow-sm">
+              <h3 className="font-headline-md text-headline-md text-on-surface mb-3">Your listing</h3>
+              <div className="flex gap-3 items-center mb-4">
+                <div className="w-14 h-16 rounded-lg bg-primary-fixed/60 overflow-hidden flex items-center justify-center text-[26px] shrink-0">
+                  {previews[0] ? <img src={previews[0]!} alt="" className="w-full h-full object-cover" /> : <span>{emojis[form.category]}</span>}
+                </div>
+                <div className="min-w-0">
+                  <p className="font-label-lg text-label-lg font-semibold text-on-surface truncate">{form.title || 'Book title'}</p>
+                  <p className="font-body-sm text-body-sm text-on-surface-variant truncate capitalize">{form.category} · {form.condition}</p>
+                  <p className="font-headline-sm text-headline-sm text-primary font-bold">₹{priceNum || 0}{origNum > priceNum && priceNum > 0 && <span className="font-body-sm text-body-sm text-outline line-through ml-1.5">₹{origNum}</span>}</p>
                 </div>
               </div>
-
-              {form.title && form.price && form.location && (
-                <div style={{ background: 'var(--bg-card)', borderRadius: '20px', border: '2px solid #00B86B', padding: '18px 20px', marginBottom: '16px', boxShadow: 'var(--shadow-card)' }}>
-                  <div style={{ fontSize: '11px', color: '#00B86B', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '12px' }}>✅ Ready to submit for review</div>
-                  <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
-                    <div style={{ width: '52px', height: '52px', borderRadius: '12px', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', overflow: 'hidden', flexShrink: 0, border: '2px solid var(--border)' }}>
-                      {previews[0] ? <img src={previews[0]} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : emojis[form.category]}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{form.title}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: '500' }}>📍 {form.location} · 📷 {images.length} photos</div>
-                    </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div className="kalam" style={{ fontSize: '20px', color: '#00B86B' }}>₹{form.price}</div>
-                      {form.origPrice && <div style={{ fontSize: '10px', color: 'var(--text-muted)', textDecoration: 'line-through' }}>₹{form.origPrice}</div>}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {uploadProgress && (
-                <div style={{ background: '#DFFFEF', borderRadius: '12px', padding: '12px 16px', marginBottom: '14px', fontSize: '13px', color: '#009957', textAlign: 'center', fontWeight: '700', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                  <div style={{ width: '16px', height: '16px', border: '2px solid #00B86B', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                  {uploadProgress}
-                </div>
-              )}
-
-              <button onClick={submit} disabled={loading || !form.title || !form.price || !form.location} className="btn-3d"
-                style={{ width: '100%', background: loading || !form.title || !form.price || !form.location ? '#ccc' : 'linear-gradient(135deg,#00B86B,#2D7FF9)', color: '#fff', border: 'none', borderRadius: '14px', padding: '16px', fontSize: '16px', fontWeight: '800', cursor: loading || !form.title || !form.price || !form.location ? 'not-allowed' : 'pointer', fontFamily: 'Poppins, sans-serif', boxShadow: loading || !form.title || !form.price || !form.location ? 'none' : '0 4px 0 #009957' }}>
-                {loading ? '⏳ Uploading…' : '🚀 Submit for review'}
+              <div className="font-body-sm text-body-sm text-on-surface-variant flex flex-col gap-1.5 mb-4">
+                <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-[16px] text-primary">location_on</span>{form.location || 'Meetup area not set'}</span>
+                <span className="flex items-center gap-1.5"><span className="material-symbols-outlined text-[16px] text-primary">photo_camera</span>{photoCount} photo{photoCount !== 1 ? 's' : ''}</span>
+              </div>
+              <button onClick={publish} disabled={publishDisabled} className="w-full min-h-[48px] bg-primary-container text-on-primary font-label-lg text-label-lg font-bold rounded-xl shadow-md active:scale-[0.98] transition-transform flex items-center justify-center gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed">
+                <span>{publishLabel}</span>{!loading && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
               </button>
-              <p style={{ textAlign: 'center', fontSize: '11px', color: 'var(--text-muted)', marginTop: '10px', fontWeight: '500' }}>Free to post · Usually approved within a few hours</p>
+              <button onClick={saveDraft} className="w-full mt-2 py-2.5 text-on-surface-variant font-label-md text-label-md hover:text-primary">Save draft</button>
+              <p className="font-body-sm text-[12px] text-on-surface-variant text-center mt-1">Free to post · Usually approved within a few hours</p>
             </div>
-          )}
+          </aside>
         </div>
-      </div>
-    </>
+      </main>
+
+      {/* Bottom action bar (phones and tablets) */}
+      <aside aria-label="Listing action bar" className="lg:hidden fixed bottom-4 inset-x-4 z-40 max-w-md mx-auto">
+        <div className="bg-inverse-surface text-inverse-on-surface rounded-2xl p-3 shadow-[0_16px_36px_-6px_rgba(31,29,27,0.32)] flex items-center justify-between gap-3">
+          <div className="min-w-0 pl-1.5">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-secondary-container"></span>
+              <span className="font-label-micro text-label-micro uppercase tracking-wider text-inverse-on-surface/80 truncate capitalize">{form.category}</span>
+            </div>
+            <p className="font-headline-sm text-headline-sm text-inverse-on-surface leading-tight truncate">₹{priceNum || 0} Listing</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <button type="button" onClick={saveDraft} className="h-11 px-3 rounded-xl text-inverse-on-surface/90 font-label-md text-label-md active:scale-95 transition-transform">Draft</button>
+            <button onClick={publish} disabled={publishDisabled} className="h-11 px-4 rounded-xl bg-primary-container text-on-primary font-label-lg text-label-lg font-semibold flex items-center gap-1.5 shadow-md active:scale-95 transition-transform disabled:opacity-60 disabled:cursor-not-allowed">
+              <span className="max-w-[120px] truncate">{publishLabel}</span>{!loading && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
+            </button>
+          </div>
+        </div>
+      </aside>
+    </div>
   )
 }
