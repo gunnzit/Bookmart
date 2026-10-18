@@ -76,6 +76,7 @@ export default function ListingPage() {
   const [savingWishlist, setSavingWishlist] = useState(false)
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [showTiers, setShowTiers] = useState(false)
+  const [chatBusy, setChatBusy] = useState(false)
   const [toast, setToast] = useState('')
 
   const [reviews, setReviews] = useState<any[]>([])
@@ -180,9 +181,27 @@ export default function ListingPage() {
     window.open('https://wa.me/' + ADMIN_WA + '?text=' + encodeURIComponent(text), '_blank')
   }
 
+  async function startChat(listingId: string) {
+    if (chatBusy) return
+    setChatBusy(true)
+    try {
+      const res = await fetch('/api/chat/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (res.ok && d.id) { router.push('/messages/' + d.id); return }
+      alert(typeof d.error === 'string' && d.error.length < 120 ? d.error : 'Could not start the chat. Please try again.')
+    } catch {
+      alert('Could not start the chat. Please check your connection.')
+    }
+    setChatBusy(false)
+  }
+
   function openChat() {
     if (!isSignedIn) { openSignIn(); return }
-    router.push('/messages/new?listing=' + id)
+    startChat(id)
   }
 
   async function handleFeaturePayment(tier: string) {

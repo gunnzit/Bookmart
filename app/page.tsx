@@ -51,6 +51,7 @@ export default function HomePage() {
   const [school, setSchool] = useState('Shivalik Public School')
   const [cls, setCls] = useState(5)
   const [listings, setListings] = useState<any[]>([])
+  const [chatBusy, setChatBusy] = useState(false)
   const [saved, setSaved] = useState<Set<string>>(new Set())
   const [cart, setCart] = useState<{ selectedClass: number; items: string[]; kitSubtotal: number }[]>([])
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -121,11 +122,29 @@ export default function HomePage() {
     } catch {}
   }
 
+  async function startChat(listingId: string) {
+    if (chatBusy) return
+    setChatBusy(true)
+    try {
+      const res = await fetch('/api/chat/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (res.ok && d.id) { router.push('/messages/' + d.id); return }
+      alert(typeof d.error === 'string' && d.error.length < 120 ? d.error : 'Could not start the chat. Please try again.')
+    } catch {
+      alert('Could not start the chat. Please check your connection.')
+    }
+    setChatBusy(false)
+  }
+
   function openChat(l: any, e: React.MouseEvent) {
     e.stopPropagation()
     if (!isSignedIn) { openSignIn(); return }
     if (user?.id === l.sellerId) { router.push('/listing/' + l.id); return }
-    router.push('/messages/new?listing=' + l.id)
+    startChat(l.id)
   }
 
   function goSell() {
