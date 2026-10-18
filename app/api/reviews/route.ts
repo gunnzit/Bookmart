@@ -3,6 +3,24 @@ import { prisma, getMe } from '@/lib/chat'
 
 export const dynamic = 'force-dynamic'
 
+// Who may review a seller: only a buyer who really talked to them about that book.
+// true  = the buyer AND the seller must each have sent at least one message in that chat
+// false = the buyer sending one message is enough
+const REQUIRE_SELLER_REPLY = true
+
+async function hasChatted(buyerId: string, sellerId: string, listingId: string): Promise<boolean> {
+  const conv = await prisma.conversation.findUnique({
+    where: { listingId_buyerId: { listingId, buyerId } },
+    select: { id: true },
+  })
+  if (!conv) return false
+  const fromBuyer = await prisma.message.count({ where: { conversationId: conv.id, senderId: buyerId } })
+  if (fromBuyer === 0) return false
+  if (!REQUIRE_SELLER_REPLY) return true
+  const fromSeller = await prisma.message.count({ where: { conversationId: conv.id, senderId: sellerId } })
+  return fromSeller > 0
+}
+
 // GET /api/reviews?sellerId=xxx — public. Only the reviewer's name is sent, never ids.
 export async function GET(request: Request) {
   try {
@@ -17,7 +35,28 @@ export async function GET(request: Request) {
       take: 200,
     })
     const avg = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0
-    return NextResponse.json({ reviews, avg: Math.round(avg * 10) / 10, total: reviews.length })
+
+    // Optional: ?listingId=… also says whether the signed-in person may review this seller for that book
+    let canReview = false
+    let reason: string = 'signin'
+    const listingId = searchParams.get('listingId')
+    if (listingId) {
+      const me = await getMe().catch(() => null)
+      if (!me) {
+        reason = 'signin'
+      } else if (me.id === sellerId) {
+        reason = 'own'
+      } else if (await prisma.review.findFirst({ where: { reviewerId: me.id, listingId }, select: { id: true } })) {
+        reason = 'done'
+      } else if (!(await hasChatted(me.id, sellerId, listingId))) {
+        reason = 'chat_first'
+      } else {
+        canReview = true
+        reason = 'ok'
+      }
+    }
+
+    return NextResponse.json({ reviews, avg: Math.round(avg * 10) / 10, total: reviews.length, canReview, reason })
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 })
   }
@@ -45,6 +84,11 @@ export async function POST(request: Request) {
 
     if (listing.sellerId === me.id) {
       return NextResponse.json({ error: 'Cannot review yourself' }, { status: 400 })
+    }
+
+    // Only people who chatted with the seller about this book
+    if (!(await hasChatted(me.id, listing.sellerId, listingId))) {
+      return NextResponse.json({ error: 'chat_first' }, { status: 403 })
     }
 
     // One review per person per listing

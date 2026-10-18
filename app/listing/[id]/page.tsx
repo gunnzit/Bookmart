@@ -89,6 +89,8 @@ export default function ListingPage() {
   const [reviewComment, setReviewComment] = useState('')
   const [submittingReview, setSubmittingReview] = useState(false)
   const [reviewDone, setReviewDone] = useState(false)
+  const [canReview, setCanReview] = useState(false)
+  const [reviewReason, setReviewReason] = useState('')
 
   useEffect(() => {
     fetch('/api/listings/' + id + '?track=true')
@@ -98,9 +100,9 @@ export default function ListingPage() {
         if (data && !data.error) {
           setForm({ title: data.title, subtitle: data.subtitle || '', price: data.price, origPrice: data.origPrice || '', condition: data.condition, location: data.location })
           if (data.sellerId) {
-            fetch('/api/reviews?sellerId=' + data.sellerId)
+            fetch('/api/reviews?sellerId=' + data.sellerId + '&listingId=' + id)
               .then(r => r.json())
-              .then(rd => { if (rd.reviews) { setReviews(rd.reviews); setReviewAvg(rd.avg); setReviewTotal(rd.total) } })
+              .then(rd => { if (rd.reviews) { setReviews(rd.reviews); setReviewAvg(rd.avg); setReviewTotal(rd.total); setCanReview(!!rd.canReview); setReviewReason(rd.reason || '') } })
               .catch(() => {})
           }
           fetch('/api/listings?t=' + Date.now(), { cache: 'no-store' })
@@ -276,9 +278,10 @@ export default function ListingPage() {
     const res = await fetch('/api/reviews', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reviewerId: user.id, sellerId: listing.sellerId, listingId: id, rating: reviewRating, comment: reviewComment }),
+      body: JSON.stringify({ listingId: id, rating: reviewRating, comment: reviewComment }),
     })
     const data = await res.json()
+    if (data.error === 'chat_first') { alert('You can review the seller after you have chatted with them about this book.'); setSubmittingReview(false); return }
     if (data.error === 'already_reviewed') { alert('You have already reviewed this listing'); setSubmittingReview(false); return }
     if (data.id) {
       setReviews(prev => [{ ...data, reviewer: { name: user.fullName } }, ...prev])
@@ -646,10 +649,13 @@ export default function ListingPage() {
                 <span className="text-[12px] text-[#9A908A]">No reviews yet</span>
               )}
             </div>
-            {!isOwner && isSignedIn && !reviewDone && (
+            {!isOwner && isSignedIn && !reviewDone && canReview && (
               <button onClick={() => setShowReviewForm(s => !s)} className={'px-4 py-2 rounded-full text-[13px] font-semibold shrink-0 active:scale-95 transition-transform ' + (showReviewForm ? 'bg-[#FFF1EA] text-[#1E1B19]' : 'bg-white ' + SHADOW)}>
                 {showReviewForm ? 'Cancel' : 'Write a review'}
               </button>
+            )}
+            {!isOwner && isSignedIn && !reviewDone && !canReview && reviewReason === 'chat_first' && (
+              <p className="text-[12px] text-[#9A908A] max-w-[170px] text-right">Chat with the seller about this book to review them.</p>
             )}
             {!isOwner && !isSignedIn && (
               <button onClick={() => openSignIn()} className={'px-4 py-2 rounded-full text-[13px] font-semibold shrink-0 bg-white active:scale-95 transition-transform ' + SHADOW}>Sign in to review</button>
