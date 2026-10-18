@@ -1,12 +1,9 @@
-import { PrismaClient } from '@prisma/client'
 import { NextResponse } from 'next/server'
+import { prisma, getMe } from '@/lib/chat'
 
 export const dynamic = 'force-dynamic'
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
-const prisma = globalForPrisma.prisma ?? new PrismaClient()
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
-
+// GET /api/reviews?sellerId=xxx — public. Only the reviewer's name is sent, never ids.
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -15,8 +12,9 @@ export async function GET(request: Request) {
 
     const reviews = await prisma.review.findMany({
       where: { sellerId },
-      include: { reviewer: { select: { name: true, clerkId: true } } },
+      include: { reviewer: { select: { name: true } } },
       orderBy: { createdAt: 'desc' },
+      take: 200,
     })
     const avg = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0
     return NextResponse.json({ reviews, avg: Math.round(avg * 10) / 10, total: reviews.length })
@@ -25,29 +23,36 @@ export async function GET(request: Request) {
   }
 }
 
+// POST /api/reviews — leave a review. Who is reviewing comes from the login session, never from the browser.
+// Body: { listingId, rating, comment? }  (the seller is taken from the listing itself)
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const { reviewerId, sellerId, listingId, rating, comment } = body
+    const me = await getMe()
+    if (!me) return NextResponse.json({ error: 'Sign in to leave a review.' }, { status: 401 })
 
-    if (!reviewerId || !sellerId || !rating) {
-      return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
-    }
-    if (reviewerId === sellerId) {
-      return NextResponse.json({ error: 'Cannot review yourself' }, { status: 400 })
-    }
-    if (rating < 1 || rating > 5) {
+    const body = await request.json().catch(() => ({}))
+    const listingId = typeof body.listingId === 'string' ? body.listingId : ''
+    const rating = Number(body.rating)
+    const comment = typeof body.comment === 'string' ? body.comment.replace(/\s+/g, ' ').trim().slice(0, 500) : ''
+
+    if (!listingId) return NextResponse.json({ error: 'Missing listing' }, { status: 400 })
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
       return NextResponse.json({ error: 'Rating must be 1-5' }, { status: 400 })
     }
 
-    // Check if already reviewed this listing
-    if (listingId) {
-      const existing = await prisma.review.findFirst({ where: { reviewerId, listingId } })
-      if (existing) return NextResponse.json({ error: 'already_reviewed' }, { status: 400 })
+    const listing = await prisma.listing.findUnique({ where: { id: listingId }, select: { id: true, sellerId: true } })
+    if (!listing) return NextResponse.json({ error: 'Listing not found' }, { status: 404 })
+
+    if (listing.sellerId === me.id) {
+      return NextResponse.json({ error: 'Cannot review yourself' }, { status: 400 })
     }
 
+    // One review per person per listing
+    const existing = await prisma.review.findFirst({ where: { reviewerId: me.id, listingId } })
+    if (existing) return NextResponse.json({ error: 'already_reviewed' }, { status: 400 })
+
     const review = await prisma.review.create({
-      data: { reviewerId, sellerId, listingId, rating, comment: comment || null },
+      data: { reviewerId: me.id, sellerId: listing.sellerId, listingId, rating, comment: comment || null },
       include: { reviewer: { select: { name: true } } },
     })
     return NextResponse.json(review)
