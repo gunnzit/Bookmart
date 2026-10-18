@@ -1,277 +1,239 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useUser } from '@clerk/nextjs'
+import { useUser, SignInButton } from '@clerk/nextjs'
+
+const SHADOW = 'shadow-[0_6px_20px_rgba(120,70,40,0.08)]'
+const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s)
+const firstName = (n?: string | null) => String(n || '').trim().split(/\s+/)[0] || ''
+
+type Filter = 'all' | 'available' | 'unavailable'
 
 export default function WishlistPage() {
   const router = useRouter()
-  const { isSignedIn, user } = useUser()
+  const { isLoaded, isSignedIn, user } = useUser()
+
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [removing, setRemoving] = useState<string | null>(null)
-  const [filter, setFilter] = useState<'all' | 'available' | 'sold'>('all')
+  const [filter, setFilter] = useState<Filter>('all')
+  const [chatBusy, setChatBusy] = useState('')
+  const [clearing, setClearing] = useState(false)
 
   useEffect(() => {
+    if (!isLoaded) return
     if (!isSignedIn || !user) { setLoading(false); return }
-    fetch(`/api/wishlist?userId=${user.id}`)
+    fetch('/api/wishlist?userId=' + user.id, { cache: 'no-store' })
       .then(res => res.json())
-      .then(data => { if (Array.isArray(data)) setItems(data); setLoading(false) })
-  }, [isSignedIn, user])
+      .then(data => {
+        if (Array.isArray(data)) { setItems(data.filter((i: any) => i.listing)); setError('') }
+        else setError('Could not load your saved books.')
+      })
+      .catch(() => setError('Could not connect. Check your internet and try again.'))
+      .finally(() => setLoading(false))
+  }, [isLoaded, isSignedIn, user])
 
-  async function removeFromWishlist(listingId: string) {
-    setRemoving(listingId)
-    await fetch('/api/wishlist', {
+  const gone = (l: any) => !!l.sold || (!!l.status && l.status !== 'active')
+
+  async function toggle(listingId: string) {
+    const res = await fetch('/api/wishlist', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ userId: user?.id, listingId }),
     })
-    setItems(prev => prev.filter(i => i.listingId !== listingId))
+    return res.ok
+  }
+
+  async function removeOne(listingId: string) {
+    if (removing) return
+    setRemoving(listingId)
+    try {
+      if (await toggle(listingId)) setItems(prev => prev.filter(i => i.listingId !== listingId))
+    } catch {}
     setRemoving(null)
   }
 
-  const filtered = items.filter(i => {
-    if (filter === 'available') return !i.listing?.sold
-    if (filter === 'sold') return i.listing?.sold
-    return true
-  })
+  async function clearUnavailable() {
+    const ids = items.filter(i => gone(i.listing)).map(i => i.listingId)
+    if (!ids.length || clearing) return
+    setClearing(true)
+    try {
+      const results = await Promise.all(ids.map(id => toggle(id).then(ok => (ok ? id : null)).catch(() => null)))
+      const done = new Set(results.filter(Boolean) as string[])
+      setItems(prev => prev.filter(i => !done.has(i.listingId)))
+      setFilter('all')
+    } catch {}
+    setClearing(false)
+  }
 
-  const availableCount = items.filter(i => !i.listing?.sold).length
-  const soldCount = items.filter(i => i.listing?.sold).length
-
-  const css = `
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap');
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #FFF9F0; --bg-card: #fff; --bg-img: #FFF3E0;
-      --nav-bg: #fff; --border: #FFE2C2; --border-strong: #FFCB94;
-      --text-primary: #1A1330; --text-secondary: #6B6280; --text-muted: #A89FC0;
-      --shadow-nav: 0 2px 12px rgba(124,92,252,0.06);
-      --shadow-card: 0 2px 14px rgba(124,92,252,0.08);
-      --shadow-hover: 0 12px 36px rgba(124,92,252,0.16);
+  async function startChat(l: any) {
+    if (chatBusy) return
+    if (user?.id === l.sellerId) { router.push('/listing/' + l.id); return }
+    setChatBusy(l.id)
+    try {
+      const res = await fetch('/api/chat/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId: l.id }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (res.ok && d.id) { router.push('/messages/' + d.id); return }
+      alert(typeof d.error === 'string' && d.error.length < 120 ? d.error : 'Could not start the chat. Please try again.')
+    } catch {
+      alert('Could not start the chat. Please check your connection.')
     }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #14101F; --bg-card: #221C3A; --bg-img: #2A2342;
-        --nav-bg: #1C1730; --border: #352C52; --border-strong: #463A6B;
-        --text-primary: #F3EEFF; --text-secondary: #B0A8CC; --text-muted: #6E6590;
-        --shadow-nav: 0 2px 12px rgba(0,0,0,0.3);
-        --shadow-card: 0 2px 14px rgba(0,0,0,0.25);
-        --shadow-hover: 0 12px 36px rgba(0,0,0,0.4);
-      }
-    }
-    body { background: var(--bg); font-family: 'Poppins', sans-serif; color: var(--text-primary); -webkit-font-smoothing: antialiased; }
-    .kalam { font-family: 'Poppins', sans-serif; font-weight: 800; letter-spacing: -0.02em; }
-    .wcard { background: var(--bg-card); border-radius: 18px; border: 2px solid var(--border); overflow: hidden; cursor: pointer; transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.2s ease, border-color 0.2s ease; box-shadow: var(--shadow-card); }
-    .wcard:hover { transform: translateY(-5px); box-shadow: var(--shadow-hover); border-color: #00B86B; }
-    .wcard.sold-card:hover { border-color: var(--border); transform: none; }
-    .remove-btn { transition: all 0.15s cubic-bezier(0.34,1.56,0.64,1); }
-    .remove-btn:hover { transform: scale(1.2); }
-    .chip { border: 2px solid var(--border); border-radius: 99px; padding: 6px 15px; font-size: 12px; font-weight: 700; cursor: pointer; background: var(--bg-card); color: var(--text-secondary); transition: all 0.15s cubic-bezier(0.34,1.56,0.64,1); font-family: 'Poppins', sans-serif; }
-    .chip:hover { transform: translateY(-2px); }
-    .chip:active { transform: scale(0.95); }
-    .chip.active { background: linear-gradient(135deg,#00B86B,#2D7FF9); color: #fff; border-color: #00B86B; }
-    .btn-3d { transition: transform 0.12s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.12s; }
-    .btn-3d:hover { transform: translateY(-2px); box-shadow: 0 6px 0 #009957 !important; }
-    .btn-3d:active { transform: translateY(2px); box-shadow: 0 1px 0 #009957 !important; }
-    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-    .item-enter { animation: fadeUp 0.35s cubic-bezier(0.22,1,0.36,1) both; }
-    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-    .skeleton { animation: pulse 1.5s ease infinite; }
-    @keyframes pop { 0% { transform: scale(1); } 40% { transform: scale(1.3); } 100% { transform: scale(1); } }
-    .heart-pop { animation: pop 0.3s ease; }
-  `
+    setChatBusy('')
+  }
 
-  if (!isSignedIn) return (
-    <>
-      <style>{css}</style>
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-        <div style={{ textAlign: 'center', maxWidth: '320px' }}>
-          <div style={{ fontSize: '56px', marginBottom: '16px' }}>🔒</div>
-          <div className="kalam" style={{ fontSize: '22px', color: 'var(--text-primary)', marginBottom: '8px' }}>Sign in to view your wishlist</div>
-          <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '24px', lineHeight: 1.6, fontWeight: '500' }}>Save listings you love and come back to them anytime.</div>
-          <button onClick={() => router.push('/')} className="btn-3d" style={{ background: 'linear-gradient(135deg,#00B86B,#2D7FF9)', color: '#fff', border: 'none', borderRadius: '14px', padding: '13px 28px', cursor: 'pointer', fontSize: '14px', fontWeight: '800', fontFamily: 'Poppins, sans-serif', boxShadow: '0 4px 0 #009957' }}>Go home</button>
-        </div>
-      </div>
-    </>
-  )
+  const availableCount = items.filter(i => !gone(i.listing)).length
+  const goneCount = items.length - availableCount
+  const shown = items.filter(i => (filter === 'all' ? true : filter === 'available' ? !gone(i.listing) : gone(i.listing)))
+
+  const pageCls = "min-h-screen text-[#1E1B19] antialiased font-['Plus_Jakarta_Sans',sans-serif]"
+  const pageStyle = { background: 'linear-gradient(180deg, #FDEADF 0%, #FFF7F2 100%)' }
+  const mainBtn = 'w-full h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform'
+  const chip = (on: boolean) => 'whitespace-nowrap px-4 py-2 rounded-full text-[12px] shrink-0 active:scale-95 transition-transform ' + (on ? 'bg-[#E8632B] text-white font-semibold ' : 'bg-white text-[#1E1B19] font-medium ') + SHADOW
+
+  const chips: { key: Filter; label: string }[] = [
+    { key: 'all', label: 'All (' + items.length + ')' },
+    { key: 'available', label: 'Available (' + availableCount + ')' },
+    ...(goneCount > 0 ? [{ key: 'unavailable' as Filter, label: 'Sold (' + goneCount + ')' }] : []),
+  ]
 
   return (
-    <>
-      <style>{css}</style>
-      <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
-
-        {/* Nav */}
-        <nav style={{ background: 'var(--nav-bg)', borderBottom: '2px solid var(--border)', padding: '0 20px', height: '60px', display: 'flex', alignItems: 'center', gap: '12px', position: 'sticky', top: 0, zIndex: 50, boxShadow: 'var(--shadow-nav)' }}>
-          <button onClick={() => router.push('/marketplace')} style={{ background: 'var(--bg-card)', border: '2px solid var(--border)', width: '38px', height: '38px', borderRadius: '12px', cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)', flexShrink: 0 }}>←</button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-            <img src="/logo.png" alt="BuddyBooks" style={{ height: '28px', width: 'auto' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-            <span className="kalam" style={{ fontSize: '18px', color: 'var(--text-primary)' }}>Wishlist</span>
-          </div>
-          {items.length > 0 && (
-            <span style={{ background: '#FFE8EF', color: '#FF3D81', fontSize: '11px', fontWeight: '800', padding: '4px 10px', borderRadius: '99px', border: '2px solid #FFB8D0' }}>
-              ❤️ {items.length}
-            </span>
-          )}
-          <div style={{ marginLeft: 'auto' }}>
-            <button onClick={() => router.push('/marketplace')} className="btn-3d" style={{ background: 'linear-gradient(135deg,#00B86B,#2D7FF9)', color: '#fff', border: 'none', borderRadius: '10px', padding: '9px 16px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', boxShadow: '0 3px 0 #009957' }}>
-              + Add more
+    <div className={pageCls} style={pageStyle}>
+      {/* Top bar */}
+      <header className="fixed top-0 inset-x-0 z-50 bg-[#FDEADF]/85 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+        <div className="h-16 px-5 flex items-center justify-between gap-3 max-w-md md:max-w-3xl mx-auto">
+          <div className="flex items-center gap-2 min-w-0">
+            <button aria-label="Back" onClick={() => (window.history.length > 1 ? router.back() : router.push('/marketplace'))}
+              className={'w-10 h-10 rounded-full bg-white flex items-center justify-center active:scale-95 transition-transform shrink-0 ' + SHADOW}>
+              <span className="material-symbols-outlined text-[20px]">arrow_back</span>
             </button>
+            <h1 className="text-[20px] font-bold ml-1 truncate">Wishlist</h1>
           </div>
-        </nav>
+          {isSignedIn && (
+            <button aria-label="Profile" onClick={() => router.push('/profile')} className="w-8 h-8 rounded-full bg-[#E8632B] text-white flex items-center justify-center shrink-0 active:scale-95 transition-transform">
+              <span className="material-symbols-outlined text-[18px]">person</span>
+            </button>
+          )}
+        </div>
+      </header>
 
-        <div style={{ maxWidth: '960px', margin: '0 auto', padding: '24px 16px 60px' }}>
+      <main className="w-full max-w-md md:max-w-3xl mx-auto pb-16" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 72px)' }}>
 
-          {loading ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '14px' }}>
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="skeleton" style={{ borderRadius: '18px', height: '240px', background: 'var(--bg-card)', border: '2px solid var(--border)' }} />
-              ))}
+        {isLoaded && !isSignedIn ? (
+          <div className="px-5 mt-6">
+            <div className={'bg-white rounded-[28px] p-7 text-center ' + SHADOW}>
+              <h2 className="text-[20px] font-bold mb-1">Sign in to see your saved books</h2>
+              <p className="text-[14px] text-[#5E5650] mb-6">Tap the heart on any book to keep it here for later.</p>
+              <SignInButton mode="modal"><button className={mainBtn}>Sign in</button></SignInButton>
             </div>
-          ) : items.length === 0 ? (
-            // Empty state
-            <div style={{ textAlign: 'center', padding: '64px 20px' }}>
-              <div style={{ width: '88px', height: '88px', background: '#FFE8EF', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px', margin: '0 auto 20px', border: '2px solid #FFB8D0' }}>🤍</div>
-              <div className="kalam" style={{ fontSize: '24px', color: 'var(--text-primary)', marginBottom: '8px' }}>Nothing saved yet</div>
-              <div style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '28px', lineHeight: 1.7, maxWidth: '280px', margin: '0 auto 28px', fontWeight: '500' }}>
-                Tap the ❤️ on any listing to save it here for later.
-              </div>
-              <button onClick={() => router.push('/marketplace')} className="btn-3d"
-                style={{ background: 'linear-gradient(135deg,#00B86B,#2D7FF9)', color: '#fff', border: 'none', borderRadius: '14px', padding: '14px 28px', cursor: 'pointer', fontSize: '15px', fontWeight: '800', fontFamily: 'Poppins, sans-serif', boxShadow: '0 4px 0 #009957' }}>
-                Browse listings →
-              </button>
+          </div>
+        ) : loading ? (
+          <div className="px-5 flex flex-col gap-4">
+            {[0, 1, 2].map(i => <div key={i} className="h-[170px] rounded-[22px] bg-white/70 animate-pulse" />)}
+          </div>
+        ) : error ? (
+          <div className="px-5 mt-4">
+            <div className={'bg-white rounded-[22px] p-6 text-center ' + SHADOW}>
+              <p className="text-[14px] text-[#5E5650] mb-4">{error}</p>
+              <button onClick={() => window.location.reload()} className={mainBtn}>Try again</button>
             </div>
-          ) : (
-            <>
-              {/* Stats bar */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', flexWrap: 'wrap' }}>
-                <div style={{ flex: 1, display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  <div style={{ background: 'var(--bg-card)', border: '2px solid var(--border)', borderRadius: '14px', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '16px' }}>❤️</span>
-                    <div>
-                      <div className="kalam" style={{ fontSize: '18px', color: 'var(--text-primary)', lineHeight: 1 }}>{items.length}</div>
-                      <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '500' }}>Total saved</div>
-                    </div>
-                  </div>
-                  <div style={{ background: 'var(--bg-card)', border: '2px solid var(--border)', borderRadius: '14px', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '16px' }}>✅</span>
-                    <div>
-                      <div className="kalam" style={{ fontSize: '18px', color: '#00B86B', lineHeight: 1 }}>{availableCount}</div>
-                      <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '500' }}>Available</div>
-                    </div>
-                  </div>
-                  {soldCount > 0 && (
-                    <div style={{ background: 'var(--bg-card)', border: '2px solid var(--border)', borderRadius: '14px', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '16px' }}>🏷️</span>
-                      <div>
-                        <div className="kalam" style={{ fontSize: '18px', color: 'var(--text-muted)', lineHeight: 1 }}>{soldCount}</div>
-                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '500' }}>Sold</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Filter chips */}
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
-                {[
-                  { key: 'all', label: `All (${items.length})` },
-                  { key: 'available', label: `✅ Available (${availableCount})` },
-                  ...(soldCount > 0 ? [{ key: 'sold', label: `🏷️ Sold (${soldCount})` }] : []),
-                ].map(f => (
-                  <button key={f.key} className={`chip${filter === f.key ? ' active' : ''}`}
-                    onClick={() => setFilter(f.key as any)}>
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Available items alert */}
-              {availableCount > 0 && filter !== 'sold' && (
-                <div style={{ background: '#DFFFEF', border: '2px solid #9DEAC4', borderRadius: '12px', padding: '12px 16px', marginBottom: '20px', fontSize: '13px', color: '#009957', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}>
-                  <span>🔔</span>
-                  <span><strong>{availableCount} listing{availableCount !== 1 ? 's' : ''}</strong> in your wishlist {availableCount === 1 ? 'is' : 'are'} still available — grab them before they're gone!</span>
-                </div>
+          </div>
+        ) : items.length === 0 ? (
+          <div className="px-5 mt-4">
+            <div className={'bg-white rounded-[22px] p-8 text-center ' + SHADOW}>
+              <h2 className="text-[15px] font-semibold mb-1">Nothing saved yet</h2>
+              <p className="text-[14px] text-[#5E5650] mb-5">Tap the heart on any book to save it here.</p>
+              <button onClick={() => router.push('/marketplace')} className={mainBtn}>Browse books</button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Summary line */}
+            <div className="px-5 pt-1 pb-2 flex items-center justify-between gap-3">
+              <p className="text-[14px] text-[#5E5650]">
+                {items.length} saved {items.length === 1 ? 'book' : 'books'}
+                {goneCount > 0 && <span className="text-[#9A908A]"> · {goneCount} sold</span>}
+              </p>
+              {goneCount > 0 && (
+                <button onClick={clearUnavailable} disabled={clearing} className="text-[12px] text-[#9A908A] flex items-center gap-1 active:scale-95 transition-transform shrink-0 disabled:opacity-50">
+                  <span>{clearing ? 'Clearing…' : 'Clear sold'}</span>
+                  <span className="material-symbols-outlined text-[15px]">cleaning_services</span>
+                </button>
               )}
+            </div>
 
-              {/* Grid */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '14px' }}>
-                {filtered.map((item, idx) => {
+            {/* Filter chips */}
+            <div className="w-full overflow-x-auto px-5 pb-4 pt-1 flex items-center gap-2" style={{ scrollbarWidth: 'none' }}>
+              {chips.map(c => <button key={c.key} onClick={() => setFilter(c.key)} className={chip(filter === c.key)}>{c.label}</button>)}
+            </div>
+
+            {/* Saved books */}
+            {shown.length === 0 ? (
+              <p className="text-center text-[14px] text-[#5E5650] py-10 px-5">No {filter === 'available' ? 'available' : 'sold'} books in your wishlist.</p>
+            ) : (
+              <div className="px-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {shown.map(item => {
                   const l = item.listing
-                  if (!l) return null
-                  const discount = l.origPrice ? Math.round((1 - l.price / l.origPrice) * 100) : 0
+                  const isGone = gone(l)
+                  const sold = !!l.sold
+                  const seller = firstName(l.seller?.name)
+                  const place = String(l.location || '').split(',')[0]
+                  const sub = [cap(l.category || ''), l.condition].filter(Boolean).join(' · ')
+                  const meta = [seller, place].filter(Boolean).join(' · ')
+                  const priceText = Number(l.price) === 0 ? 'Free' : '₹' + Number(l.price).toLocaleString('en-IN')
                   const isRemoving = removing === l.id
-
                   return (
-                    <div key={item.id} className="item-enter" style={{ position: 'relative', animationDelay: `${idx * 0.04}s` }}>
-                      <div className={`wcard${l.sold ? ' sold-card' : ''}`} onClick={() => router.push('/listing/' + l.id)}
-                        style={{ opacity: l.sold ? 0.75 : 1 }}>
-                        {/* Image */}
-                        <div style={{ height: '130px', background: 'var(--bg-img)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px', position: 'relative', overflow: 'hidden' }}>
-                          {l.images?.[0]
-                            ? <img src={l.images[0]} style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.3s ease' }} />
-                            : l.emoji}
-                          {/* Condition badge */}
-                          <span style={{ position: 'absolute', top: '8px', left: '8px', fontSize: '9px', background: l.condition === 'New' ? 'rgba(223,255,239,0.96)' : l.condition === 'Fair' ? 'rgba(255,246,221,0.96)' : 'rgba(227,240,255,0.96)', color: l.condition === 'New' ? '#009957' : l.condition === 'Fair' ? '#92400E' : '#1D4ED8', padding: '3px 8px', borderRadius: '99px', fontWeight: '800' }}>{l.condition}</span>
-                          {/* Discount badge */}
-                          {discount >= 15 && !l.sold && (
-                            <span style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '9px', background: 'linear-gradient(135deg, #FF6B2C, #FF3D81)', color: '#fff', padding: '3px 8px', borderRadius: '99px', fontWeight: '800' }}>-{discount}%</span>
-                          )}
-                          {/* Sold overlay */}
-                          {l.sold && (
-                            <div style={{ position: 'absolute', inset: 0, background: 'rgba(26,19,48,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(2px)' }}>
-                              <span className="kalam" style={{ color: '#fff', fontSize: '16px', letterSpacing: '3px' }}>SOLD</span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Info */}
-                        <div style={{ padding: '11px 13px' }}>
-                          <div style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '1px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{l.title}</div>
-                          {l.subtitle && <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '5px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: '500' }}>{l.subtitle}</div>}
-                          <div style={{ display: 'flex', alignItems: 'baseline', gap: '5px', marginBottom: '4px' }}>
-                            <span className="kalam" style={{ fontSize: '17px', color: l.sold ? 'var(--text-muted)' : '#00B86B' }}>₹{l.price}</span>
-                            {l.origPrice && <span style={{ fontSize: '10px', color: 'var(--text-muted)', textDecoration: 'line-through' }}>₹{l.origPrice}</span>}
-                          </div>
-                          <div style={{ fontSize: '10px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '3px', fontWeight: '500' }}>
-                            📍 {l.location}
-                          </div>
-                          {l.seller?.name && (
-                            <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '3px', fontWeight: '500' }}>
-                              by {l.seller.name}
-                            </div>
-                          )}
-                        </div>
+                    <article key={item.id} onClick={() => router.push('/listing/' + l.id)}
+                      className={'p-4 rounded-[22px] flex gap-4 items-center cursor-pointer ' + (isGone ? 'bg-white/75 shadow-[0_6px_20px_rgba(120,70,40,0.05)]' : 'bg-white ' + SHADOW)}>
+                      <div className="relative w-24 h-32 rounded-[18px] overflow-hidden bg-[#F8EDE6] shrink-0 flex items-center justify-center text-[36px]">
+                        {l.images?.[0]
+                          ? <img src={l.images[0]} alt={l.title} className={'w-full h-full object-cover ' + (isGone ? 'opacity-60 grayscale-[30%]' : '')} />
+                          : <span>{l.emoji || '📚'}</span>}
+                        {isGone && <span className="absolute inset-0 flex items-center justify-center text-[12px] font-semibold bg-white/40">{sold ? 'Sold' : 'Unavailable'}</span>}
+                        <button aria-label="Remove from wishlist" disabled={isRemoving} onClick={e => { e.stopPropagation(); removeOne(l.id) }}
+                          className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center text-[#E8632B] shadow-sm active:scale-90 transition-transform disabled:opacity-60">
+                          <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>favorite</span>
+                        </button>
                       </div>
 
-                      {/* Remove button */}
-                      <button className={`remove-btn${!isRemoving ? ' heart-pop' : ''}`}
-                        onClick={e => { e.stopPropagation(); removeFromWishlist(l.id) }}
-                        disabled={isRemoving}
-                        style={{ position: 'absolute', top: '8px', right: '8px', width: '30px', height: '30px', borderRadius: '50%', background: isRemoving ? 'rgba(200,200,200,0.9)' : 'rgba(255,255,255,0.96)', border: 'none', cursor: isRemoving ? 'not-allowed' : 'pointer', fontSize: '14px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 10px rgba(124,92,252,0.2)' }}>
-                        {isRemoving ? '…' : '❤️'}
-                      </button>
-                    </div>
+                      <div className="flex-1 min-w-0 flex flex-col justify-between h-32 py-0.5">
+                        <div>
+                          <h2 className={'text-[15px] font-semibold leading-tight line-clamp-2 ' + (isGone ? 'text-[#5E5650]' : '')}>{l.title}</h2>
+                          {sub && <p className="text-[12px] text-[#9A908A] truncate mt-0.5">{sub}</p>}
+                          <div className="mt-1 flex items-baseline gap-1.5">
+                            <span className={'text-[16px] font-bold ' + (isGone ? 'text-[#5E5650]' : '')}>{priceText}</span>
+                            {Number(l.origPrice) > Number(l.price) && <span className="text-[12px] text-[#9A908A] line-through">₹{Number(l.origPrice).toLocaleString('en-IN')}</span>}
+                          </div>
+                        </div>
+                        <div>
+                          {meta && <p className="text-[12px] text-[#5E5650] truncate">{meta}</p>}
+                          <div className="mt-2 flex items-center justify-between gap-2">
+                            {isGone ? (
+                              <span className="text-[12px] text-[#9A908A]">{sold ? 'Sold' : 'Not available'}</span>
+                            ) : (
+                              <span className="text-[12px] text-[#2E8B57] flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-[#2E8B57]" />Available</span>
+                            )}
+                            {!isGone && (
+                              <button aria-label="Chat to buy" disabled={!!chatBusy} onClick={e => { e.stopPropagation(); startChat(l) }}
+                                className="w-10 h-10 rounded-full bg-[#E8632B] text-white shadow-[0_4px_12px_rgba(232,99,43,0.3)] flex items-center justify-center active:scale-95 transition-transform shrink-0 disabled:opacity-60">
+                                <span className={'material-symbols-outlined text-[20px] ' + (chatBusy === l.id ? 'animate-spin' : '')}>{chatBusy === l.id ? 'progress_activity' : 'chat_bubble'}</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </article>
                   )
                 })}
               </div>
-
-              {/* Sold items hint */}
-              {soldCount > 0 && filter === 'all' && (
-                <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)', fontWeight: '500' }}>
-                  {soldCount} item{soldCount !== 1 ? 's' : ''} already sold — you can remove them by tapping ❤️
-                </div>
-              )}
-
-              {/* Empty filtered state */}
-              {filtered.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-muted)', fontSize: '14px', fontWeight: '500' }}>
-                  No {filter} listings in your wishlist
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </div>
-    </>
+            )}
+          </>
+        )}
+      </main>
+    </div>
   )
 }
