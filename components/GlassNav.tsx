@@ -12,9 +12,9 @@ type Key = 'home' | 'sets' | 'books' | 'market'
 
 const TABS: { key: Key; label: string; icon: string; href: string }[] = [
   { key: 'home', label: 'Home', icon: 'home', href: '/' },
+  { key: 'market', label: 'Market', icon: 'storefront', href: '/marketplace' },
   { key: 'sets', label: 'Sets', icon: 'menu_book', href: '/school-sets' },
   { key: 'books', label: 'Books', icon: 'edit', href: '/books' },
-  { key: 'market', label: 'Market', icon: 'storefront', href: '/marketplace' },
 ]
 
 // Pages that show the bar (Profile and My Orders still show it, with no tab lit)

@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser, SignInButton } from '@clerk/nextjs'
 import LocationSheet, { useDeliveryPlace } from '@/components/LocationSheet'
@@ -17,6 +17,17 @@ const CATS: { key: Cat; label: string }[] = [
 
 // How many cards each section shows on the "All" view before "See all"
 const PREVIEW_COUNT = 8
+
+const CART_KEY = 'pageplus_books_cart'
+const GLASS: CSSProperties = {
+  background: 'rgba(255,255,255,0.55)',
+  backdropFilter: 'blur(20px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+  border: '1px solid rgba(255,255,255,0.7)',
+  boxShadow: '0 6px 20px rgba(120,70,40,0.12)',
+}
+
+type CartLine = { id: string; name: string; section: CatalogItem['section']; price: number; qty: number; brand?: string }
 
 // A real photo of the item, with a soft tile if the photo does not exist yet
 function Cover({ item, dim }: { item: CatalogItem; dim?: boolean }) {
@@ -66,6 +77,14 @@ export default function BooksPage() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [place, setPlace] = useDeliveryPlace()
 
+  // Books cart (separate from the Sets bag)
+  const [cart, setCart] = useState<CartLine[]>([])
+  const [cartReady, setCartReady] = useState(false)
+  const [lastId, setLastId] = useState<string | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
+  const [cartOpen, setCartOpen] = useState(false)
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // Notify me
   const [notifyFor, setNotifyFor] = useState<string[] | null>(null)
   const [notifyLabel, setNotifyLabel] = useState('')
@@ -74,6 +93,28 @@ export default function BooksPage() {
   const [notifyBusy, setNotifyBusy] = useState(false)
   const [notifyDone, setNotifyDone] = useState(false)
   const [notifyError, setNotifyError] = useState('')
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(CART_KEY)
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed)) {
+          const lines = parsed.filter((l: any) => l && typeof l.id === 'string' && l.qty > 0 && l.price > 0)
+          setCart(lines)
+          if (lines.length) setLastId(lines[lines.length - 1].id)
+        }
+      }
+    } catch {}
+    setCartReady(true)
+  }, [])
+
+  useEffect(() => {
+    if (!cartReady) return
+    try { sessionStorage.setItem(CART_KEY, JSON.stringify(cart)) } catch {}
+  }, [cart, cartReady])
+
+  useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current) }, [])
 
   useEffect(() => {
     try {
@@ -120,8 +161,44 @@ export default function BooksPage() {
   const iconBtn = 'relative w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#1E1B19] active:scale-90 transition-transform ' + SHADOW
   const sheetInput = 'w-full px-4 py-3 rounded-2xl bg-[#FFF1EA] text-[14px] text-[#1E1B19] placeholder:text-[#9A908A] border border-transparent focus:outline-none focus:bg-white focus:border-[#E8632B] focus:ring-2 focus:ring-[#E8632B]/20'
 
-  function openKit(it: CatalogItem) {
-    router.push('/school-sets?school=' + encodeURIComponent(it.firstSchool) + '&class=' + it.firstClass)
+  const qtyOf = (id: string) => cart.find(l => l.id === id)?.qty ?? 0
+  const cartCount = cart.reduce((n, l) => n + l.qty, 0)
+  const cartTotal = cart.reduce((n, l) => n + l.qty * l.price, 0)
+  const lastLine = cart.find(l => l.id === lastId) || cart[cart.length - 1]
+
+  function showToast(msg: string) {
+    setToast(msg)
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(() => setToast(null), 2200)
+  }
+
+  function addToCart(it: CatalogItem) {
+    if (it.price === null || it.price <= 0) return
+    setCart(prev => {
+      const found = prev.find(l => l.id === it.id)
+      if (found) return prev.map(l => l.id === it.id ? { ...l, qty: Math.min(l.qty + 1, 20) } : l)
+      return [...prev, { id: it.id, name: it.name, section: it.section, price: it.price as number, qty: 1, brand: it.section === 'notebook' ? 'Buddy' : undefined }]
+    })
+    setLastId(it.id)
+    showToast('Added to cart')
+  }
+
+  function changeQty(id: string, delta: number) {
+    setCart(prev => prev.flatMap(l => l.id !== id ? [l] : (l.qty + delta <= 0 ? [] : [{ ...l, qty: Math.min(l.qty + delta, 20) }])))
+  }
+
+  function checkoutCart() {
+    if (cart.length === 0) return
+    // Same hand-off format as a kit, so /checkout can read it
+    const items: string[] = []
+    for (const l of cart) {
+      if (l.section === 'notebook') items.push(l.name + ' [' + (l.brand || 'Buddy') + '] x' + l.qty + ' ₹' + (l.price * l.qty))
+      else for (let i = 0; i < l.qty; i++) items.push(l.name + ' ₹' + l.price)
+    }
+    try {
+      sessionStorage.setItem('buddybooks_kit_order', JSON.stringify([{ school: 'Books and stationery', selectedClass: 0, items, kitSubtotal: cartTotal }]))
+    } catch {}
+    router.push('/checkout')
   }
 
   function openNotify(it: CatalogItem) {
@@ -170,9 +247,21 @@ export default function BooksPage() {
               </button>
             </>
           ) : (
-            <button aria-label={'See ' + it.name + ' in its kit'} onClick={() => openKit(it)} className="absolute bottom-2 right-2 w-9 h-9 rounded-full bg-[#E8632B] text-white shadow-[0_4px_10px_rgba(232,99,43,0.35)] flex items-center justify-center active:scale-90 transition-transform">
-              <span className="material-symbols-outlined text-[19px]">add</span>
-            </button>
+            qtyOf(it.id) > 0 ? (
+              <div className="absolute bottom-2 right-2 h-9 rounded-full bg-[#E8632B] text-white shadow-[0_4px_10px_rgba(232,99,43,0.35)] flex items-center">
+                <button aria-label="Remove one" onClick={() => changeQty(it.id, -1)} className="w-9 h-9 flex items-center justify-center active:scale-90 transition-transform">
+                  <span className="material-symbols-outlined text-[18px]">remove</span>
+                </button>
+                <span className="min-w-[14px] text-center text-[14px] font-semibold">{qtyOf(it.id)}</span>
+                <button aria-label="Add one more" onClick={() => addToCart(it)} className="w-9 h-9 flex items-center justify-center active:scale-90 transition-transform">
+                  <span className="material-symbols-outlined text-[18px]">add</span>
+                </button>
+              </div>
+            ) : (
+              <button aria-label={'Add ' + it.name + ' to cart'} onClick={() => addToCart(it)} className="absolute bottom-2 right-2 w-9 h-9 rounded-full bg-[#E8632B] text-white shadow-[0_4px_10px_rgba(232,99,43,0.35)] flex items-center justify-center active:scale-90 transition-transform">
+                <span className="material-symbols-outlined text-[19px]">add</span>
+              </button>
+            )
           )}
         </div>
         <div className="pt-2.5 pb-1 px-1 flex flex-col gap-1 min-w-0">
@@ -258,8 +347,79 @@ export default function BooksPage() {
         </div>
       )}
 
+      {/* "Added to cart" pill */}
+      {toast && (
+        <div className="fixed inset-x-0 flex justify-center pointer-events-none px-5" style={{ zIndex: 350, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 150px)' }}>
+          <div className="flex items-center gap-2 h-10 px-4 rounded-full text-[13px] font-semibold text-[#1E1B19]" style={GLASS}>
+            <span className="material-symbols-outlined text-[18px] text-[#2E8B57]">check_circle</span>
+            {toast}
+          </div>
+        </div>
+      )}
+
+      {/* Cart pill: last item added, with its quantity */}
+      {cartCount > 0 && lastLine && !cartOpen && (
+        <div className="fixed inset-x-0 flex justify-center px-5 pointer-events-none" style={{ zIndex: 340, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 84px)' }}>
+          <button onClick={() => setCartOpen(true)} className="pointer-events-auto flex items-center gap-2.5 h-12 pl-4 pr-2 rounded-full max-w-full active:scale-[0.98] transition-transform" style={GLASS}>
+            <span className="material-symbols-outlined text-[20px] text-[#C4501A]">shopping_cart</span>
+            <span className="text-[13px] font-semibold text-[#1E1B19] truncate max-w-[170px]">{lastLine.name} × {lastLine.qty}</span>
+            <span className="h-8 px-3 rounded-full bg-[#E8632B] text-white text-[13px] font-semibold flex items-center shrink-0">
+              {cartCount} {cartCount === 1 ? 'item' : 'items'} · ₹{cartTotal.toLocaleString('en-IN')}
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* Cart sheet */}
+      {cartOpen && (
+        <div className="fixed inset-0 z-[400] bg-black/45 flex items-end md:items-center justify-center" onClick={() => setCartOpen(false)}>
+          <div className="bg-white rounded-t-[28px] md:rounded-[28px] p-6 w-full max-w-md max-h-[85vh] flex flex-col shadow-[0_-10px_35px_rgba(30,27,25,0.2)]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }} onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1.5 rounded-full bg-[#F0E2DA] mx-auto mb-4 md:hidden" />
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[18px] font-bold">Your cart</h3>
+              <button aria-label="Close" onClick={() => setCartOpen(false)} className="w-9 h-9 rounded-full bg-[#FFF1EA] flex items-center justify-center">
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+            {cart.length === 0 ? (
+              <p className="text-[14px] text-[#5E5650] py-6 text-center">Your cart is empty.</p>
+            ) : (
+              <div className="overflow-y-auto flex flex-col divide-y divide-[#F0E2DA]">
+                {cart.map(l => (
+                  <div key={l.id} className="flex items-center gap-3 py-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[14px] font-semibold leading-snug line-clamp-2">{l.name}</p>
+                      <p className="text-[12px] text-[#5E5650] mt-0.5">{l.brand ? l.brand + ' · ' : ''}₹{l.price.toLocaleString('en-IN')} each</p>
+                    </div>
+                    <div className="h-9 rounded-full bg-[#FFF1EA] flex items-center shrink-0">
+                      <button aria-label="Remove one" onClick={() => changeQty(l.id, -1)} className="w-9 h-9 flex items-center justify-center active:scale-90">
+                        <span className="material-symbols-outlined text-[18px]">{l.qty === 1 ? 'delete' : 'remove'}</span>
+                      </button>
+                      <span className="min-w-[16px] text-center text-[14px] font-semibold">{l.qty}</span>
+                      <button aria-label="Add one more" onClick={() => changeQty(l.id, 1)} className="w-9 h-9 flex items-center justify-center active:scale-90">
+                        <span className="material-symbols-outlined text-[18px]">add</span>
+                      </button>
+                    </div>
+                    <span className="w-16 text-right text-[14px] font-bold shrink-0">₹{(l.price * l.qty).toLocaleString('en-IN')}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {cart.length > 0 && (
+              <>
+                <div className="flex items-center justify-between pt-4 pb-3 border-t border-[#F0E2DA] mt-1">
+                  <span className="text-[14px] text-[#5E5650]">Subtotal</span>
+                  <span className="text-[18px] font-bold">₹{cartTotal.toLocaleString('en-IN')}</span>
+                </div>
+                <button onClick={checkoutCart} className="w-full h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform">Checkout</button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       <main
-        className="w-full max-w-md md:max-w-5xl mx-auto px-5 pb-[130px] lg:pb-16"
+        className="w-full max-w-md md:max-w-5xl mx-auto px-5 pb-[190px] lg:pb-16"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
       >
         {/* App bar (same as Home, Sets and Market) */}
@@ -271,8 +431,8 @@ export default function BooksPage() {
             <div className="flex items-center gap-2.5">
               <nav className="hidden md:flex items-center gap-1 mr-2">
                 <a href="/" className="px-3 py-2 rounded-full text-[14px] font-medium text-[#5E5650] hover:text-[#1E1B19]">Home</a>
-                <a href="/school-sets" className="px-3 py-2 rounded-full text-[14px] font-medium text-[#5E5650] hover:text-[#1E1B19]">Sets</a>
                 <a href="/marketplace" className="px-3 py-2 rounded-full text-[14px] font-medium text-[#5E5650] hover:text-[#1E1B19]">Market</a>
+                <a href="/school-sets" className="px-3 py-2 rounded-full text-[14px] font-medium text-[#5E5650] hover:text-[#1E1B19]">Sets</a>
                 <a href="/profile" className="px-3 py-2 rounded-full text-[14px] font-medium text-[#5E5650] hover:text-[#1E1B19]">Profile</a>
               </nav>
               <button aria-label={bagCount > 0 ? 'Bag, ' + bagCount + ' kits' : 'Bag'} onClick={() => router.push('/school-sets?bag=1')} className={iconBtn}>
