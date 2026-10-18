@@ -8,25 +8,25 @@ const MIN_SHOW_MS = 700   // never shorter than this
 const SETTLE_MS = 350     // extra wait after the new page appears, so it is fully drawn
 const MAX_SHOW_MS = 8000  // safety: never get stuck
 
-type Key = 'home' | 'sets' | 'market' | 'profile'
+type Key = 'home' | 'sets' | 'books' | 'market'
 
 const TABS: { key: Key; label: string; icon: string; href: string }[] = [
   { key: 'home', label: 'Home', icon: 'home', href: '/' },
   { key: 'sets', label: 'Sets', icon: 'menu_book', href: '/school-sets' },
+  { key: 'books', label: 'Books', icon: 'edit', href: '/books' },
   { key: 'market', label: 'Market', icon: 'storefront', href: '/marketplace' },
-  { key: 'profile', label: 'Profile', icon: 'person', href: '/profile' },
 ]
 
-// Pages that show the bar
+// Pages that show the bar (Profile and My Orders still show it, with no tab lit)
 function showsBar(path: string) {
-  return path === '/' || path.startsWith('/school-sets') || path.startsWith('/marketplace') || path.startsWith('/my-orders') || path.startsWith('/profile')
+  return path === '/' || path.startsWith('/school-sets') || path.startsWith('/books') || path.startsWith('/marketplace') || path.startsWith('/my-orders') || path.startsWith('/profile')
 }
 
 function derive(path: string): Key | '' {
   if (path === '/') return 'home'
   if (path.startsWith('/school-sets')) return 'sets'
+  if (path.startsWith('/books')) return 'books'
   if (path.startsWith('/marketplace') || path.startsWith('/listing')) return 'market'
-  if (path.startsWith('/profile') || path.startsWith('/my-orders')) return 'profile'
   return ''
 }
 
