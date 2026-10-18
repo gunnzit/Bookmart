@@ -18,7 +18,19 @@ const GLASS: CSSProperties = {
 
 type Kit = (typeof schools)[string][number]
 type Section = 'ncert' | 'pvt' | 'notebooks' | 'stationery'
-type CartKit = { school?: string; selectedClass: number; items: string[]; kitSubtotal: number }
+type LooseLine = { id: string; name: string; section: string; price: number; qty: number; brand?: string }
+type CartKit = { school?: string; selectedClass: number; items: string[]; kitSubtotal: number; loose?: boolean; lines?: LooseLine[] }
+const LOOSE = 'Books and stationery'
+
+// Item strings the server checks, built from the loose lines added on the Books page
+function looseItems(lines: LooseLine[]): string[] {
+  const out: string[] = []
+  for (const l of lines) {
+    if (l.section === 'notebook') out.push(l.name + ' [' + (l.brand || 'Buddy') + '] x' + l.qty + ' ₹' + (l.price * l.qty))
+    else for (let i = 0; i < l.qty; i++) out.push(l.name + ' ₹' + l.price)
+  }
+  return out
+}
 
 const SHORT_NAME: Record<string, string> = {
   'Delhi Public School': 'DPS Sector 40-C',
@@ -367,6 +379,16 @@ export default function SchoolSetsPage() {
     persist(cart.filter((_, i) => i !== idx))
   }
 
+  // Change a quantity inside the "Books and stationery" entry of the bag
+  function changeLooseQty(idx: number, lineId: string, delta: number) {
+    const entry = cart[idx]
+    if (!entry || !entry.loose || !entry.lines) return
+    const lines = entry.lines.flatMap(l => l.id !== lineId ? [l] : (l.qty + delta <= 0 ? [] : [{ ...l, qty: Math.min(l.qty + delta, 20) }]))
+    if (lines.length === 0) { removeFromBag(idx); return }
+    const next = cart.map((k, i) => i === idx ? { ...k, lines, items: looseItems(lines), kitSubtotal: lines.reduce((n, l) => n + l.qty * l.price, 0) } : k)
+    persist(next)
+  }
+
   function handleCheckout() {
     if (cart.length === 0) return
     try {
@@ -377,7 +399,13 @@ export default function SchoolSetsPage() {
   }
 
   const bagSubtotal = cart.reduce((sum, k) => sum + (k.kitSubtotal || 0), 0)
-  const siblingDiscount = cart.length >= 2 ? Math.round(bagSubtotal * 0.05) : 0
+  const hasLoose = cart.some(k => k.loose)
+  // Sibling discount: 2 or more school kits, and no loose books in the bag
+  const siblingDiscount = cart.length >= 2 && !hasLoose ? Math.round(bagSubtotal * 0.05) : 0
+  const looseCount = cart.filter(k => k.loose).reduce((n, k) => n + (k.lines || []).reduce((m, l) => m + l.qty, 0), 0)
+  const kitCount = cart.filter(k => !k.loose).length
+  const bagCount = kitCount + looseCount
+  const bagWords = [kitCount > 0 ? kitCount + (kitCount === 1 ? ' kit' : ' kits') : '', looseCount > 0 ? looseCount + (looseCount === 1 ? ' book item' : ' book items') : ''].filter(Boolean).join(' · ')
   const bagTotal = bagSubtotal - siblingDiscount
   const canAdd = kitSubtotal > 0
 
@@ -584,7 +612,7 @@ export default function SchoolSetsPage() {
         Add to bag
       </button>
       <button onClick={() => setBagOpen(true)} className={'w-full h-11 mt-2.5 bg-white text-[14px] font-semibold rounded-full active:scale-[0.98] transition-transform ' + SHADOW}>
-        {cart.length > 0 ? 'View bag · ' + cart.length + (cart.length === 1 ? ' kit' : ' kits') : 'View bag'}
+        {bagCount > 0 ? 'View bag · ' + bagWords : 'View bag'}
       </button>
       <p className="text-[12px] text-[#9A908A] text-center mt-3">Pickup is free. Home delivery adds ₹{DELIVERY_FEE}.</p>
     </div>
@@ -722,7 +750,7 @@ export default function SchoolSetsPage() {
             <div className="flex items-start justify-between gap-3 mb-4">
               <div>
                 <h3 className="text-[20px] font-bold">Your bag</h3>
-                <p className="text-[13px] text-[#9A908A] mt-0.5">{cart.length === 0 ? 'Nothing here yet' : cart.length + (cart.length === 1 ? ' kit' : ' kits')}</p>
+                <p className="text-[13px] text-[#9A908A] mt-0.5">{cart.length === 0 ? 'Nothing here yet' : bagWords}</p>
               </div>
               <button aria-label="Close" onClick={() => setBagOpen(false)} className="w-9 h-9 rounded-full bg-[#FFF1EA] flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-[18px]">close</span>
@@ -737,7 +765,37 @@ export default function SchoolSetsPage() {
             ) : (
               <>
                 <div className="flex flex-col gap-3 mb-4">
-                  {cart.map((k, idx) => (
+                  {cart.map((k, idx) => k.loose ? (
+                    <div key={idx} className="bg-[#FFF7F2] rounded-[18px] p-3.5">
+                      <div className="flex items-center gap-3 mb-1">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[15px] font-semibold truncate">{LOOSE}</p>
+                          <p className="text-[12px] text-[#9A908A] mt-0.5">{(k.lines || []).reduce((n, l) => n + l.qty, 0)} items</p>
+                        </div>
+                        <span className="text-[16px] font-bold shrink-0">₹{(k.kitSubtotal || 0).toLocaleString('en-IN')}</span>
+                        <button aria-label="Remove these items from the bag" onClick={() => removeFromBag(idx)} className="w-9 h-9 rounded-full bg-white flex items-center justify-center text-[#9A908A] shrink-0 active:scale-90 transition-transform shadow-sm">
+                          <span className="material-symbols-outlined text-[18px]">delete</span>
+                        </button>
+                      </div>
+                      <div className="flex flex-col divide-y divide-[#F0E2DA]">
+                        {(k.lines || []).map(l => (
+                          <div key={l.id} className="flex items-center gap-2.5 py-2">
+                            <p className="flex-1 min-w-0 text-[13px] font-medium leading-snug line-clamp-2">{l.name}{l.brand ? ' · ' + l.brand : ''}</p>
+                            <div className="h-8 rounded-full bg-white flex items-center shrink-0 shadow-sm">
+                              <button aria-label="Remove one" onClick={() => changeLooseQty(idx, l.id, -1)} className="w-8 h-8 flex items-center justify-center active:scale-90">
+                                <span className="material-symbols-outlined text-[16px]">{l.qty === 1 ? 'delete' : 'remove'}</span>
+                              </button>
+                              <span className="min-w-[14px] text-center text-[13px] font-semibold">{l.qty}</span>
+                              <button aria-label="Add one more" onClick={() => changeLooseQty(idx, l.id, 1)} className="w-8 h-8 flex items-center justify-center active:scale-90">
+                                <span className="material-symbols-outlined text-[16px]">add</span>
+                              </button>
+                            </div>
+                            <span className="w-14 text-right text-[13px] font-bold shrink-0">₹{(l.price * l.qty).toLocaleString('en-IN')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
                     <div key={idx} className="flex items-center gap-3 bg-[#FFF7F2] rounded-[18px] p-3.5">
                       <div className="flex-1 min-w-0">
                         <p className="text-[15px] font-semibold truncate">{SHORT_NAME[k.school || ''] || k.school || shortName}</p>
@@ -796,12 +854,13 @@ export default function SchoolSetsPage() {
               <nav className="hidden md:flex items-center gap-1 mr-2">
                 <a href="/" className="px-3 py-2 rounded-full text-[14px] font-medium text-[#5E5650] hover:text-[#1E1B19]">Home</a>
                 <a href="/marketplace" className="px-3 py-2 rounded-full text-[14px] font-medium text-[#5E5650] hover:text-[#1E1B19]">Market</a>
+                <a href="/books" className="px-3 py-2 rounded-full text-[14px] font-medium text-[#5E5650] hover:text-[#1E1B19]">Books</a>
                 <a href="/profile" className="px-3 py-2 rounded-full text-[14px] font-medium text-[#5E5650] hover:text-[#1E1B19]">Profile</a>
               </nav>
-              <button aria-label={cart.length > 0 ? 'Bag, ' + cart.length + ' kits' : 'Bag'} onClick={() => setBagOpen(true)} className={iconBtn}>
+              <button aria-label={bagCount > 0 ? 'Bag, ' + bagCount + ' items' : 'Bag'} onClick={() => setBagOpen(true)} className={iconBtn}>
                 <span className="material-symbols-outlined text-[20px]">shopping_bag</span>
-                {cart.length > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#E8632B] text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-[#FFF7F2]">{cart.length}</span>
+                {bagCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#E8632B] text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-[#FFF7F2]">{bagCount}</span>
                 )}
               </button>
               {isSignedIn ? (

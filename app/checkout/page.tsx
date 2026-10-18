@@ -6,6 +6,7 @@ import { DELIVERY_FEE } from '@/lib/kit-prices'
 
 const SCHOOL = 'Shivalik Public School'
 const ADMIN_WA = '919914735738'
+const LOOSE = 'Books and stationery'
 
 function CheckoutInner() {
   const router = useRouter()
@@ -46,7 +47,9 @@ function CheckoutInner() {
   // Combine all kits
   const allItems: string[] = kits.flatMap((k: any) => k.items)
   const kitsSubtotal = kits.reduce((sum: number, k: any) => sum + k.kitSubtotal, 0)
-  const isMultiKit = kits.length >= 2
+  const hasLoose = kits.some((k: any) => k.loose || k.school === LOOSE)
+  // Sibling discount: 2+ school kits and no loose books in the bag
+  const isMultiKit = kits.length >= 2 && !hasLoose
   const siblingDiscount = isMultiKit ? Math.round(kitsSubtotal * 0.05) : 0
   const kitSubtotal = kitsSubtotal - siblingDiscount // after sibling discount
 
@@ -55,7 +58,10 @@ function CheckoutInner() {
   const upfront = Math.ceil(kitSubtotal * 0.3) + deliveryFee
   const payLater = kitSubtotal - Math.ceil(kitSubtotal * 0.3)
   const payNow = paymentMode === 'full' ? total : upfront
-  const classLabel = kits.map((k: any) => k.selectedClass).join(', ')
+  const isLoose = kits.length === 1 && hasLoose
+  const classLabel = kits.map((k: any) => (k.loose || k.school === LOOSE) ? 'Books' : k.selectedClass).join(', ')
+  const orderWord = isLoose ? 'Books and stationery order' : hasLoose ? 'order' : 'Class ' + classLabel + ' kit'
+  const backPath = isLoose ? '/books' : '/school-sets?bag=1'
   const handoverWord = deliveryMode === 'pickup' ? 'pickup' : 'delivery'
 
   // Form checks
@@ -79,7 +85,7 @@ function CheckoutInner() {
       return
     }
     setOrdering(true)
-    const numKits = kits!.length
+    const numKits = isMultiKit ? kits!.length : 1
     try {
       const res = await fetch('/api/payment/create-order', {
         method: 'POST',
@@ -102,7 +108,7 @@ function CheckoutInner() {
         amount: order.amount,
         currency: 'INR',
         name: 'Pageplus',
-        description: 'School Kit — Class ' + classLabel + ' (' + schoolLabel + ')',
+        description: isLoose || hasLoose ? 'Pageplus order' : 'School Kit — Class ' + classLabel + ' (' + schoolLabel + ')',
         image: '/pageplus-logo.png',
         order_id: order.id,
         handler: async (response: any) => {
@@ -142,7 +148,7 @@ function CheckoutInner() {
             }
 
             // Verified + saved — now it's safe to notify the store and show success.
-            const msg = '📦 NEW KIT ORDER\n' + (isMultiKit ? numKits + ' KITS — Classes ' + classLabel : 'Class ' + classLabel) + ' — ' + schoolLabel
+            const msg = (isLoose || hasLoose ? '📦 NEW ORDER' + (hasLoose && !isLoose ? ' (kits + books)\nClasses ' + classLabel + ' — ' + schoolLabel : '\nBooks & stationery') : '📦 NEW KIT ORDER\n' + (isMultiKit ? numKits + ' KITS — Classes ' + classLabel : 'Class ' + classLabel) + ' — ' + schoolLabel)
               + '\nName: ' + name + '\nPhone: ' + phone
               + '\nDelivery: ' + deliveryMode + (deliveryMode === 'delivery' ? '\nAddress: ' + address : '')
               + (siblingDiscount > 0 ? '\nSibling discount: −₹' + siblingDiscount : '')
@@ -186,11 +192,11 @@ function CheckoutInner() {
           </div>
           <h2 className="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mb-2">Order Confirmed!</h2>
           <p className="font-body-md text-body-md text-on-surface-variant mb-6">
-            Your Class {classLabel} kit is confirmed. We&apos;ve opened WhatsApp to send the details to the store.
+            Your {orderWord} is confirmed. We&apos;ve opened WhatsApp to send the details to the store.
           </p>
           <div className="flex gap-2.5">
             <button onClick={() => router.push('/my-orders')} className="flex-1 bg-primary-container text-on-primary font-label-lg text-label-lg font-bold py-3.5 rounded-xl shadow-md active:scale-[0.98] transition-transform">Track order</button>
-            <button onClick={() => router.push('/school-sets')} className="flex-1 bg-surface-container-low text-on-surface font-label-lg text-label-lg font-bold py-3.5 rounded-xl border border-[#EADFCC] active:scale-[0.98] transition-transform">Order another</button>
+            <button onClick={() => router.push(backPath)} className="flex-1 bg-surface-container-low text-on-surface font-label-lg text-label-lg font-bold py-3.5 rounded-xl border border-[#EADFCC] active:scale-[0.98] transition-transform">Order another</button>
           </div>
         </div>
       </div>
@@ -220,7 +226,7 @@ function CheckoutInner() {
       <header className="fixed top-0 inset-x-0 z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(45,30,18,0.04)]">
         <div className="h-16 px-margin md:px-margin-desktop flex items-center justify-between max-w-md mx-auto md:max-w-[1100px]">
           <div className="flex items-center gap-space-sm">
-            <button aria-label="Go back" onClick={() => router.push('/school-sets')} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container active:scale-95 transition-transform">
+            <button aria-label="Go back" onClick={() => router.push(backPath)} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container active:scale-95 transition-transform">
               <span className="material-symbols-outlined text-[24px]">arrow_back</span>
             </button>
             <div className="flex flex-col">
@@ -333,10 +339,10 @@ function CheckoutInner() {
                 <div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-xs">
                   <div className="flex items-center justify-between gap-2 pb-1">
                     <div className="flex flex-col min-w-0">
-                      <span className="font-headline-sm text-headline-sm text-on-surface font-semibold truncate">{schoolOf(kit)} · Class {kit.selectedClass}</span>
+                      <span className="font-headline-sm text-headline-sm text-on-surface font-semibold truncate">{(kit.loose || kit.school === LOOSE) ? LOOSE : schoolOf(kit) + ' · Class ' + kit.selectedClass}</span>
                       <span className="font-label-md text-label-md text-tertiary">{kit.items.length} items · ₹{kit.kitSubtotal.toLocaleString('en-IN')}</span>
                     </div>
-                    <button onClick={() => router.push('/school-sets')} className="font-label-md text-label-md text-primary font-semibold px-2 py-1 rounded-lg hover:bg-primary-fixed/40 transition-colors shrink-0">Edit</button>
+                    <button onClick={() => router.push(backPath)} className="font-label-md text-label-md text-primary font-semibold px-2 py-1 rounded-lg hover:bg-primary-fixed/40 transition-colors shrink-0">Edit</button>
                   </div>
                   <div className="flex flex-col max-h-72 overflow-y-auto">
                     {kit.items.map((item: string, i: number) => {
@@ -406,7 +412,7 @@ function CheckoutInner() {
               <div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-xs">
                 <h3 className="font-headline-sm text-headline-sm text-on-surface font-semibold mb-1">Price Details</h3>
                 <div className="flex items-center justify-between py-1">
-                  <span className="font-body-md text-body-md text-on-surface-variant">{isMultiKit ? kits.length + ' kits' : 'Kit'} ({allItems.length} items)</span>
+                  <span className="font-body-md text-body-md text-on-surface-variant">{isLoose ? 'Items' : hasLoose ? 'Bag' : isMultiKit ? kits.length + ' kits' : 'Kit'} ({allItems.length} items)</span>
                   <span className="font-body-md text-body-md text-on-surface">₹{kitsSubtotal.toLocaleString('en-IN')}</span>
                 </div>
                 {siblingDiscount > 0 && (
