@@ -1,40 +1,40 @@
-import { PrismaClient } from '@prisma/client'
 import { NextResponse } from 'next/server'
+import { prisma, getMe } from '@/lib/chat'
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
-const prisma = globalForPrisma.prisma ?? new PrismaClient()
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+export const dynamic = 'force-dynamic'
 
-export async function POST(request: Request) {
+// POST: make sure the signed-in person has a user record. The pages call this on sign-in.
+// Who they are comes from the login session on the server. Anything the browser sends is ignored.
+// Only the id and name are sent back, never phone or email.
+export async function POST() {
   try {
-    const body = await request.json()
-    const { clerkId, name, email } = body
-
-    let user = await prisma.user.findFirst({ where: { email } })
-
-    if (!user) {
-      user = await prisma.user.create({
-        data: { id: clerkId, name: name || 'Anonymous', email }
-      })
-    }
-
-    return NextResponse.json(user)
+    const me = await getMe()
+    if (!me) return NextResponse.json({ error: 'Sign in required' }, { status: 401 })
+    return NextResponse.json({ id: me.id, name: me.name })
   } catch (error) {
     console.error('User sync error:', error)
-    return NextResponse.json({ error: String(error) }, { status: 500 })
+    return NextResponse.json({ error: 'Could not sync your account.' }, { status: 500 })
   }
 }
 
+// PATCH: save the signed-in person's own WhatsApp number. Body: { phone }
 export async function PATCH(request: Request) {
   try {
-    const body = await request.json()
-    const { clerkId, phone } = body
-    const user = await prisma.user.update({
-      where: { id: clerkId },
-      data: { phone },
-    })
-    return NextResponse.json(user)
+    const me = await getMe()
+    if (!me) return NextResponse.json({ error: 'Sign in required' }, { status: 401 })
+
+    const body = await request.json().catch(() => ({}))
+    const raw = typeof body.phone === 'string' ? body.phone : ''
+
+    // Keep digits only (drops spaces, dashes, brackets and a leading +)
+    const phone = raw.replace(/\D/g, '')
+    if (phone.length < 10 || phone.length > 15) {
+      return NextResponse.json({ error: 'Enter a valid WhatsApp number.' }, { status: 400 })
+    }
+
+    await prisma.user.update({ where: { id: me.id }, data: { phone } })
+    return NextResponse.json({ ok: true })
   } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 })
+    return NextResponse.json({ error: 'Could not save your number.' }, { status: 500 })
   }
 }
