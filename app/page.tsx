@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useUser, useClerk, SignInButton } from '@clerk/nextjs'
 import { schools, isRegister } from '@/lib/kit-prices'
 import LocationSheet, { useDeliveryPlace } from '@/components/LocationSheet'
+import { SETS_OPEN } from '@/lib/features'
 
 // ── Contact (change here only) ────────────────────────────────────────────
 const WHATSAPP_NUMBER = '918872235738'
@@ -170,10 +171,12 @@ export default function HomePage() {
               Page<span className="text-[#E8632B]">plus</span>
             </a>
             <div className="flex items-center gap-2.5">
+              {SETS_OPEN && (
               <button aria-label="Kit bag" onClick={() => router.push('/school-sets')} className={iconBtn}>
                 <span className="material-symbols-outlined text-[20px]">shopping_bag</span>
                 {cart.length > 0 && <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#E8632B] ring-2 ring-white" />}
               </button>
+              )}
               {isSignedIn ? (
                 <button aria-label="Profile" onClick={() => router.push('/profile')} className={iconBtn}>
                   <span className="material-symbols-outlined text-[20px]">person</span>
@@ -208,6 +211,22 @@ export default function HomePage() {
           </button>
         </form>
 
+        {!SETS_OPEN && (
+          <section className={'bg-white rounded-[22px] p-5 flex items-center gap-4 ' + SHADOW}>
+            <div className="w-14 h-14 rounded-full bg-[#FCE3D6] text-[#C4501A] flex items-center justify-center shrink-0">
+              <span className="material-symbols-outlined text-[28px]">menu_book</span>
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-[15px] font-bold">School sets and stationery</h2>
+                <span className="px-2.5 py-0.5 rounded-full bg-[#FFF1EA] text-[#C4501A] text-[12px] font-semibold">Coming soon</span>
+              </div>
+              <p className="text-[13px] text-[#5E5650] mt-1">For now, buy and sell second-hand books near you.</p>
+            </div>
+          </section>
+        )}
+
+        {SETS_OPEN && (<>
         {/* 3. Hero */}
         <section className={'relative w-full rounded-[22px] overflow-hidden aspect-[16/10] flex flex-col justify-end p-5 ' + SHADOW} style={{ background: 'linear-gradient(135deg, #C4501A 0%, #E8632B 100%)' }}>
           {heroOk && (
@@ -268,6 +287,8 @@ export default function HomePage() {
             </button>
           </div>
         </section>
+
+        </>)}
 
         {/* 5. Books from students near you */}
         <section className="flex flex-col gap-3">
@@ -336,7 +357,7 @@ export default function HomePage() {
       </main>
 
       {/* Kit bag pill (only when a kit has been added) */}
-      {cart.length > 0 && (
+      {SETS_OPEN && cart.length > 0 && (
         <div className="fixed inset-x-0 flex justify-center pointer-events-none px-5" style={{ zIndex: 40, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 88px)' }}>
           <div className={'pointer-events-auto bg-white rounded-full pl-4 pr-1.5 py-1.5 flex items-center gap-3 ' + SHADOW}>
             <span className="text-[13px] font-semibold">{cart.length} {cart.length > 1 ? 'kits' : 'kit'} · ₹{cartTotal.toLocaleString('en-IN')}</span>

@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser, useClerk, SignInButton } from '@clerk/nextjs'
+import { SETS_OPEN } from '@/lib/features'
 
 const SHADOW = 'shadow-[0_6px_20px_rgba(120,70,40,0.08)]'
 
@@ -250,7 +251,9 @@ export default function Marketplace() {
           <div className="flex items-center gap-2.5">
             <nav className="hidden md:flex items-center gap-1 mr-2">
               <a href="/" className="px-3 py-2 rounded-full text-[14px] font-medium text-[#5E5650] hover:text-[#1E1B19]">Home</a>
-              <a href="/school-sets" className="px-3 py-2 rounded-full text-[14px] font-medium text-[#5E5650] hover:text-[#1E1B19]">Sets</a>
+              {SETS_OPEN
+                ? <a href="/school-sets" className="px-3 py-2 rounded-full text-[14px] font-medium text-[#5E5650] hover:text-[#1E1B19]">Sets</a>
+                : <span className="px-3 py-2 rounded-full text-[14px] font-medium text-[#9A908A] cursor-default">Sets <span className="ml-1 px-2 py-0.5 rounded-full bg-[#FCE3D6] text-[#C4501A] text-[12px] font-semibold">Soon</span></span>}
               <a href="/requests" className="px-3 py-2 rounded-full text-[14px] font-medium text-[#5E5650] hover:text-[#1E1B19]">Requests</a>
             </nav>
             <button aria-label={unread > 0 ? 'Messages, ' + unread + ' unread' : 'Messages'} onClick={() => router.push('/messages')} className={iconBtn}>

@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import LoadingScreen from '@/components/LoadingScreen'
+import { SETS_OPEN, BOOKS_OPEN } from '@/lib/features'
 
 // Loading screen timing
 const MIN_SHOW_MS = 700   // never shorter than this
@@ -10,11 +11,11 @@ const MAX_SHOW_MS = 8000  // safety: never get stuck
 
 type Key = 'home' | 'sets' | 'books' | 'market'
 
-const TABS: { key: Key; label: string; icon: string; href: string }[] = [
+const TABS: { key: Key; label: string; icon: string; href: string; soon?: boolean }[] = [
   { key: 'home', label: 'Home', icon: 'home', href: '/' },
   { key: 'market', label: 'Market', icon: 'storefront', href: '/marketplace' },
-  { key: 'sets', label: 'Sets', icon: 'menu_book', href: '/school-sets' },
-  { key: 'books', label: 'Books', icon: 'edit', href: '/books' },
+  { key: 'sets', label: 'Sets', icon: 'menu_book', href: '/school-sets', soon: !SETS_OPEN },
+  { key: 'books', label: 'Books', icon: 'edit', href: '/books', soon: !BOOKS_OPEN },
 ]
 
 // Pages that show the bar (Profile and My Orders still show it, with no tab lit)
@@ -40,6 +41,7 @@ export default function GlassNav() {
   const visible = showsBar(pathname)
   const [selected, setSelected] = useState<Key | ''>(() => derive(pathname))
   const [overlay, setOverlay] = useState<'off' | 'on' | 'out'>('off')
+  const [soonMsg, setSoonMsg] = useState('')
 
   // Keep "selected" in step with the page
   useEffect(() => {
@@ -75,6 +77,12 @@ export default function GlassNav() {
     return () => clearTimeout(t)
   }, [overlay])
 
+  // Tabs that are not open yet: show a short message instead of opening the page
+  function showSoon(label: string) {
+    setSoonMsg(label + ' are coming soon')
+    setTimeout(() => setSoonMsg(''), 1800)
+  }
+
   function go(key: Key, href: string) {
     setSelected(key)
     if (href === pathname) return // same page: nothing to load
@@ -88,6 +96,17 @@ export default function GlassNav() {
     <>
       {/* Loading screen on every tab change (sits under the bar) */}
       {overlay !== 'off' && <LoadingScreen out={overlay === 'out'} />}
+
+      {soonMsg && visible && (
+        <div
+          className="fixed inset-x-0 flex justify-center pointer-events-none px-5"
+          style={{ zIndex: 310, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 84px)' }}
+        >
+          <div className="bg-white rounded-full px-4 py-2 text-[14px] font-medium text-[#1E1B19]" style={{ boxShadow: '0 6px 20px rgba(120,70,40,0.12)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            {soonMsg}
+          </div>
+        </div>
+      )}
 
       {visible && (
         <nav
@@ -113,13 +132,15 @@ export default function GlassNav() {
           >
             {TABS.map(t => {
               const on = selected === t.key
+              const soon = !!t.soon
               return (
                 <button
                   key={t.key}
-                  onClick={() => go(t.key, t.href)}
-                  aria-label={t.label}
+                  onClick={() => (soon ? showSoon(t.label) : go(t.key, t.href))}
+                  aria-label={soon ? t.label + ' (coming soon)' : t.label}
+                  aria-disabled={soon || undefined}
                   aria-current={on ? 'page' : undefined}
-                  className="flex items-center justify-center active:scale-95"
+                  className="relative flex items-center justify-center active:scale-95"
                   style={{
                     height: 40,
                     minWidth: 40,
@@ -127,6 +148,7 @@ export default function GlassNav() {
                     borderRadius: 9999,
                     background: on ? '#E8632B' : 'transparent',
                     color: on ? '#FFFFFF' : '#3D3530',
+                    opacity: soon ? 0.45 : 1,
                     boxShadow: on ? '0 4px 12px rgba(232,99,43,0.35)' : 'none',
                     transition: 'all 320ms cubic-bezier(0.34, 1.3, 0.64, 1)',
                   }}
@@ -152,6 +174,14 @@ export default function GlassNav() {
                   >
                     {t.label}
                   </span>
+                  {soon && (
+                    <span
+                      className="absolute pointer-events-none"
+                      style={{ top: -9, right: -6, padding: '1px 6px', borderRadius: 9999, background: '#FCE3D6', color: '#C4501A', fontSize: 10, fontWeight: 700, opacity: 1 }}
+                    >
+                      Soon
+                    </span>
+                  )}
                 </button>
               )
             })}

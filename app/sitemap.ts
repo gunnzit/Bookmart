@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next'
 import { PrismaClient } from '@prisma/client'
+import { SETS_OPEN } from '@/lib/features'
 
 // Rebuild the sitemap at most once an hour so new listings show up without hitting the database on every crawl
 export const revalidate = 3600
@@ -14,7 +15,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const pages: MetadataRoute.Sitemap = [
     { url: base, lastModified: now, changeFrequency: 'daily', priority: 1.0 },
-    { url: `${base}/school-sets`, lastModified: now, changeFrequency: 'weekly', priority: 0.9 },
+    ...(SETS_OPEN ? [{ url: `${base}/school-sets`, lastModified: now, changeFrequency: 'weekly' as const, priority: 0.9 }] : []),
     { url: `${base}/marketplace`, lastModified: now, changeFrequency: 'hourly', priority: 0.9 },
     { url: `${base}/requests`, lastModified: now, changeFrequency: 'daily', priority: 0.7 },
     { url: `${base}/sell`, lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
