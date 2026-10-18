@@ -104,7 +104,11 @@ export default function MessagesPage() {
               ))}
             </div>
 
-            {status === 'loading' && <p className="text-center text-[14px] text-[#5E5650] py-12">Loading messages…</p>}
+            {status === 'loading' && (
+              <div className="flex flex-col gap-3" aria-label="Loading messages">
+                {[0, 1, 2].map(i => <div key={i} className="h-[84px] rounded-[22px] bg-white/70 animate-pulse" />)}
+              </div>
+            )}
 
             {status === 'error' && (
               <div className={'bg-white rounded-[22px] p-6 text-center ' + SHADOW}>

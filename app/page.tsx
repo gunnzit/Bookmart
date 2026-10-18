@@ -51,7 +51,7 @@ export default function HomePage() {
   const [school, setSchool] = useState('Shivalik Public School')
   const [cls, setCls] = useState(5)
   const [listings, setListings] = useState<any[]>([])
-  const [chatBusy, setChatBusy] = useState(false)
+  const [chatBusy, setChatBusy] = useState('')
   const [saved, setSaved] = useState<Set<string>>(new Set())
   const [cart, setCart] = useState<{ selectedClass: number; items: string[]; kitSubtotal: number }[]>([])
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -124,7 +124,7 @@ export default function HomePage() {
 
   async function startChat(listingId: string) {
     if (chatBusy) return
-    setChatBusy(true)
+    setChatBusy(listingId)
     try {
       const res = await fetch('/api/chat/conversations', {
         method: 'POST',
@@ -137,7 +137,7 @@ export default function HomePage() {
     } catch {
       alert('Could not start the chat. Please check your connection.')
     }
-    setChatBusy(false)
+    setChatBusy('')
   }
 
   function openChat(l: any, e: React.MouseEvent) {
@@ -300,8 +300,8 @@ export default function HomePage() {
                     </div>
                     <div className="flex items-center justify-between mt-3">
                       <span className="text-[15px] font-extrabold">₹{l.price}</span>
-                      <button aria-label="Chat to buy" onClick={e => openChat(l, e)} className="w-8 h-8 rounded-full bg-[#E8632B] text-white flex items-center justify-center active:scale-90 transition-transform shadow-[0_3px_10px_rgba(232,99,43,0.35)]">
-                        <span className="material-symbols-outlined text-[17px]">chat_bubble</span>
+                      <button aria-label="Chat to buy" disabled={!!chatBusy} onClick={e => openChat(l, e)} className="w-8 h-8 rounded-full bg-[#E8632B] text-white flex items-center justify-center active:scale-90 transition-transform shadow-[0_3px_10px_rgba(232,99,43,0.35)] disabled:opacity-60">
+                        <span className={"material-symbols-outlined text-[17px] " + (chatBusy === l.id ? "animate-spin" : "")}>{chatBusy === l.id ? "progress_activity" : "chat_bubble"}</span>
                       </button>
                     </div>
                   </div>

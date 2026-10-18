@@ -154,7 +154,14 @@ export default function ChatPage() {
     return (
       <div className={pageCls + ' min-h-screen flex items-center justify-center p-5'} style={pageStyle}>
         <div className={'bg-white rounded-[28px] p-7 max-w-sm w-full text-center ' + SHADOW}>
-          {status === 'loading' && <p className="text-[14px] text-[#5E5650]">Loading chat…</p>}
+          {status === 'loading' && (
+            <div className="flex flex-col gap-3 animate-pulse" aria-label="Loading chat">
+              <div className="h-16 rounded-[18px] bg-[#FFF1EA]" />
+              <div className="h-10 w-3/4 rounded-[20px] bg-[#FFF1EA] self-end" />
+              <div className="h-10 w-2/3 rounded-[20px] bg-[#F8EDE6]" />
+              <div className="h-10 w-1/2 rounded-[20px] bg-[#FFF1EA] self-end" />
+            </div>
+          )}
           {status === 'signin' && (
             <>
               <h1 className="text-[20px] font-bold mb-1">Sign in to chat</h1>

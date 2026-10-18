@@ -34,7 +34,7 @@ export default function Marketplace() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [unread, setUnread] = useState(0)
-  const [chatBusy, setChatBusy] = useState(false)
+  const [chatBusy, setChatBusy] = useState('')
   const [saved, setSaved] = useState<Set<string>>(new Set())
 
   // Search text carried over from the Home page (?q=...)
@@ -157,7 +157,7 @@ export default function Marketplace() {
 
   async function startChat(listingId: string) {
     if (chatBusy) return
-    setChatBusy(true)
+    setChatBusy(listingId)
     try {
       const res = await fetch('/api/chat/conversations', {
         method: 'POST',
@@ -170,7 +170,7 @@ export default function Marketplace() {
     } catch {
       alert('Could not start the chat. Please check your connection.')
     }
-    setChatBusy(false)
+    setChatBusy('')
   }
 
   function openChat(l: any, e: React.MouseEvent) {
@@ -396,9 +396,9 @@ export default function Marketplace() {
                         <span className={'text-[15px] font-extrabold ' + (sold ? 'text-[#9A908A]' : '')}>₹{l.price}</span>
                         {Number(l.origPrice) > Number(l.price) && <span className="text-[12px] text-[#9A908A] line-through">₹{l.origPrice}</span>}
                       </div>
-                      <button aria-label="Chat to buy" disabled={sold} onClick={e => openChat(l, e)}
+                      <button aria-label="Chat to buy" disabled={sold || !!chatBusy} onClick={e => openChat(l, e)}
                         className="w-8 h-8 rounded-full bg-[#E8632B] text-white flex items-center justify-center shrink-0 active:scale-90 transition-transform shadow-[0_3px_10px_rgba(232,99,43,0.35)] disabled:opacity-40 disabled:shadow-none">
-                        <span className="material-symbols-outlined text-[17px]">chat_bubble</span>
+                        <span className={"material-symbols-outlined text-[17px] " + (chatBusy === l.id ? "animate-spin" : "")}>{chatBusy === l.id ? "progress_activity" : "chat_bubble"}</span>
                       </button>
                     </div>
                   </div>

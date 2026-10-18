@@ -68,7 +68,9 @@ async function notifyNewMessage(phone: string, senderName: string, bookTitle: st
 // Saves a message, updates the conversation summary, and alerts the other
 // person once per run of unread messages.
 export async function addMessage(conversationId: string, senderId: string, isBuyer: boolean, body: string) {
-  const conv = await prisma.conversation.findUnique({
+  // Look up the chat and save the message at the same time
+  const [conv, msg] = await Promise.all([
+    prisma.conversation.findUnique({
     where: { id: conversationId },
     select: {
       lastSenderId: true,
@@ -80,9 +82,9 @@ export async function addMessage(conversationId: string, senderId: string, isBuy
       buyer: { select: { name: true, phone: true } },
       seller: { select: { name: true, phone: true } },
     },
-  })
-
-  const msg = await prisma.message.create({ data: { conversationId, senderId, body } })
+  }),
+    prisma.message.create({ data: { conversationId, senderId, body } }),
+  ])
   await prisma.conversation.update({
     where: { id: conversationId },
     data: {

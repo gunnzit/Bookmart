@@ -76,7 +76,7 @@ export default function ListingPage() {
   const [savingWishlist, setSavingWishlist] = useState(false)
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [showTiers, setShowTiers] = useState(false)
-  const [chatBusy, setChatBusy] = useState(false)
+  const [chatBusy, setChatBusy] = useState('')
   const [toast, setToast] = useState('')
 
   const [reviews, setReviews] = useState<any[]>([])
@@ -183,7 +183,7 @@ export default function ListingPage() {
 
   async function startChat(listingId: string) {
     if (chatBusy) return
-    setChatBusy(true)
+    setChatBusy(listingId)
     try {
       const res = await fetch('/api/chat/conversations', {
         method: 'POST',
@@ -196,7 +196,7 @@ export default function ListingPage() {
     } catch {
       alert('Could not start the chat. Please check your connection.')
     }
-    setChatBusy(false)
+    setChatBusy('')
   }
 
   function openChat() {
@@ -319,9 +319,9 @@ export default function ListingPage() {
   const note = String(listing.subtitle || '').trim()
 
   const chatButton = (cls: string) => (
-    <button onClick={openChat} className={'h-[52px] rounded-full bg-[#E8632B] text-white text-[17px] font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform shadow-[0_6px_20px_rgba(232,99,43,0.3)] ' + cls}>
-      <span className="material-symbols-outlined text-[20px]">chat_bubble</span>
-      {isSignedIn ? 'Chat to buy' : 'Sign in to chat'}
+    <button onClick={openChat} disabled={!!chatBusy} className={'disabled:opacity-70 h-[52px] rounded-full bg-[#E8632B] text-white text-[17px] font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform shadow-[0_6px_20px_rgba(232,99,43,0.3)] ' + cls}>
+      <span className={'material-symbols-outlined text-[20px] ' + (chatBusy ? 'animate-spin' : '')}>{chatBusy ? 'progress_activity' : 'chat_bubble'}</span>
+      {chatBusy ? 'Opening chat…' : isSignedIn ? 'Chat to buy' : 'Sign in to chat'}
     </button>
   )
 
