@@ -41,8 +41,11 @@ export default function Marketplace() {
   // Search text carried over from the Home page (?q=...)
   useEffect(() => {
     try {
-      const qq = new URLSearchParams(window.location.search).get('q')
+      const params = new URLSearchParams(window.location.search)
+      const qq = params.get('q')
       if (qq) setSearch(qq)
+      const cc = params.get('cat')
+      if (cc && CATS.includes(cc)) setCat(cc)
     } catch {}
   }, [])
 

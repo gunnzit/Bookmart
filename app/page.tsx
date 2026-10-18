@@ -16,6 +16,17 @@ const STORE_PHOTO = '/photos/store.jpg'
 
 const SHADOW = 'shadow-[0_6px_20px_rgba(120,70,40,0.08)]'
 
+const HOME_CATS = [
+  { key: 'textbook', label: 'Textbooks' },
+  { key: 'novel', label: 'Novels' },
+  { key: 'competitive', label: 'Competitive' },
+  { key: 'stationery', label: 'Stationery' },
+]
+
+const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '')
+const first = (n?: string | null) => String(n || '').trim().split(/\s+/)[0] || ''
+const priceText = (p: any) => (Number(p) === 0 ? 'Free' : '₹' + p)
+
 const SHORT_NAME: Record<string, string> = {
   'Delhi Public School': 'DPS Sector 40-C',
   'Shivalik Public School': 'Shivalik Public',
@@ -59,6 +70,8 @@ export default function HomePage() {
   const [place, setPlace] = useDeliveryPlace()
   const [heroOk, setHeroOk] = useState(true)
   const [storeOk, setStoreOk] = useState(true)
+  const [unread, setUnread] = useState(0)
+  const [reqs, setReqs] = useState<any[]>([])
 
   useEffect(() => {
     fetch('/api/listings')
@@ -72,6 +85,34 @@ export default function HomePage() {
       if (raw) setCart(JSON.parse(raw))
     } catch {}
   }, [])
+
+  // Unread message count for the header icon
+  useEffect(() => {
+    if (!isSignedIn) { setUnread(0); return }
+    let stop = false
+    async function loadUnread() {
+      if (document.visibilityState !== 'visible') return
+      try {
+        const res = await fetch('/api/chat/conversations', { cache: 'no-store' })
+        if (!res.ok) return
+        const d = await res.json()
+        if (!stop) setUnread(Number(d.unreadCount) || 0)
+      } catch {}
+    }
+    loadUnread()
+    const t = setInterval(loadUnread, 30000)
+    return () => { stop = true; clearInterval(t) }
+  }, [isSignedIn])
+
+  // The latest open book requests (public)
+  useEffect(() => {
+    fetch('/api/book-requests', { cache: 'no-store' })
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d?.requests)) setReqs(d.requests.filter((r: any) => r.status === 'open').slice(0, 3))
+      })
+      .catch(() => {})
+  }, [isSignedIn])
 
   // Which books this person has already saved
   useEffect(() => {
@@ -87,6 +128,11 @@ export default function HomePage() {
   const summary = kitSummary(school, cls)
   const shortName = SHORT_NAME[school] || school
   const cartTotal = cart.reduce((sum, k) => sum + (k.kitSubtotal || 0), 0)
+
+  const featured = listings.filter(l => l.featured).slice(0, 6)
+  const others = listings.filter(l => !l.featured)
+  const gridList = (others.length >= 2 ? others : listings).slice(0, 4)
+  const free = listings.filter(l => Number(l.price) === 0).slice(0, 6)
 
   const placeLine = !place
     ? 'Choose your delivery area'
@@ -153,6 +199,14 @@ export default function HomePage() {
     router.push('/sell')
   }
 
+  function chatButton(l: any) {
+    return (
+      <button aria-label="Chat to buy" disabled={!!chatBusy} onClick={e => openChat(l, e)} className="w-8 h-8 rounded-full bg-[#FFF1EA] text-[#E8632B] flex items-center justify-center shrink-0 active:scale-90 transition-transform disabled:opacity-60">
+        <span className={'material-symbols-outlined text-[16px] ' + (chatBusy === l.id ? 'animate-spin' : '')}>{chatBusy === l.id ? 'progress_activity' : 'chat_bubble'}</span>
+      </button>
+    )
+  }
+
   const iconBtn = 'relative w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#1E1B19] active:scale-90 transition-transform ' + SHADOW
 
   return (
@@ -177,6 +231,12 @@ export default function HomePage() {
                 {cart.length > 0 && <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#E8632B] ring-2 ring-white" />}
               </button>
               )}
+              <button aria-label={unread > 0 ? 'Messages, ' + unread + ' unread' : 'Messages'} onClick={() => (isSignedIn ? router.push('/messages') : openSignIn())} className={iconBtn}>
+                <span className="material-symbols-outlined text-[20px]">forum</span>
+                {unread > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#E8632B] text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white">{unread > 9 ? '9+' : unread}</span>
+                )}
+              </button>
               {isSignedIn ? (
                 <button aria-label="Profile" onClick={() => router.push('/profile')} className={iconBtn}>
                   <span className="material-symbols-outlined text-[20px]">person</span>
@@ -211,20 +271,29 @@ export default function HomePage() {
           </button>
         </form>
 
-        {!SETS_OPEN && (
-          <section className={'bg-white rounded-[22px] p-5 flex items-center gap-4 ' + SHADOW}>
-            <div className="w-14 h-14 rounded-full bg-[#FCE3D6] text-[#C4501A] flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-[28px]">menu_book</span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-[15px] font-bold">School sets and stationery</h2>
-                <span className="px-2.5 py-0.5 rounded-full bg-[#FFF1EA] text-[#C4501A] text-[12px] font-semibold">Coming soon</span>
-              </div>
-              <p className="text-[13px] text-[#5E5650] mt-1">For now, buy and sell second-hand books near you.</p>
-            </div>
-          </section>
-        )}
+        {/* 3. Category chips */}
+        <section className="-mx-5 px-5 overflow-x-auto flex items-center gap-2 pb-1" style={{ scrollbarWidth: 'none' }}>
+          {HOME_CATS.map(c => (
+            <button key={c.key} onClick={() => router.push('/marketplace?cat=' + c.key)}
+              className={'px-5 py-2 rounded-full text-[14px] font-medium bg-white text-[#1E1B19] whitespace-nowrap shrink-0 active:scale-95 transition-transform ' + SHADOW}>
+              {c.label}
+            </button>
+          ))}
+        </section>
+
+        {/* 4. Sell banner (the one main button on this screen) */}
+        <section className={'relative overflow-hidden bg-white rounded-[22px] p-5 flex flex-col gap-4 ' + SHADOW}>
+          <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-[#FCE3D6]/40 pointer-events-none" />
+          <div className="relative flex flex-col gap-1">
+            <span className="text-[12px] font-semibold text-[#C4501A]">Sell to students near you</span>
+            <h2 className="text-[20px] font-bold leading-tight">Have old books? List them in 2 minutes</h2>
+            <p className="text-[14px] text-[#5E5650]">Earn cash and help a neighbourhood student.</p>
+          </div>
+          <button onClick={goSell} className="relative w-full h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
+            <span className="material-symbols-outlined text-[20px]">add_circle</span>
+            <span>Sell a book</span>
+          </button>
+        </section>
 
         {SETS_OPEN && (<>
         {/* 3. Hero */}
@@ -290,7 +359,40 @@ export default function HomePage() {
 
         </>)}
 
-        {/* 5. Books from students near you */}
+        {/* 5. Featured books */}
+        {featured.length > 0 && (
+          <section className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-[17px] font-bold">Featured books</h2>
+              <button onClick={() => router.push('/marketplace')} className="text-[13px] font-semibold text-[#9A908A] active:opacity-70">See all</button>
+            </div>
+            <div className="-mx-5 px-5 flex gap-3.5 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
+              {featured.map(l => (
+                <div key={l.id} onClick={() => router.push('/listing/' + l.id)} className={'w-44 shrink-0 bg-white rounded-[22px] p-3 flex flex-col justify-between cursor-pointer ' + SHADOW}>
+                  <div className="flex flex-col gap-2.5">
+                    <div className="relative w-full h-44 rounded-[18px] overflow-hidden bg-[#F8EDE6] flex items-center justify-center text-[34px]">
+                      {l.images?.[0] ? <img src={l.images[0]} alt={l.title} className="w-full h-full object-cover" /> : <span>{l.emoji || '📚'}</span>}
+                      {l.category && <span className="absolute top-2 left-2 bg-white/90 text-[#1E1B19] text-[12px] font-semibold px-2 py-0.5 rounded-full">{cap(l.category)}</span>}
+                    </div>
+                    <div className="flex flex-col">
+                      <h3 className="text-[13px] font-bold leading-tight line-clamp-1">{l.title}</h3>
+                      <span className="text-[12px] text-[#9A908A] truncate">{l.subtitle || l.condition}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-2">
+                    <div className="flex flex-col">
+                      <span className="text-[15px] font-extrabold">{priceText(l.price)}</span>
+                      {Number(l.origPrice) > Number(l.price) && <span className="text-[12px] text-[#9A908A] line-through">₹{l.origPrice}</span>}
+                    </div>
+                    {chatButton(l)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* 6. Books from students near you */}
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h2 className="text-[17px] font-bold">Books from students near you</h2>
@@ -300,43 +402,148 @@ export default function HomePage() {
           {listings.length === 0 ? (
             <div className={'bg-white rounded-[22px] p-5 text-center ' + SHADOW}>
               <p className="text-[14px] text-[#5E5650] mb-3">No books listed yet. Be the first to sell yours.</p>
-              <button onClick={goSell} className="px-5 py-2.5 bg-[#E8632B] text-white text-[14px] font-semibold rounded-full active:scale-95 transition-transform">Sell a book</button>
+              <button onClick={goSell} className="px-5 py-2.5 bg-[#FFF1EA] text-[#C4501A] text-[14px] font-semibold rounded-full active:scale-95 transition-transform">Sell a book</button>
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {listings.slice(0, 4).map(l => {
+              {gridList.map(l => {
                 const isSaved = saved.has(l.id)
+                const pct = Number(l.origPrice) > Number(l.price) && Number(l.price) > 0 ? Math.round((Number(l.price) / Number(l.origPrice)) * 100) : 0
+                const who = [first(l.seller?.name), l.location].filter(Boolean).join(' · ')
                 return (
                   <div key={l.id} onClick={() => router.push('/listing/' + l.id)} className={'bg-white rounded-[22px] p-3 flex flex-col justify-between cursor-pointer ' + SHADOW}>
-                    <div>
-                      <div className="relative w-full aspect-[4/3] rounded-[18px] overflow-hidden mb-2.5 bg-[#FFF1EA] flex items-center justify-center text-[34px]">
+                    <div className="flex flex-col gap-2">
+                      <div className="relative w-full aspect-[3/4] rounded-[18px] overflow-hidden bg-[#FFF1EA] flex items-center justify-center text-[34px]">
                         {l.images?.[0] ? <img src={l.images[0]} alt={l.title} className="w-full h-full object-cover" /> : <span>{l.emoji || '📚'}</span>}
+                        {pct > 0 && <span className="absolute top-2 left-2 bg-white/95 text-[#C4501A] text-[12px] font-semibold px-2 py-0.5 rounded-full">{pct}% of MRP</span>}
                         <button aria-label={isSaved ? 'Remove from saved' : 'Save book'} onClick={e => toggleHeart(l, e)}
                           className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white flex items-center justify-center active:scale-90 transition-transform shadow-[0_2px_10px_rgba(120,70,40,0.12)]">
                           <span className="material-symbols-outlined text-[16px]" style={{ color: isSaved ? '#E8632B' : '#9A908A', fontVariationSettings: isSaved ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
                         </button>
                       </div>
-                      <h3 className="text-[13px] font-bold leading-tight line-clamp-2">{l.title}</h3>
-                      <p className="text-[12px] text-[#9A908A] mt-1 truncate">{[l.category, l.condition].filter(Boolean).join(' • ')}</p>
+                      <div className="flex flex-col">
+                        <h3 className="text-[13px] font-bold leading-tight line-clamp-1">{l.title}</h3>
+                        {who && <span className="text-[12px] text-[#5E5650] truncate">{who}</span>}
+                        {l.condition && <span className="text-[12px] text-[#2E8B57] font-medium">{l.condition}</span>}
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between mt-3">
-                      <span className="text-[15px] font-extrabold">{Number(l.price) === 0 ? 'Free' : '₹' + l.price}</span>
-                      <button aria-label="Chat to buy" disabled={!!chatBusy} onClick={e => openChat(l, e)} className="w-8 h-8 rounded-full bg-[#E8632B] text-white flex items-center justify-center active:scale-90 transition-transform shadow-[0_3px_10px_rgba(232,99,43,0.35)] disabled:opacity-60">
-                        <span className={"material-symbols-outlined text-[17px] " + (chatBusy === l.id ? "animate-spin" : "")}>{chatBusy === l.id ? "progress_activity" : "chat_bubble"}</span>
-                      </button>
+                    <div className="flex items-center justify-between pt-2.5">
+                      <div className="flex items-baseline gap-1 min-w-0">
+                        <span className="text-[15px] font-extrabold">{priceText(l.price)}</span>
+                        {Number(l.origPrice) > Number(l.price) && <span className="text-[12px] text-[#9A908A] line-through">₹{l.origPrice}</span>}
+                      </div>
+                      {chatButton(l)}
                     </div>
                   </div>
                 )
               })}
             </div>
           )}
-
-          <button onClick={goSell} className="self-start text-[13px] font-semibold text-[#C4501A] active:opacity-70">
-            Have old books? Sell yours
-          </button>
         </section>
 
-        {/* 6. Store card */}
+        {/* 7. People are looking for */}
+        {reqs.length > 0 && (
+          <section className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-[17px] font-bold">People are looking for</h2>
+              <button onClick={() => router.push('/requests')} className="text-[13px] font-semibold text-[#9A908A] active:opacity-70">See all requests</button>
+            </div>
+            <div className="flex flex-col gap-2.5">
+              {reqs.map(r => {
+                const wanted = r.maxPrice ? 'Wanted up to ₹' + r.maxPrice : 'Wanted'
+                const who = r.mine ? r.location : [r.name, r.location ? '(' + r.location + ')' : ''].filter(Boolean).join(' ')
+                return (
+                  <div key={r.id} className={'w-full bg-white rounded-[22px] p-4 flex items-center justify-between gap-3 ' + SHADOW}>
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <h3 className="text-[15px] font-semibold truncate">{r.title}</h3>
+                        {r.mine && <span className="px-2 py-0.5 rounded-full bg-[#FCE3D6] text-[#C4501A] text-[12px] font-semibold shrink-0">You</span>}
+                      </div>
+                      <span className="text-[12px] text-[#5E5650] truncate">{[wanted, who].filter(Boolean).join(' · ')}</span>
+                    </div>
+                    {r.mine ? (
+                      <span className="shrink-0 text-[12px] text-[#9A908A]">Awaiting offers</span>
+                    ) : (
+                      <button onClick={goSell} className="shrink-0 px-3 py-1.5 rounded-full bg-[#FFF1EA] text-[#C4501A] text-[12px] font-semibold flex items-center gap-1 active:scale-95 transition-transform">
+                        <span className="material-symbols-outlined text-[15px]">chat</span>
+                        <span>I have this</span>
+                      </button>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* 8. Free community books */}
+        {free.length > 0 && (
+          <section className="flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <h2 className="text-[17px] font-bold">Free community books</h2>
+              <span className="px-2.5 py-0.5 rounded-full bg-[#2E8B57]/10 text-[#2E8B57] text-[12px] font-semibold">Pay it forward</span>
+            </div>
+            <div className="-mx-5 px-5 flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
+              {free.map(l => (
+                <div key={l.id} onClick={() => router.push('/listing/' + l.id)} className={'w-48 shrink-0 bg-white rounded-[22px] p-3.5 flex flex-col justify-between cursor-pointer ' + SHADOW}>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[12px] font-semibold text-[#2E8B57]">Giveaway</span>
+                    <h3 className="text-[13px] font-bold leading-tight line-clamp-2">{l.title}</h3>
+                    {first(l.seller?.name) && <span className="text-[12px] text-[#9A908A]">Listed by {first(l.seller?.name)}</span>}
+                  </div>
+                  <div className="flex items-center justify-between pt-3">
+                    <span className="text-[15px] font-extrabold text-[#2E8B57]">Free</span>
+                    <button disabled={!!chatBusy} onClick={e => openChat(l, e)} className="px-3 py-1.5 rounded-full bg-[#FFF1EA] text-[#1E1B19] text-[12px] font-semibold active:scale-95 transition-transform disabled:opacity-60">
+                      {chatBusy === l.id ? 'Opening…' : 'Claim'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* 9. How Pageplus works */}
+        <section className={'bg-white rounded-[22px] p-5 flex flex-col gap-4 ' + SHADOW}>
+          <div className="flex flex-col">
+            <h2 className="text-[17px] font-bold">How Pageplus works</h2>
+            <span className="text-[12px] text-[#9A908A]">Safe, local peer-to-peer exchanges</span>
+          </div>
+          <div className="flex flex-col gap-3.5">
+            {[
+              { n: 1, t: 'List your book', d: 'Snap the cover and set your price in 2 minutes.' },
+              { n: 2, t: 'Chat and agree', d: 'Message directly. No middleman fees.' },
+              { n: 3, t: 'Meet and pay in person', d: 'Hand over at a safe public place near you.' },
+            ].map(st => (
+              <div key={st.n} className="flex items-start gap-3">
+                <div className="w-7 h-7 rounded-full bg-[#FCE3D6] text-[#C4501A] text-[12px] font-bold flex items-center justify-center shrink-0">{st.n}</div>
+                <div className="flex flex-col">
+                  <h3 className="text-[15px] font-semibold">{st.t}</h3>
+                  <p className="text-[14px] text-[#5E5650]">{st.d}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="bg-[#F8EDE6] rounded-[16px] p-3 flex items-center gap-2.5">
+            <span className="material-symbols-outlined text-[18px] text-[#5E5650] shrink-0">verified_user</span>
+            <p className="text-[12px] text-[#9A908A]">Meet in daylight at public places. Never share OTPs.</p>
+          </div>
+        </section>
+
+        {/* 10. School sets: coming soon */}
+        {!SETS_OPEN && (
+          <section className={'bg-[#FFF1EA] rounded-[22px] p-4 flex items-center justify-between gap-3 ' + SHADOW}>
+            <div className="flex flex-col min-w-0">
+              <h3 className="text-[15px] font-semibold">School sets and customised kits · Coming soon</h3>
+              <p className="text-[12px] text-[#5E5650] mt-0.5">Curated book sets for DPS Sector 40-C and Shivalik Public School.</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#E8632B] shrink-0 shadow-[0_2px_10px_rgba(120,70,40,0.06)]">
+              <span className="material-symbols-outlined text-[20px]">inventory_2</span>
+            </div>
+          </section>
+        )}
+
+        {/* 11. Store card */}
         <section className={'bg-white rounded-[22px] p-4 flex flex-col gap-3.5 ' + SHADOW}>
           <div className="flex items-center gap-3">
             <div className="w-14 h-14 rounded-[18px] overflow-hidden shrink-0 bg-[#FFF1EA] flex items-center justify-center">
