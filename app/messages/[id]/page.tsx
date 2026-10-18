@@ -54,6 +54,7 @@ export default function ChatPage() {
   const [offer, setOffer] = useState('')
   const [offerError, setOfferError] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [soldBusy, setSoldBusy] = useState(false)
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -188,6 +189,31 @@ export default function ChatPage() {
     )
   }
 
+  async function toggleSold(next: boolean) {
+    if (soldBusy || !info?.listing?.id) return
+    const ask = next
+      ? 'Mark this book as sold? Buyers will see it as Sold right away.'
+      : 'Mark this book as available again?'
+    if (!window.confirm(ask)) return
+    setSoldBusy(true)
+    try {
+      const res = await fetch('/api/listings/' + info.listing.id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sold: next }),
+      })
+      if (res.ok) {
+        setInfo((prev: any) => prev ? { ...prev, listing: { ...prev.listing, sold: next } } : prev)
+      } else {
+        const d = await res.json().catch(() => ({}))
+        alert(d?.error || 'Could not update. Please try again.')
+      }
+    } catch {
+      alert('Could not update. Please try again.')
+    }
+    setSoldBusy(false)
+  }
+
   const l = info.listing
   const img = l?.images?.[0]
   const sold = !!l?.sold
@@ -313,6 +339,14 @@ export default function ChatPage() {
                 )}
                 {sold && info.isBuyer && (
                   <button onClick={() => router.push('/marketplace')} className="text-[#C4501A] text-[13px] font-semibold active:opacity-70">Find similar</button>
+                )}
+                {!info.isBuyer && !sold && (!l?.status || l.status === 'active') && (
+                  <button onClick={() => toggleSold(true)} disabled={soldBusy} className="bg-[#FFF1EA] text-[#C4501A] px-3 py-1.5 rounded-full text-[13px] font-semibold flex items-center gap-1 active:scale-95 transition-transform disabled:opacity-60 shadow-[0_2px_8px_rgba(120,70,40,0.06)]">
+                    <span className="material-symbols-outlined text-[16px]">sell</span><span>{soldBusy ? 'Saving…' : 'Mark as sold'}</span>
+                  </button>
+                )}
+                {!info.isBuyer && sold && (
+                  <button onClick={() => toggleSold(false)} disabled={soldBusy} className="text-[#C4501A] text-[13px] font-semibold active:opacity-70 disabled:opacity-60">{soldBusy ? 'Saving…' : 'Mark available'}</button>
                 )}
               </div>
             </div>

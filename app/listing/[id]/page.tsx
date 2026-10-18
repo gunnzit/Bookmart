@@ -68,6 +68,7 @@ export default function ListingPage() {
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [soldBusy, setSoldBusy] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<any>({})
   const [activeImg, setActiveImg] = useState(0)
@@ -141,6 +142,30 @@ export default function ListingPage() {
       setSaved(!!data.saved)
     } catch {}
     setSavingWishlist(false)
+  }
+
+  async function toggleSold(next: boolean) {
+    if (soldBusy) return
+    const ask = next
+      ? 'Mark this book as sold? Buyers will see it as Sold right away.'
+      : 'Mark this book as available again?'
+    if (!window.confirm(ask)) return
+    setSoldBusy(true)
+    try {
+      const res = await fetch('/api/listings/' + id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sold: next }),
+      })
+      if (res.ok) setListing((prev: any) => prev ? { ...prev, sold: next } : prev)
+      else {
+        const d = await res.json().catch(() => ({}))
+        alert(d?.error || 'Could not update. Please try again.')
+      }
+    } catch {
+      alert('Could not update. Please try again.')
+    }
+    setSoldBusy(false)
   }
 
   async function handleDelete() {
@@ -504,6 +529,12 @@ export default function ListingPage() {
                     <span className="material-symbols-outlined text-[18px]">forum</span>Messages
                   </button>
                 </div>
+
+                {(!listing.status || listing.status === 'active') && (
+                  <button onClick={() => toggleSold(!sold)} disabled={soldBusy} className={'w-full h-11 rounded-full bg-white text-[14px] font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform disabled:opacity-60 ' + SHADOW}>
+                    <span className="material-symbols-outlined text-[18px]">{sold ? 'undo' : 'sell'}</span>{soldBusy ? 'Saving…' : sold ? 'Mark as available' : 'Mark as sold'}
+                  </button>
+                )}
 
                 {!sold && (listing.featured ? (
                   <p className="text-[13px] text-[#5E5650] flex items-center gap-1.5">
