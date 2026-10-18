@@ -230,3 +230,14 @@ model SavedAddress {
 
   @@index([userId])
 }
+
+// ── Book request alerts: one row per (request, listing) so a buyer is told only once ──
+model RequestAlert {
+  id        String   @id @default(cuid())
+  requestId String
+  listingId String
+  createdAt DateTime @default(now())
+
+  @@unique([requestId, listingId])
+  @@index([listingId])
+}

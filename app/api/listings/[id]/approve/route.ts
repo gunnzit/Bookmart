@@ -1,5 +1,7 @@
 import { PrismaClient } from '@prisma/client'
+import { after } from 'next/server'
 import { sendWhatsApp } from '@/lib/whatsapp'
+import { notifyRequestMatches } from '@/lib/request-alerts'
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 const prisma = globalForPrisma.prisma ?? new PrismaClient()
@@ -41,6 +43,16 @@ export async function GET(request: Request, context: any) {
       sendWhatsApp(listing.seller.phone, message).catch(() => {
         // Silently ignore — approval is unaffected
       })
+    }
+
+    // Tell buyers who asked for this book (after the reply is sent, so approval stays fast)
+    if (action === 'approve') {
+      const job = () => notifyRequestMatches({ id: listing.id, title: listing.title, price: listing.price, sellerId: listing.sellerId })
+      try {
+        after(job)
+      } catch {
+        job().catch(() => {})
+      }
     }
 
     const isApprove = action === 'approve'

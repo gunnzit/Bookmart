@@ -50,12 +50,16 @@ export default function RequestsPage() {
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState('')
   const [tab, setTab] = useState<'all' | 'mine'>('all')
+  const [hasPhone, setHasPhone] = useState(true)
 
   const [title, setTitle] = useState('')
   const [author, setAuthor] = useState('')
   const [category, setCategory] = useState('textbook')
   const [budget, setBudget] = useState('')
   const [area, setArea] = useState(AREAS[0])
+  const [customArea, setCustomArea] = useState('')
+  const [customOpen, setCustomOpen] = useState(false)
+  const [customDraft, setCustomDraft] = useState('')
   const [note, setNote] = useState('')
   const [formError, setFormError] = useState('')
   const [posting, setPosting] = useState(false)
@@ -66,7 +70,7 @@ export default function RequestsPage() {
     try {
       const res = await fetch('/api/book-requests', { cache: 'no-store' })
       const d = await res.json()
-      if (Array.isArray(d.requests)) { setRequests(d.requests); setLoadError('') }
+      if (Array.isArray(d.requests)) { setRequests(d.requests); setHasPhone(d.hasPhone !== false); setLoadError('') }
       else setLoadError('Could not load requests.')
     } catch {
       setLoadError('Could not connect. Check your internet and try again.')
@@ -107,6 +111,15 @@ export default function RequestsPage() {
       setFormError('Could not connect. Please try again.')
     }
     setPosting(false)
+  }
+
+  function addCustomArea() {
+    const v = customDraft.replace(/\s+/g, ' ').trim().slice(0, 40)
+    if (v.length < 2) return
+    setCustomArea(v)
+    setArea(v)
+    setCustomDraft('')
+    setCustomOpen(false)
   }
 
   async function markFound(id: string) {
@@ -244,6 +257,29 @@ export default function RequestsPage() {
                     <button key={a} type="button" onClick={() => setArea(a)}
                       className={'px-3 py-1.5 rounded-full text-[12px] transition-all ' + (area === a ? 'font-semibold bg-[#E8632B] text-white shadow-sm' : 'text-[#1E1B19] bg-[#FFF1EA] hover:bg-[#F0E2DA]')}>{a}</button>
                   ))}
+                  {customArea && (
+                    <button type="button" onClick={() => setArea(customArea)}
+                      className={'pl-3 pr-2 py-1.5 rounded-full text-[12px] transition-all flex items-center gap-1 ' + (area === customArea ? 'font-semibold bg-[#E8632B] text-white shadow-sm' : 'text-[#1E1B19] bg-[#FFF1EA] hover:bg-[#F0E2DA]')}>
+                      <span>{customArea}</span>
+                      <span aria-label="Remove area" onClick={e => { e.stopPropagation(); setCustomArea(''); if (area === customArea) setArea(AREAS[0]) }} className="material-symbols-outlined text-[14px]">close</span>
+                    </button>
+                  )}
+                  {customOpen ? (
+                    <div className="flex items-center gap-1 bg-[#F8EDE6] rounded-full pl-3 pr-1 py-1 focus-within:ring-2 focus-within:ring-[#FCE3D6]">
+                      <input autoFocus value={customDraft} onChange={e => setCustomDraft(e.target.value)} maxLength={40} placeholder="Type your area"
+                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustomArea() } }}
+                        className="w-32 bg-transparent text-[12px] text-[#1E1B19] placeholder:text-[#9A908A] focus:outline-none" />
+                      <button type="button" aria-label="Add area" onClick={addCustomArea} className="w-6 h-6 rounded-full bg-[#E8632B] text-white flex items-center justify-center active:scale-90 transition-transform">
+                        <span className="material-symbols-outlined text-[14px]">check</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => setCustomOpen(true)}
+                      className="px-3 py-1.5 rounded-full text-[12px] text-[#C4501A] bg-[#FFF1EA] hover:bg-[#F0E2DA] flex items-center gap-1 transition-all">
+                      <span className="material-symbols-outlined text-[14px]">add</span>
+                      <span>{customArea ? 'Change area' : 'Other area'}</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -261,6 +297,11 @@ export default function RequestsPage() {
                   <span>{posting ? 'Posting…' : isSignedIn ? 'Post request' : 'Sign in to post'}</span>
                   {!posting && <span className="material-symbols-outlined text-[20px]">send</span>}
                 </button>
+                {isSignedIn && !hasPhone && (
+                  <p className="text-[12px] text-[#5E5650] text-center mt-2.5">
+                    Add your WhatsApp number in <button type="button" onClick={() => router.push('/profile')} className="font-semibold text-[#C4501A]">Profile</button> to get an alert when it is listed.
+                  </p>
+                )}
               </div>
             </form>
           </section>
@@ -375,6 +416,17 @@ export default function RequestsPage() {
                 })}
               </div>
             )}
+          </section>
+
+          {/* How alerts work */}
+          <section className="bg-[#FFF1EA] rounded-[22px] p-4 flex items-start gap-3.5">
+            <div className="w-9 h-9 shrink-0 rounded-full bg-white flex items-center justify-center text-[#E8632B] shadow-sm mt-0.5">
+              <span className="material-symbols-outlined text-[20px]">notifications_active</span>
+            </div>
+            <div className="flex flex-col gap-1">
+              <h5 className="text-[15px] leading-5 font-semibold text-[#1E1B19]">Can’t find what you need?</h5>
+              <p className="text-[13px] leading-relaxed text-[#5E5650]">When a local parent lists it, we message you on WhatsApp.</p>
+            </div>
           </section>
         </div>
       </main>
