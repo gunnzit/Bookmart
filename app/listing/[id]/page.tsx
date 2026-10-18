@@ -466,7 +466,7 @@ export default function ListingPage() {
             {/* Price and title */}
             <section className={'bg-white rounded-[22px] p-5 ' + SHADOW}>
               <div className="flex items-baseline gap-2 mb-1.5 flex-wrap">
-                <span className={'text-[24px] leading-7 font-bold ' + (sold ? 'text-[#9A908A]' : '')}>₹{listing.price}</span>
+                <span className={'text-[24px] leading-7 font-bold ' + (sold ? 'text-[#9A908A]' : '')}>{Number(listing.price) === 0 ? 'Free' : '₹' + listing.price}</span>
                 {Number(listing.origPrice) > Number(listing.price) && <span className="text-[14px] text-[#9A908A] line-through">₹{listing.origPrice}</span>}
                 {discount > 0 && !sold && <span className="text-[12px] font-semibold text-[#E8632B]">{discount}% off</span>}
               </div>
@@ -523,7 +523,7 @@ export default function ListingPage() {
                               <div className="text-[15px] font-semibold">{t.label}</div>
                               <div className="text-[12px] text-[#9A908A]">{t.desc}</div>
                             </div>
-                            <span className="text-[16px] font-bold shrink-0">₹{t.price}</span>
+                            <span className="text-[16px] font-bold shrink-0">{Number(t.price) === 0 ? 'Free' : '₹' + t.price}</span>
                           </button>
                         ))}
                       </div>
@@ -681,7 +681,7 @@ export default function ListingPage() {
                   </div>
                   <h3 className="text-[13px] font-bold leading-tight line-clamp-2">{l.title}</h3>
                   <div className="flex items-baseline gap-1.5 mt-1.5">
-                    <span className="text-[15px] font-extrabold">₹{l.price}</span>
+                    <span className="text-[15px] font-extrabold">{Number(l.price) === 0 ? 'Free' : '₹' + l.price}</span>
                     {Number(l.origPrice) > Number(l.price) && <span className="text-[12px] text-[#9A908A] line-through">₹{l.origPrice}</span>}
                   </div>
                 </div>
@@ -702,7 +702,7 @@ export default function ListingPage() {
           <div className="pointer-events-auto w-full max-w-md flex items-center gap-3 rounded-full pl-5 pr-1.5 py-1.5" style={GLASS}>
             <div className="flex flex-col leading-tight shrink-0">
               <span className="text-[12px] text-[#5E5650]">Price</span>
-              <span className="text-[18px] font-bold">₹{listing.price}</span>
+              <span className="text-[18px] font-bold">{Number(listing.price) === 0 ? 'Free' : '₹' + listing.price}</span>
             </div>
             {chatButton('flex-1 !h-12')}
           </div>

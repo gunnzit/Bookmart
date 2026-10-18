@@ -299,7 +299,7 @@ export default function HomePage() {
                       <p className="text-[12px] text-[#9A908A] mt-1 truncate">{[l.category, l.condition].filter(Boolean).join(' • ')}</p>
                     </div>
                     <div className="flex items-center justify-between mt-3">
-                      <span className="text-[15px] font-extrabold">₹{l.price}</span>
+                      <span className="text-[15px] font-extrabold">{Number(l.price) === 0 ? 'Free' : '₹' + l.price}</span>
                       <button aria-label="Chat to buy" disabled={!!chatBusy} onClick={e => openChat(l, e)} className="w-8 h-8 rounded-full bg-[#E8632B] text-white flex items-center justify-center active:scale-90 transition-transform shadow-[0_3px_10px_rgba(232,99,43,0.35)] disabled:opacity-60">
                         <span className={"material-symbols-outlined text-[17px] " + (chatBusy === l.id ? "animate-spin" : "")}>{chatBusy === l.id ? "progress_activity" : "chat_bubble"}</span>
                       </button>

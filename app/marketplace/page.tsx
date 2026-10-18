@@ -393,7 +393,7 @@ export default function Marketplace() {
                     </div>
                     <div className="flex items-center justify-between mt-3">
                       <div className="flex items-baseline gap-1.5 min-w-0">
-                        <span className={'text-[15px] font-extrabold ' + (sold ? 'text-[#9A908A]' : '')}>₹{l.price}</span>
+                        <span className={'text-[15px] font-extrabold ' + (sold ? 'text-[#9A908A]' : '')}>{Number(l.price) === 0 ? 'Free' : '₹' + l.price}</span>
                         {Number(l.origPrice) > Number(l.price) && <span className="text-[12px] text-[#9A908A] line-through">₹{l.origPrice}</span>}
                       </div>
                       <button aria-label="Chat to buy" disabled={sold || !!chatBusy} onClick={e => openChat(l, e)}
