@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser, SignInButton } from '@clerk/nextjs'
 import { DELIVERY_FEE } from '@/lib/kit-prices'
@@ -7,12 +7,47 @@ import { DELIVERY_FEE } from '@/lib/kit-prices'
 const SCHOOL = 'Shivalik Public School'
 const ADMIN_WA = '919914735738'
 const LOOSE = 'Books and stationery'
+const SHADOW = 'shadow-[0_6px_20px_rgba(120,70,40,0.08)]'
+const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+
+// Turn an item string ("Name ₹165", "Name [Buddy (196pg)] x2 ₹100") into something to show
+function parseItem(raw: string) {
+  const cut = raw.lastIndexOf(' ₹')
+  const base = cut > -1 ? raw.slice(0, cut) : raw
+  const price = cut > -1 ? Number(raw.slice(cut + 2).replace(/,/g, '')) || 0 : 0
+  const m = base.match(/^(.*?) \[([^\]]*)\](?: x(\d+))?$/)
+  if (m) {
+    const brand = m[2].split(' ')[0].toLowerCase()
+    return { name: m[1], sub: m[2] + (m[3] ? ' · ' + m[3] + ' pieces' : ''), price, cover: '/covers/' + slug(m[1]) + '-' + brand + '.jpg', icon: 'edit_note' }
+  }
+  return { name: base, sub: '', price, cover: '/covers/' + slug(base) + '.jpg', icon: 'menu_book' }
+}
+
+// A real photo of the item, with a soft tile if the photo does not exist yet
+function Thumb({ src, icon }: { src: string; icon: string }) {
+  const [state, setState] = useState<'loading' | 'ok' | 'bad'>('loading')
+  const imgRef = useRef<HTMLImageElement>(null)
+  useEffect(() => {
+    setState('loading')
+    const el = imgRef.current
+    if (el && el.complete && el.naturalWidth > 0) setState('ok')
+  }, [src])
+  return (
+    <div className="relative w-16 h-20 rounded-[18px] overflow-hidden shrink-0 bg-[#F8EDE6] flex items-center justify-center">
+      {state !== 'bad' && (
+        <img ref={imgRef} key={src} src={src} alt="" className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: state === 'ok' ? 1 : 0, transition: 'opacity 250ms ease' }}
+          onLoad={() => setState('ok')} onError={() => setState('bad')} />
+      )}
+      {state !== 'ok' && <span className="material-symbols-outlined text-[26px] text-[#C4501A]/50">{icon}</span>}
+    </div>
+  )
+}
 
 function CheckoutInner() {
   const router = useRouter()
   const { isSignedIn, user } = useUser()
 
-  const [logoOk, setLogoOk] = useState(true)
   const [ordering, setOrdering] = useState(false)
   const [ordered, setOrdered] = useState(false)
   const [touched, setTouched] = useState(false)
@@ -178,26 +213,28 @@ function CheckoutInner() {
     setOrdering(false)
   }
 
-  const inputBase = 'w-full px-4 py-3 rounded-xl bg-white font-body-md text-body-md text-on-surface placeholder:text-outline focus:outline-none focus:ring-2 focus:ring-[#E8632B]/20 focus:border-[#E8632B] border '
-  const inputOk = 'border-[#EADFCC]'
-  const inputBad = 'border-error'
+  const inputBase = 'w-full px-4 py-3 rounded-2xl bg-[#FFF1EA] text-[14px] text-[#1E1B19] placeholder:text-[#9A908A] border focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#E8632B]/20 '
+  const inputOk = 'border-transparent focus:border-[#E8632B]'
+  const inputBad = 'border-[#D64545]'
+
+  const page = 'min-h-screen text-[#1E1B19] antialiased font-[\'Plus_Jakarta_Sans\',sans-serif]'
+  const pageBg = { background: 'linear-gradient(180deg, #FDEADF 0%, #FFF7F2 100%)' }
+  const iconBtn = 'w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#1E1B19] active:scale-95 transition-transform shrink-0 ' + SHADOW
 
   // ── Order confirmed screen ───────────────────────────────────────────────
   if (ordered) {
     return (
-      <div className="bg-surface text-on-surface font-body-md antialiased min-h-screen flex items-center justify-center p-5">
-        <div className="bg-surface-container-lowest rounded-2xl p-8 max-w-sm w-full text-center shadow-[0_8px_20px_-4px_rgba(45,30,18,0.10)] border border-[#EADFCC]">
-          <div className="w-16 h-16 rounded-full bg-[#2E8B57]/15 text-[#2E8B57] flex items-center justify-center mx-auto mb-4">
-            <span className="material-symbols-outlined text-[36px]">check_circle</span>
+      <div className={page + ' flex items-center justify-center p-5'} style={pageBg}>
+        <div className={'bg-white rounded-[28px] p-7 max-w-sm w-full text-center ' + SHADOW}>
+          <div className="w-14 h-14 rounded-full bg-[#2E8B57]/10 text-[#2E8B57] flex items-center justify-center mx-auto mb-4">
+            <span className="material-symbols-outlined text-[32px]">check_circle</span>
           </div>
-          <h2 className="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mb-2">Order Confirmed!</h2>
-          <p className="font-body-md text-body-md text-on-surface-variant mb-6">
-            Your {orderWord} is confirmed. We&apos;ve opened WhatsApp to send the details to the store.
+          <h2 className="text-[20px] font-bold mb-2">Order confirmed</h2>
+          <p className="text-[14px] text-[#5E5650] mb-6">
+            Your {orderWord} is confirmed. We have opened WhatsApp to send the details to the store.
           </p>
-          <div className="flex gap-2.5">
-            <button onClick={() => router.push('/my-orders')} className="flex-1 bg-primary-container text-on-primary font-label-lg text-label-lg font-bold py-3.5 rounded-xl shadow-md active:scale-[0.98] transition-transform">Track order</button>
-            <button onClick={() => router.push(backPath)} className="flex-1 bg-surface-container-low text-on-surface font-label-lg text-label-lg font-bold py-3.5 rounded-xl border border-[#EADFCC] active:scale-[0.98] transition-transform">Order another</button>
-          </div>
+          <button onClick={() => router.push('/my-orders')} className="w-full h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform">Track order</button>
+          <button onClick={() => router.push(backPath)} className={'w-full h-11 mt-2.5 bg-white text-[14px] font-semibold rounded-full active:scale-[0.98] transition-transform ' + SHADOW}>Order another</button>
         </div>
       </div>
     )
@@ -206,316 +243,254 @@ function CheckoutInner() {
   // ── Pay button (used in the phone bar and the desktop card) ─────────────
   const payButton = isSignedIn ? (
     <button onClick={startPayment} disabled={ordering}
-      className="flex-1 min-h-[48px] px-space-lg rounded-xl bg-primary-container text-on-primary font-label-lg text-label-lg font-bold shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-space-xs disabled:opacity-60 disabled:cursor-not-allowed w-full">
-      <span>{ordering ? 'Opening payment…' : 'Pay Securely'}</span>
+      className="w-full h-[52px] rounded-full bg-[#E8632B] text-white text-[17px] font-semibold flex items-center justify-center gap-2 shadow-[0_6px_20px_rgba(232,99,43,0.25)] active:scale-[0.99] transition-transform disabled:opacity-60 disabled:cursor-not-allowed">
+      <span>{ordering ? 'Opening payment…' : 'Pay securely'}</span>
       {!ordering && <span className="material-symbols-outlined text-[20px]">lock</span>}
     </button>
   ) : (
     <SignInButton mode="modal">
-      <button className="flex-1 min-h-[48px] px-space-lg rounded-xl bg-primary-container text-on-primary font-label-lg text-label-lg font-bold shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-space-xs w-full">
-        <span>Sign in to pay</span>
-        <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+      <button className="w-full h-[52px] rounded-full bg-[#E8632B] text-white text-[17px] font-semibold flex items-center justify-center gap-2 shadow-[0_6px_20px_rgba(232,99,43,0.25)] active:scale-[0.99] transition-transform">
+        Sign in to pay
       </button>
     </SignInButton>
   )
 
-  return (
-    <div className="bg-surface text-on-surface font-body-md antialiased flex flex-col min-h-screen">
+  const itemCount = allItems.length
+  const radio = (on: boolean) => on
+    ? <span className="w-5 h-5 rounded-full bg-[#E8632B] flex items-center justify-center shrink-0"><span className="w-2 h-2 rounded-full bg-white" /></span>
+    : <span className="w-5 h-5 rounded-full bg-[#F8EDE6] shrink-0" />
 
-      {/* Header */}
-      <header className="fixed top-0 inset-x-0 z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(45,30,18,0.04)]">
-        <div className="h-16 px-margin md:px-margin-desktop flex items-center justify-between max-w-md mx-auto md:max-w-[1100px]">
-          <div className="flex items-center gap-space-sm">
-            <button aria-label="Go back" onClick={() => router.push(backPath)} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-on-surface hover:bg-surface-container active:scale-95 transition-transform">
-              <span className="material-symbols-outlined text-[24px]">arrow_back</span>
-            </button>
-            <div className="flex flex-col">
-              <h1 className="font-headline-sm text-headline-sm text-on-surface">Checkout</h1>
-              <span className="font-label-micro text-label-micro text-tertiary uppercase tracking-wider">Secure Checkout</span>
-            </div>
-          </div>
-          {logoOk ? (
-            <img alt="Pageplus" className="h-9 w-auto object-contain cursor-pointer" src="/pageplus-logo.png" onError={() => setLogoOk(false)} onClick={() => router.push('/')} />
-          ) : (
-            <span className="font-headline-md text-headline-md text-on-surface cursor-pointer" onClick={() => router.push('/')}>Page<span className="text-secondary-container">plus</span></span>
-          )}
+  return (
+    <div className={page} style={pageBg}>
+
+      {/* Top bar */}
+      <header className="fixed top-0 inset-x-0 z-50 bg-[#FDEADF]/80 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+        <div className="h-16 px-5 flex items-center justify-between gap-4 max-w-md mx-auto md:max-w-5xl">
+          <button aria-label="Go back" onClick={() => router.push(backPath)} className={iconBtn}>
+            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+          </button>
+          <h1 className="text-[20px] font-bold text-center flex-1 truncate">Checkout</h1>
+          <a aria-label="Chat with the store on WhatsApp" href={'https://wa.me/' + ADMIN_WA} target="_blank" rel="noopener noreferrer" className={iconBtn}>
+            <span className="material-symbols-outlined text-[20px]">help_outline</span>
+          </a>
         </div>
       </header>
 
-      <main className="flex-1 w-full max-w-md mx-auto md:max-w-[1100px] pt-16 pb-32 lg:pb-12 px-margin md:px-margin-desktop">
-        <div className="pt-space-sm lg:pt-6 lg:grid lg:grid-cols-12 lg:gap-6 lg:items-start">
+      <main className="w-full max-w-md md:max-w-5xl mx-auto px-5 pb-[170px] lg:pb-16" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 80px)' }}>
+        <div className="lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
 
-          {/* LEFT: delivery, details, kits, payment */}
+          {/* LEFT: delivery, details, items, payment */}
           <div className="lg:col-span-7">
 
             {/* Delivery mode */}
-            <section className="mb-space-md">
-              <div className="bg-surface-container p-space-xs rounded-xl flex flex-col gap-space-xs shadow-sm">
-                <div className="grid grid-cols-2 gap-space-xs">
-                  <button onClick={() => setDeliveryMode('pickup')} className={'flex flex-col items-start p-space-sm rounded-lg text-left transition-all ' + (deliveryMode === 'pickup' ? 'bg-surface-container-lowest shadow-sm' : 'hover:bg-surface-container-low')}>
-                    <div className="flex items-center justify-between w-full mb-1">
-                      <span className={'flex items-center gap-1 font-label-md text-label-md font-semibold ' + (deliveryMode === 'pickup' ? 'text-primary' : 'text-tertiary')}>
-                        <span className="material-symbols-outlined text-[18px]">storefront</span>
-                        Store Pickup
-                      </span>
-                      <span className="font-label-micro text-label-micro px-1.5 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-bold uppercase">Free</span>
-                    </div>
-                    <span className="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">Sector 40-C store</span>
-                  </button>
-                  <button onClick={() => setDeliveryMode('delivery')} className={'flex flex-col items-start p-space-sm rounded-lg text-left transition-all ' + (deliveryMode === 'delivery' ? 'bg-surface-container-lowest shadow-sm' : 'hover:bg-surface-container-low')}>
-                    <div className="flex items-center justify-between w-full mb-1">
-                      <span className={'flex items-center gap-1 font-label-md text-label-md font-semibold ' + (deliveryMode === 'delivery' ? 'text-primary' : 'text-tertiary')}>
-                        <span className="material-symbols-outlined text-[18px]">local_shipping</span>
-                        Home Delivery
-                      </span>
-                      <span className="font-label-micro text-label-micro px-1.5 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed font-bold uppercase">₹{DELIVERY_FEE}</span>
-                    </div>
-                    <span className="font-body-sm text-body-sm text-on-surface-variant line-clamp-1">Within 24 hours • Tricity</span>
-                  </button>
-                </div>
-                <div className="flex items-center justify-between bg-primary-fixed/60 px-space-sm py-1.5 rounded-lg text-on-primary-fixed">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="material-symbols-outlined text-[17px] text-primary shrink-0">{deliveryMode === 'delivery' ? 'schedule' : 'store'}</span>
-                    <span className="font-label-md text-label-md font-semibold truncate">
-                      {deliveryMode === 'delivery' ? 'Delivered within 24 hours' : 'Collect from Booth 48, Sector 40-C'}
-                    </span>
-                  </div>
-                  <span className="font-label-micro text-label-micro uppercase tracking-wider text-primary font-bold shrink-0 pl-2">
-                    {deliveryMode === 'delivery' ? 'Tricity' : 'Mon–Sat 9–7'}
-                  </span>
-                </div>
+            <section className="mb-7">
+              <div role="radiogroup" aria-label="Delivery option" className={'bg-white rounded-[22px] p-1 flex gap-1 ' + SHADOW}>
+                {([
+                  { k: 'delivery', title: 'Home delivery', sub: '₹' + DELIVERY_FEE + ' · within 24 hours' },
+                  { k: 'pickup', title: 'Store pickup', sub: 'Free · Sector 40-C' },
+                ] as const).map(o => {
+                  const on = deliveryMode === o.k
+                  return (
+                    <button key={o.k} role="radio" aria-checked={on} onClick={() => setDeliveryMode(o.k)}
+                      className={'flex-1 rounded-[18px] py-2 px-4 text-left active:scale-[0.99] transition-all ' + (on ? 'bg-[#FCE3D6]/60' : 'bg-transparent')}>
+                      <div className="flex items-center gap-1 mb-0.5">
+                        <span className={'w-2 h-2 rounded-full shrink-0 ' + (on ? 'bg-[#E8632B]' : 'bg-[#F0E2DA]')} />
+                        <span className={'text-[15px] font-semibold ' + (on ? 'text-[#1E1B19]' : 'text-[#5E5650]')}>{o.title}</span>
+                      </div>
+                      <p className={'text-[12px] ' + (on ? 'text-[#5E5650]' : 'text-[#9A908A]')}>{o.sub}</p>
+                    </button>
+                  )
+                })}
               </div>
             </section>
 
             {/* Your details */}
-            <section id="details-card" className="mb-space-md">
-              <div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-sm">
-                <div className="flex items-center gap-space-sm">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary">
-                    <span className="material-symbols-outlined text-[20px]">person</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="font-label-lg text-label-lg text-on-surface font-semibold">Your details</span>
-                    <span className="font-body-sm text-body-sm text-on-surface-variant">We use these to confirm your order.</span>
-                  </div>
+            <section id="details-card" className="mb-7">
+              <div className={'bg-white rounded-[22px] p-5 flex flex-col gap-3 ' + SHADOW}>
+                <div className="flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-[18px] text-[#5E5650]">{deliveryMode === 'delivery' ? 'home_pin' : 'storefront'}</span>
+                  <h2 className="text-[15px] font-semibold">{deliveryMode === 'delivery' ? 'Delivery details' : 'Pickup details'}</h2>
                 </div>
 
                 <div>
-                  <label className="font-label-micro text-label-micro uppercase text-on-surface-variant block mb-1.5">Full name *</label>
                   <input value={name} onChange={e => setName(e.target.value)} placeholder="Your full name" type="text" className={inputBase + (touched && !nameOk ? inputBad : inputOk)} />
-                  {touched && !nameOk && <p className="font-body-sm text-body-sm text-error mt-1">Please enter your name.</p>}
+                  {touched && !nameOk && <p className="text-[12px] text-[#D64545] mt-1">Please enter your name.</p>}
                 </div>
 
                 <div>
-                  <label className="font-label-micro text-label-micro uppercase text-on-surface-variant block mb-1.5">WhatsApp number *</label>
                   <div className="flex gap-2">
-                    <div className="flex items-center px-3 rounded-xl bg-surface-container-low border border-[#EADFCC] font-label-md text-label-md text-on-surface-variant shrink-0">+91</div>
-                    <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="98765 43210" type="text" inputMode="numeric" className={inputBase + (phone.length === 10 ? 'border-[#2E8B57]' : (touched && !phoneOk ? inputBad : inputOk))} />
+                    <div className="flex items-center px-4 rounded-2xl bg-[#FFF1EA] text-[14px] font-medium text-[#5E5650] shrink-0">+91</div>
+                    <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="WhatsApp number" type="text" inputMode="numeric" className={inputBase + (touched && !phoneOk ? inputBad : inputOk)} />
                   </div>
-                  {((phone.length > 0 && phone.length < 10) || (touched && phone.length === 0)) && <p className="font-body-sm text-body-sm text-error mt-1">Enter a 10-digit number.</p>}
+                  {((phone.length > 0 && phone.length < 10) || (touched && phone.length === 0)) && <p className="text-[12px] text-[#D64545] mt-1">Enter a 10-digit number.</p>}
                 </div>
 
                 {deliveryMode === 'delivery' ? (
                   <div>
-                    <label className="font-label-micro text-label-micro uppercase text-on-surface-variant block mb-1.5">Delivery address *</label>
-                    <textarea value={address} onChange={e => setAddress(e.target.value)} placeholder="House/flat no., street, sector, city…" rows={3} className={inputBase + 'resize-none ' + (touched && !addressOk ? inputBad : inputOk)} />
-                    {touched && !addressOk && <p className="font-body-sm text-body-sm text-error mt-1">Please enter your delivery address.</p>}
+                    <textarea value={address} onChange={e => setAddress(e.target.value)} placeholder="House or flat no., street, sector, city" rows={3} className={inputBase + 'resize-none ' + (touched && !addressOk ? inputBad : inputOk)} />
+                    {touched && !addressOk && <p className="text-[12px] text-[#D64545] mt-1">Please enter your delivery address.</p>}
                   </div>
                 ) : (
-                  <div className="flex items-start gap-space-sm bg-surface-container-low p-3 rounded-lg">
-                    <span className="material-symbols-outlined text-[20px] text-primary mt-0.5 shrink-0">location_on</span>
-                    <div className="flex flex-col">
-                      <span className="font-label-md text-label-md text-on-surface font-semibold">Bedi Book Store</span>
-                      <span className="font-body-sm text-body-sm text-on-surface-variant">Booth No. 48, Sector-40C, Chandigarh • Mon–Sat, 9am–7pm</span>
-                    </div>
+                  <div className="bg-[#FFF1EA] rounded-[16px] p-3">
+                    <p className="text-[14px] font-semibold">Bedi Book Store</p>
+                    <p className="text-[12px] text-[#5E5650] mt-0.5">Booth 48, Sector 40-C, Chandigarh · Mon to Sat, 9am to 7pm</p>
                   </div>
                 )}
               </div>
             </section>
 
-            {/* Kits */}
-            {kits.map((kit: any, ki: number) => (
-              <section key={ki} className="mb-space-md">
-                <div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-xs">
-                  <div className="flex items-center justify-between gap-2 pb-1">
-                    <div className="flex flex-col min-w-0">
-                      <span className="font-headline-sm text-headline-sm text-on-surface font-semibold truncate">{(kit.loose || kit.school === LOOSE) ? LOOSE : schoolOf(kit) + ' · Class ' + kit.selectedClass}</span>
-                      <span className="font-label-md text-label-md text-tertiary">{kit.items.length} items · ₹{kit.kitSubtotal.toLocaleString('en-IN')}</span>
-                    </div>
-                    <button onClick={() => router.push(backPath)} className="font-label-md text-label-md text-primary font-semibold px-2 py-1 rounded-lg hover:bg-primary-fixed/40 transition-colors shrink-0">Edit</button>
+            {/* Items in bag */}
+            <section className="mb-7">
+              <div className={'bg-white rounded-[22px] p-5 ' + SHADOW}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-baseline gap-1.5">
+                    <h2 className="text-[20px] font-bold">Items in bag</h2>
+                    <span className="text-[12px] text-[#9A908A]">({itemCount} {itemCount === 1 ? 'item' : 'items'})</span>
                   </div>
-                  <div className="flex flex-col max-h-72 overflow-y-auto">
-                    {kit.items.map((item: string, i: number) => {
-                      const cut = item.lastIndexOf(' ₹')
-                      const itemName = cut > -1 ? item.slice(0, cut) : item
-                      const itemPrice = cut > -1 ? item.slice(cut + 2) : ''
-                      return (
-                        <div key={i} className="flex items-center justify-between gap-3 py-2 border-b border-[#EADFCC]/70 last:border-0">
-                          <span className="font-label-md text-label-md text-on-surface-variant flex-1 min-w-0">{itemName}</span>
-                          {itemPrice && <span className="font-label-lg text-label-lg text-on-surface font-semibold shrink-0">₹{itemPrice}</span>}
-                        </div>
-                      )
-                    })}
-                  </div>
+                  <button onClick={() => router.push(backPath)} className="text-[12px] font-semibold text-[#C4501A] active:opacity-70">Edit</button>
                 </div>
-              </section>
-            ))}
+
+                {kits.map((kit: any, ki: number) => {
+                  const loose = !!(kit.loose || kit.school === LOOSE)
+                  const label = loose ? LOOSE : schoolOf(kit) + ' · Class ' + kit.selectedClass
+                  // Same item listed several times becomes one row with a count
+                  const rows: { raw: string; n: number }[] = []
+                  kit.items.forEach((raw: string) => {
+                    const f = rows.find(r => r.raw === raw)
+                    if (f) f.n += 1
+                    else rows.push({ raw, n: 1 })
+                  })
+                  return (
+                    <div key={ki}>
+                      <p className="text-[12px] text-[#5E5650] mt-2 mb-1">{label}</p>
+                      {rows.map((r, i) => {
+                        const it = parseItem(r.raw)
+                        const sub = [it.sub, r.n > 1 ? 'Qty ' + r.n : ''].filter(Boolean).join(' · ')
+                        return (
+                          <div key={i}>
+                            {i > 0 && <div className="h-px bg-[#F0E2DA]" />}
+                            <div className="flex gap-4 py-3">
+                              <Thumb src={it.cover} icon={it.icon} />
+                              <div className="flex-1 min-w-0 flex justify-between items-start gap-1">
+                                <div className="min-w-0">
+                                  <h3 className="text-[15px] font-semibold leading-snug line-clamp-2">{it.name}</h3>
+                                  {sub && <p className="text-[12px] text-[#5E5650] mt-0.5">{sub}</p>}
+                                </div>
+                                {it.price > 0 && <span className="text-[16px] font-bold shrink-0">₹{(it.price * r.n).toLocaleString('en-IN')}</span>}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                      {ki < kits.length - 1 && <div className="h-px bg-[#F0E2DA] my-1" />}
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
 
             {/* Payment option */}
-            <section className="mb-space-md">
-              <div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-sm">
+            <section className="mb-7 lg:mb-0">
+              <div className={'bg-white rounded-[22px] p-5 flex flex-col gap-4 ' + SHADOW}>
                 <div className="flex items-center justify-between">
-                  <h2 className="font-headline-sm text-headline-sm text-on-surface font-semibold">Payment Option</h2>
-                  <span className="font-label-micro text-label-micro text-primary uppercase font-bold tracking-wider">Safe &amp; Secure</span>
+                  <h2 className="text-[20px] font-bold">Payment</h2>
+                  <span className="text-[12px] text-[#2E8B57] flex items-center gap-1">
+                    <span className="material-symbols-outlined text-[14px]">verified_user</span>Safe and secure
+                  </span>
                 </div>
-                <div className="flex flex-col gap-space-xs">
-                  <button onClick={() => setPaymentMode('full')} className={'w-full flex items-center justify-between gap-2 p-space-sm rounded-xl text-left transition-colors ' + (paymentMode === 'full' ? 'bg-surface-container-low' : 'hover:bg-surface-container-low')}>
-                    <div className="flex items-center gap-space-sm min-w-0">
-                      <span className={'w-5 h-5 rounded-full flex items-center justify-center shrink-0 ' + (paymentMode === 'full' ? 'bg-primary text-on-primary' : 'bg-surface-container-highest')}>
-                        {paymentMode === 'full' && <span className="material-symbols-outlined text-[14px]">done</span>}
-                      </span>
-                      <div className="flex flex-col min-w-0">
-                        <span className="font-label-lg text-label-lg text-on-surface font-semibold">Pay full amount</span>
-                        <span className="font-body-sm text-body-sm text-tertiary">Nothing left to pay at {handoverWord}.</span>
-                      </div>
+                <div role="radiogroup" aria-label="Payment option" className="flex flex-col gap-2">
+                  <button role="radio" aria-checked={paymentMode === 'full'} onClick={() => setPaymentMode('full')}
+                    className={'w-full rounded-[18px] p-4 text-left flex items-center justify-between gap-3 transition-all ' + (paymentMode === 'full' ? 'bg-[#FFF1EA]' : 'bg-white')}>
+                    <div className="min-w-0">
+                      <p className="text-[15px] font-semibold">Pay full amount</p>
+                      <p className={'text-[12px] ' + (paymentMode === 'full' ? 'text-[#5E5650]' : 'text-[#9A908A]')}>Nothing left to pay at {handoverWord}.</p>
                     </div>
-                    <span className="font-headline-sm text-headline-sm text-on-surface font-bold shrink-0">₹{total.toLocaleString('en-IN')}</span>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-[16px] font-bold">₹{total.toLocaleString('en-IN')}</span>
+                      {radio(paymentMode === 'full')}
+                    </div>
                   </button>
-
-                  <button onClick={() => setPaymentMode('partial')} className={'w-full flex items-center justify-between gap-2 p-space-sm rounded-xl text-left transition-colors ' + (paymentMode === 'partial' ? 'bg-surface-container-low' : 'hover:bg-surface-container-low')}>
-                    <div className="flex items-center gap-space-sm min-w-0">
-                      <span className={'w-5 h-5 rounded-full flex items-center justify-center shrink-0 ' + (paymentMode === 'partial' ? 'bg-primary text-on-primary' : 'bg-surface-container-highest')}>
-                        {paymentMode === 'partial' && <span className="material-symbols-outlined text-[14px]">done</span>}
-                      </span>
-                      <div className="flex flex-col min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-label-lg text-label-lg text-on-surface font-semibold">Pay 30% now</span>
-                          <span className="bg-primary-fixed text-primary font-label-micro text-label-micro px-1.5 py-0.5 rounded-full font-bold">Popular</span>
-                        </div>
-                        <span className="font-body-sm text-body-sm text-tertiary">₹{payLater.toLocaleString('en-IN')} to pay at {handoverWord}.</span>
-                      </div>
+                  <button role="radio" aria-checked={paymentMode === 'partial'} onClick={() => setPaymentMode('partial')}
+                    className={'w-full rounded-[18px] p-4 text-left flex items-center justify-between gap-3 transition-all ' + (paymentMode === 'partial' ? 'bg-[#FFF1EA]' : 'bg-white')}>
+                    <div className="min-w-0">
+                      <p className="text-[15px] font-semibold">Pay 30% now</p>
+                      <p className={'text-[12px] ' + (paymentMode === 'partial' ? 'text-[#5E5650]' : 'text-[#9A908A]')}>₹{payLater.toLocaleString('en-IN')} to pay at {handoverWord}.</p>
                     </div>
-                    <span className="font-headline-sm text-headline-sm text-on-surface font-bold shrink-0">₹{upfront.toLocaleString('en-IN')}</span>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-[16px] font-bold">₹{upfront.toLocaleString('en-IN')}</span>
+                      {radio(paymentMode === 'partial')}
+                    </div>
                   </button>
                 </div>
-                <div className="flex items-start gap-2 bg-surface-container-low p-2.5 rounded-lg">
-                  <span className="material-symbols-outlined text-[18px] text-primary shrink-0">lock</span>
-                  <span className="font-body-sm text-body-sm text-on-surface-variant">Secure payment via Razorpay. UPI, cards and netbanking are available on the payment screen.</span>
-                </div>
+                <p className="text-[12px] text-[#9A908A]">UPI, cards and netbanking are on the next screen, through Razorpay.</p>
               </div>
             </section>
           </div>
 
-          {/* RIGHT: price details, trust, policy, store */}
+          {/* RIGHT: bill, pay, notes */}
           <aside className="lg:col-span-5 lg:sticky lg:top-24 self-start">
-            <section className="mb-space-md">
-              <div className="bg-surface-container-lowest p-space-md rounded-xl shadow-sm flex flex-col gap-space-xs">
-                <h3 className="font-headline-sm text-headline-sm text-on-surface font-semibold mb-1">Price Details</h3>
-                <div className="flex items-center justify-between py-1">
-                  <span className="font-body-md text-body-md text-on-surface-variant">{isLoose ? 'Items' : hasLoose ? 'Bag' : isMultiKit ? kits.length + ' kits' : 'Kit'} ({allItems.length} items)</span>
-                  <span className="font-body-md text-body-md text-on-surface">₹{kitsSubtotal.toLocaleString('en-IN')}</span>
+            <section className="mb-7">
+              <div className={'bg-white rounded-[22px] p-5 flex flex-col gap-2 ' + SHADOW}>
+                <h2 className="text-[20px] font-bold mb-1">Bill details</h2>
+                <div className="flex justify-between items-center text-[14px] text-[#5E5650]">
+                  <span>{isLoose ? 'Items' : hasLoose ? 'Bag' : isMultiKit ? kits.length + ' kits' : 'Kit'} ({itemCount} {itemCount === 1 ? 'item' : 'items'})</span>
+                  <span className="text-[#1E1B19]">₹{kitsSubtotal.toLocaleString('en-IN')}</span>
                 </div>
                 {siblingDiscount > 0 && (
-                  <div className="flex items-center justify-between py-1">
-                    <span className="font-body-md text-body-md text-on-surface-variant">Sibling discount (5%)</span>
-                    <span className="font-body-md text-body-md text-[#2E8B57] font-medium">−₹{siblingDiscount.toLocaleString('en-IN')}</span>
+                  <div className="flex justify-between items-center text-[14px] text-[#2E8B57]">
+                    <span>Sibling discount (5%)</span>
+                    <span>−₹{siblingDiscount.toLocaleString('en-IN')}</span>
                   </div>
                 )}
-                <div className="flex items-center justify-between py-1">
-                  <span className="font-body-md text-body-md text-on-surface-variant">{deliveryMode === 'delivery' ? 'Home delivery' : 'Store pickup'}</span>
+                <div className="flex justify-between items-center text-[14px] text-[#5E5650]">
+                  <span>{deliveryMode === 'delivery' ? 'Home delivery' : 'Store pickup'}</span>
                   {deliveryFee > 0
-                    ? <span className="font-body-md text-body-md text-on-surface">₹{deliveryFee}</span>
-                    : <span className="font-label-md text-label-md text-primary font-bold">FREE</span>}
+                    ? <span className="text-[#1E1B19]">₹{deliveryFee}</span>
+                    : <span className="text-[#2E8B57] font-semibold">Free</span>}
                 </div>
-                <div className="my-1.5 h-px bg-surface-container" />
-                <div className="flex items-center justify-between pt-1">
-                  <span className="font-label-lg text-label-lg text-on-surface font-bold">Total</span>
-                  <span className="font-headline-md text-headline-md text-on-surface font-bold">₹{total.toLocaleString('en-IN')}</span>
-                </div>
-                {paymentMode === 'partial' && (
-                  <div className="mt-1 bg-surface-container-low rounded-lg p-2.5 flex flex-col gap-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-label-md text-label-md text-on-surface font-semibold">Pay now (30%)</span>
-                      <span className="font-label-lg text-label-lg text-primary font-bold">₹{upfront.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="font-body-sm text-body-sm text-on-surface-variant">Pay at {handoverWord}</span>
-                      <span className="font-body-sm text-body-sm text-on-surface-variant">₹{payLater.toLocaleString('en-IN')}</span>
-                    </div>
+                <div className="h-px bg-[#F0E2DA] my-1" />
+                <div className="flex justify-between items-center gap-3">
+                  <div>
+                    <span className="text-[20px] font-bold">{paymentMode === 'full' ? 'To pay' : 'To pay now'}</span>
+                    {siblingDiscount > 0 && <p className="text-[12px] font-semibold text-[#C4501A]">You saved ₹{siblingDiscount.toLocaleString('en-IN')} on this order</p>}
+                    {paymentMode === 'partial' && <p className="text-[12px] text-[#5E5650]">₹{payLater.toLocaleString('en-IN')} at {handoverWord}</p>}
                   </div>
-                )}
+                  <span className="text-[28px] leading-[34px] font-bold tracking-[-0.02em]">₹{payNow.toLocaleString('en-IN')}</span>
+                </div>
 
                 {/* Desktop pay button */}
-                <div className="hidden lg:flex mt-3">{payButton}</div>
+                <div className="hidden lg:block mt-3">{payButton}</div>
               </div>
             </section>
 
-            {/* Trust strip */}
-            <section className="mb-space-md">
-              <div className="grid grid-cols-3 gap-space-xs text-center">
-                <div className="bg-surface-container-low p-space-sm rounded-xl flex flex-col items-center justify-center gap-1">
-                  <span className="material-symbols-outlined text-[20px] text-primary">verified</span>
-                  <span className="font-label-micro text-label-micro text-on-surface leading-tight font-semibold">100% Correct Syllabus</span>
-                </div>
-                <div className="bg-surface-container-low p-space-sm rounded-xl flex flex-col items-center justify-center gap-1">
-                  <span className="material-symbols-outlined text-[20px] text-primary">published_with_changes</span>
-                  <span className="font-label-micro text-label-micro text-on-surface leading-tight font-semibold">24h Exchange</span>
-                </div>
-                <div className="bg-surface-container-low p-space-sm rounded-xl flex flex-col items-center justify-center gap-1">
-                  <span className="material-symbols-outlined text-[20px] text-primary">support_agent</span>
-                  <span className="font-label-micro text-label-micro text-on-surface leading-tight font-semibold">WhatsApp Support</span>
-                </div>
-              </div>
-            </section>
-
-            {/* Policy note */}
-            <section className="mb-space-md">
-              <div className="bg-surface-container-low p-3 rounded-xl flex items-start gap-2">
-                <span className="material-symbols-outlined text-[18px] text-tertiary shrink-0 mt-0.5">info</span>
-                <p className="font-body-sm text-body-sm text-on-surface-variant leading-snug">
-                  Once your kit has been picked up or delivered, there is no cancellation or refund. After that, exchange is available within 24 hours.
-                </p>
-              </div>
-            </section>
-
-            {/* Store card */}
-            <section>
-              <div className="bg-surface-container-lowest p-space-sm rounded-xl flex items-center justify-between gap-space-sm shadow-sm">
-                <div className="flex items-center gap-space-sm min-w-0">
-                  <div className="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-primary shrink-0">
-                    <span className="material-symbols-outlined text-[24px]">menu_book</span>
-                  </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="font-label-md text-label-md text-on-surface font-semibold truncate">Bedi Book Store, Sec 40-C</span>
-                    <span className="font-body-sm text-body-sm text-tertiary">Serving Chandigarh since 1994</span>
-                  </div>
-                </div>
-                <a aria-label="Chat with the store on WhatsApp" className="w-9 h-9 rounded-full bg-surface-container flex items-center justify-center text-on-surface hover:bg-surface-container-high transition-colors shrink-0" href={'https://wa.me/' + ADMIN_WA} target="_blank" rel="noopener noreferrer">
-                  <span className="material-symbols-outlined text-[18px]">chat</span>
-                </a>
-              </div>
-            </section>
+            <p className="text-[12px] text-[#9A908A] text-center px-2 mb-3">
+              Once your order has been picked up or delivered, there is no cancellation or refund. Exchange is available within 24 hours.
+            </p>
+            <div className="flex items-center justify-center gap-1 text-center text-[#5E5650]">
+              <span className="material-symbols-outlined text-[16px] text-[#9A908A]">storefront</span>
+              <p className="text-[12px]">Fulfilled with care by <span className="font-semibold text-[#1E1B19]">Bedi Book Store</span>, Sec 40-C</p>
+            </div>
           </aside>
         </div>
       </main>
 
       {/* Bottom pay bar (phone and tablet) */}
-      <aside className="lg:hidden fixed bottom-0 inset-x-0 z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-8px_24px_rgba(45,30,18,0.08)]">
-        <div className="max-w-md mx-auto px-margin py-space-sm flex items-center justify-between gap-space-md">
-          <div className="flex flex-col shrink-0">
-            <span className="font-label-md text-label-md text-on-surface-variant">{paymentMode === 'full' ? 'Total Payable' : 'Pay Now (30%)'}</span>
-            <span className="font-headline-md text-headline-md text-on-surface">₹{payNow.toLocaleString('en-IN')}</span>
+      <footer className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white/90 backdrop-blur-xl shadow-[0_-6px_20px_rgba(120,70,40,0.08)]" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <div className="px-5 py-4 flex flex-col gap-2 max-w-md mx-auto">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-[14px] text-[#5E5650]">{paymentMode === 'full' ? 'Total payable' : 'Pay now (30%)'}</span>
+            <span className="text-[16px] font-bold">₹{payNow.toLocaleString('en-IN')}</span>
           </div>
           {payButton}
         </div>
-      </aside>
+      </footer>
     </div>
   )
 }
 
 export default function CheckoutPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-surface text-on-surface-variant font-body-md">Loading checkout…</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-[14px] text-[#5E5650] font-['Plus_Jakarta_Sans',sans-serif]" style={{ background: 'linear-gradient(180deg, #FDEADF 0%, #FFF7F2 100%)' }}>Loading checkout…</div>}>
       <CheckoutInner />
     </Suspense>
   )
