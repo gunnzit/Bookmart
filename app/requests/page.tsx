@@ -1,280 +1,383 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useUser, SignInButton } from '@clerk/nextjs'
+import { useUser, useClerk } from '@clerk/nextjs'
 
-const categories = ['textbook', 'novel', 'notebook', 'art', 'stationery', 'competitive']
-const emojis: Record<string, string> = {
-  textbook: '📗', novel: '📘', notebook: '📓',
-  art: '🎨', stationery: '✏️', competitive: '📙'
+const SHADOW = 'shadow-[0_6px_20px_rgba(120,70,40,0.08)]'
+
+const CATEGORIES: { key: string; label: string }[] = [
+  { key: 'textbook', label: 'School Textbooks' },
+  { key: 'stationery', label: 'Stationery & Guides' },
+  { key: 'novel', label: 'Fiction & Storybooks' },
+  { key: 'competitive', label: 'Competitive Exams' },
+]
+const AREAS = ['Sector 40-C, Chd', 'Mohali Phase 7', 'Panchkula Sec 11', 'Chandigarh East']
+
+const categoryLabel = (k: string) => CATEGORIES.find(c => c.key === k)?.label || (k ? k.charAt(0).toUpperCase() + k.slice(1) : '')
+
+function timeAgo(iso: string) {
+  const mins = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000))
+  if (mins < 2) return 'just now'
+  if (mins < 60) return mins + ' mins ago'
+  const hrs = Math.round(mins / 60)
+  if (hrs < 24) return hrs + (hrs === 1 ? ' hour ago' : ' hours ago')
+  const days = Math.round(hrs / 24)
+  if (days === 1) return 'yesterday'
+  if (days < 30) return days + ' days ago'
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-const LOCATIONS = [
-  'Sector 17, Chandigarh', 'Sector 22, Chandigarh', 'Sector 34, Chandigarh',
-  'Sector 35, Chandigarh', 'Sector 40, Chandigarh', 'Sector 40-C, Chandigarh',
-  'Sector 43, Chandigarh', 'Manimajra, Chandigarh', 'Phase 1, Mohali',
-  'Phase 2, Mohali', 'Phase 3B2, Mohali', 'Phase 7, Mohali', 'Phase 11, Mohali',
-  'Sector 1, Panchkula', 'Sector 7, Panchkula', 'Sector 10, Panchkula',
-  'Kharar, Mohali', 'Zirakpur', 'Aerocity, Mohali',
-]
+type Req = {
+  id: string
+  title: string
+  author: string | null
+  category: string
+  maxPrice: number | null
+  location: string
+  note: string | null
+  status: string
+  createdAt: string
+  name: string
+  mine: boolean
+}
 
 export default function RequestsPage() {
   const router = useRouter()
-  const { isSignedIn, user, isLoaded } = useUser()
-  const [requests, setRequests] = useState<any[]>([])
+  const { isLoaded, isSignedIn } = useUser()
+  const { openSignIn } = useClerk()
+
+  const [requests, setRequests] = useState<Req[]>([])
   const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [done, setDone] = useState(false)
-  const [form, setForm] = useState({
-    title: '', author: '', category: 'textbook',
-    maxPrice: '', location: '', note: ''
-  })
+  const [loadError, setLoadError] = useState('')
+  const [tab, setTab] = useState<'all' | 'mine'>('all')
+
+  const [title, setTitle] = useState('')
+  const [author, setAuthor] = useState('')
+  const [category, setCategory] = useState('textbook')
+  const [budget, setBudget] = useState('')
+  const [area, setArea] = useState(AREAS[0])
+  const [note, setNote] = useState('')
+  const [formError, setFormError] = useState('')
+  const [posting, setPosting] = useState(false)
+  const [busyId, setBusyId] = useState('')
+  const [toast, setToast] = useState('')
+
+  async function load() {
+    try {
+      const res = await fetch('/api/book-requests', { cache: 'no-store' })
+      const d = await res.json()
+      if (Array.isArray(d.requests)) { setRequests(d.requests); setLoadError('') }
+      else setLoadError('Could not load requests.')
+    } catch {
+      setLoadError('Could not connect. Check your internet and try again.')
+    }
+    setLoading(false)
+  }
+
+  // Load again when sign-in state is known, so "You posted" cards appear
+  useEffect(() => {
+    if (!isLoaded) return
+    load()
+  }, [isLoaded, isSignedIn])
 
   useEffect(() => {
-    fetch('/api/requests')
-      .then(r => r.json())
-      .then(data => { if (Array.isArray(data)) setRequests(data) })
-      .finally(() => setLoading(false))
-  }, [])
+    if (!toast) return
+    const t = setTimeout(() => setToast(''), 2600)
+    return () => clearTimeout(t)
+  }, [toast])
 
-  function update(field: string, value: string) {
-    setForm(prev => ({ ...prev, [field]: value }))
-  }
-
-  async function submit() {
-    if (!form.title || !form.location) return
-    if (!isLoaded || !user?.id) {
-      alert('Please wait a moment and try again.')
-      return
-    }
-    setSubmitting(true)
+  async function submit(e: React.FormEvent) {
+    e.preventDefault()
+    setFormError('')
+    if (!isSignedIn) { openSignIn(); return }
+    if (title.trim().length < 2) { setFormError('Enter the book title.'); return }
+    setPosting(true)
     try {
-      const res = await fetch('/api/requests', {
+      const res = await fetch('/api/book-requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-  ...form,
-  clerkId: user.id,
-  name: user.fullName || user.firstName || 'User',
-  email: user.primaryEmailAddress?.emailAddress,
-}),
+        body: JSON.stringify({ title, author, category, maxPrice: budget, location: area, note }),
       })
-      if (res.ok) {
-        const newReq = await res.json()
-        setRequests(prev => [newReq, ...prev])
-        setDone(true)
-        setShowForm(false)
-        setForm({ title: '', author: '', category: 'textbook', maxPrice: '', location: '', note: '' })
-      } else {
-        const err = await res.json()
-        alert(err.error || 'Something went wrong. Try again.')
-      }
-    } catch (e) {
-      alert('Could not connect. Please try again.')
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok || !d.request) { setFormError(typeof d.error === 'string' ? d.error : 'Could not post. Please try again.'); setPosting(false); return }
+      setRequests(prev => [d.request, ...prev])
+      setTitle(''); setAuthor(''); setBudget(''); setNote('')
+      setToast('Request posted')
+    } catch {
+      setFormError('Could not connect. Please try again.')
     }
-    setSubmitting(false)
+    setPosting(false)
   }
 
-  async function closeRequest(id: string) {
-    await fetch(`/api/requests/${id}`, { method: 'DELETE' })
-    setRequests(prev => prev.filter(r => r.id !== id))
+  async function markFound(id: string) {
+    if (busyId) return
+    setBusyId(id)
+    try {
+      const res = await fetch('/api/book-requests/' + id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'found' }),
+      })
+      if (res.ok) { setRequests(prev => prev.map(r => (r.id === id ? { ...r, status: 'found' } : r))); setToast('Marked as found') }
+    } catch {}
+    setBusyId('')
   }
 
-  const css = `
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap');
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    :root {
-      --bg: #FFF9F0; --bg-card: #fff; --bg-input: #FFF9F0;
-      --nav-bg: #fff; --border: #FFE2C2; --border-strong: #FFCB94;
-      --text-primary: #1A1330; --text-secondary: #6B6280;
-      --text-muted: #A89FC0; --text-label: #A89FC0;
-      --shadow-card: 0 2px 16px rgba(124,92,252,0.08);
+  async function remove(id: string) {
+    if (busyId) return
+    if (!confirm('Delete this request?')) return
+    setBusyId(id)
+    try {
+      const res = await fetch('/api/book-requests/' + id, { method: 'DELETE' })
+      if (res.ok) setRequests(prev => prev.filter(r => r.id !== id))
+    } catch {}
+    setBusyId('')
+  }
+
+  async function share() {
+    const url = 'https://pageplus.in/requests'
+    const text = 'Books wanted near you on Pageplus. Have one? List it.'
+    try {
+      if (navigator.share) { await navigator.share({ title: 'Book Requests', text, url }); return }
+    } catch { return }
+    try {
+      await navigator.clipboard.writeText(url)
+      setToast('Link copied')
+    } catch {
+      window.open('https://wa.me/?text=' + encodeURIComponent(text + ' ' + url), '_blank')
     }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg: #14101F; --bg-card: #221C3A; --bg-input: #1C1730;
-        --nav-bg: #1C1730; --border: #352C52; --border-strong: #463A6B;
-        --text-primary: #F3EEFF; --text-secondary: #B0A8CC;
-        --text-muted: #6E6590; --text-label: #6E6590;
-        --shadow-card: 0 2px 16px rgba(0,0,0,0.25);
-      }
-    }
-    body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--text-primary); -webkit-font-smoothing: antialiased; }
-    .kalam { font-family: 'Poppins', sans-serif; font-weight: 800; letter-spacing: -0.02em; }
-    input, textarea, select { color: var(--text-primary) !important; background: var(--bg-input) !important; font-family: 'Poppins', sans-serif; }
-    input::placeholder, textarea::placeholder { color: var(--text-muted) !important; }
-    input:focus, textarea:focus, select:focus { outline: none !important; border-color: #00B86B !important; box-shadow: 0 0 0 3px rgba(0,184,107,0.12) !important; }
-    .card { background: var(--bg-card); border-radius: 16px; border: 2px solid var(--border); padding: 20px; box-shadow: var(--shadow-card); }
-    .card-pop { transition: transform 0.18s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.18s, border-color 0.18s; }
-    .card-pop:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(124,92,252,0.14); border-color: #7C5CFC; }
-    .input { width: 100%; padding: 12px 14px; border-radius: 12px; border: 2px solid var(--border); font-size: 14px; transition: all 0.15s; }
-    .label { font-size: 11px; color: var(--text-label); display: block; margin-bottom: 6px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; }
-    .cat-btn { padding: 8px 14px; border-radius: 99px; border: 2px solid var(--border); background: var(--bg-card); cursor: pointer; font-size: 12px; font-weight: 700; color: var(--text-secondary); font-family: 'Poppins', sans-serif; transition: all 0.15s cubic-bezier(0.34,1.56,0.64,1); white-space: nowrap; }
-    .cat-btn.active { border-color: #00B86B; background: #DFFFEF; color: #00B86B; }
-    .cat-btn:hover { transform: translateY(-2px); }
-    .cat-btn:active { transform: scale(0.95); }
-    .btn-3d { transition: transform 0.12s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.12s; }
-    .btn-3d:not(:disabled):hover { transform: translateY(-2px); box-shadow: 0 6px 0 #009957 !important; }
-    .btn-3d:not(:disabled):active { transform: translateY(2px); box-shadow: 0 1px 0 #009957 !important; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
-    .fade-in { animation: fadeIn 0.3s ease; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-  `
+  }
+
+  const openRequests = requests.filter(r => r.status === 'open')
+  const mine = requests.filter(r => r.mine)
+  const shown = tab === 'mine' ? mine : openRequests
+
+  const pageStyle = { background: 'linear-gradient(180deg, #FDEADF 0%, #FFF7F2 100%)' }
+  const inputCls = 'w-full bg-[#F8EDE6] text-[#1E1B19] text-[14px] px-4 py-3 rounded-[16px] placeholder:text-[#9A908A] focus:outline-none focus:ring-2 focus:ring-[#FCE3D6] transition-all'
+  const chipOn = 'shrink-0 px-3.5 py-2 rounded-full text-[12px] font-semibold bg-[#E8632B] text-white shadow-sm transition-all'
+  const chipOff = 'shrink-0 px-3.5 py-2 rounded-full text-[12px] text-[#1E1B19] bg-[#FFF1EA] hover:bg-[#F0E2DA] transition-all'
 
   return (
-    <>
-      <style>{css}</style>
-      <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+    <div className="min-h-screen flex flex-col text-[#251914] antialiased font-['Plus_Jakarta_Sans',sans-serif]" style={pageStyle}>
 
-        {/* Nav */}
-        <nav style={{ background: 'var(--nav-bg)', borderBottom: '2px solid var(--border)', padding: '0 20px', height: '60px', display: 'flex', alignItems: 'center', gap: '12px', position: 'sticky', top: 0, zIndex: 50 }}>
-          <button onClick={() => router.push('/marketplace')} style={{ background: 'var(--bg-card)', border: '2px solid var(--border)', width: '38px', height: '38px', borderRadius: '12px', cursor: 'pointer', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)' }}>←</button>
-          <span className="kalam" style={{ fontSize: '18px', color: '#00B86B' }}>📋 Book Requests</span>
-          <div style={{ marginLeft: 'auto' }}>
-            {isSignedIn
-              ? <button onClick={() => setShowForm(true)} className="btn-3d" style={{ background: 'linear-gradient(135deg,#00B86B,#2D7FF9)', color: '#fff', border: 'none', borderRadius: '12px', padding: '10px 18px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', boxShadow: '0 4px 0 #009957' }}>+ Request a book</button>
-              : <SignInButton mode="modal"><button className="btn-3d" style={{ background: 'linear-gradient(135deg,#00B86B,#2D7FF9)', color: '#fff', border: 'none', borderRadius: '12px', padding: '10px 18px', fontSize: '13px', fontWeight: '800', cursor: 'pointer', fontFamily: 'Poppins, sans-serif', boxShadow: '0 4px 0 #009957' }}>+ Request a book</button></SignInButton>
-            }
+      {toast && (
+        <div className="fixed inset-x-0 flex justify-center pointer-events-none px-5" style={{ zIndex: 350, top: 'calc(env(safe-area-inset-top, 0px) + 72px)' }}>
+          <div className="bg-[#1E1B19] text-white rounded-full px-4 py-2.5 text-[13px] shadow-[0_10px_28px_rgba(30,27,25,0.28)]">{toast}</div>
+        </div>
+      )}
+
+      {/* Top bar */}
+      <header className="fixed top-0 inset-x-0 z-50 bg-[#FDEADF]/80 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+        <div className="h-16 px-5 flex items-center justify-between max-w-md md:max-w-2xl mx-auto">
+          <button aria-label="Go back" onClick={() => (window.history.length > 1 ? router.back() : router.push('/marketplace'))}
+            className={'w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#1E1B19] active:scale-95 transition-transform ' + SHADOW}>
+            <span className="material-symbols-outlined text-[20px]">arrow_back</span>
+          </button>
+          <h1 className="text-[20px] leading-[26px] font-bold text-[#1E1B19] tracking-tight">Book Requests</h1>
+          <div className="flex items-center gap-2">
+            <button aria-label="Share" onClick={share} className={'w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#1E1B19] active:scale-95 transition-transform ' + SHADOW}>
+              <span className="material-symbols-outlined text-[20px]">share</span>
+            </button>
+            <button aria-label="Profile" onClick={() => (isSignedIn ? router.push('/profile') : openSignIn())} className="w-8 h-8 rounded-full bg-[#E8632B] flex items-center justify-center active:scale-95 transition-transform">
+              <span className="material-symbols-outlined text-white text-[18px]">person</span>
+            </button>
           </div>
-        </nav>
+        </div>
+      </header>
 
-        <div style={{ maxWidth: '680px', margin: '0 auto', padding: '24px 16px 48px' }}>
+      <main className="flex flex-col relative w-full px-5 pb-16 max-w-md md:max-w-2xl mx-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 80px)' }}>
+        <div className="flex flex-col w-full gap-7">
 
-          {/* Header */}
-          <div style={{ marginBottom: '24px' }}>
-            <h1 className="kalam" style={{ fontSize: '28px', color: 'var(--text-primary)', marginBottom: '8px' }}>Looking for a book? 🔍</h1>
-            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.7, fontWeight: '500' }}>
-              Post what you're looking for. Sellers who have it will contact you directly on WhatsApp.
-            </p>
-          </div>
-
-          {/* Success toast */}
-          {done && (
-            <div className="fade-in" style={{ background: '#DFFFEF', border: '2px solid #00B86B', borderRadius: '12px', padding: '14px 16px', marginBottom: '20px', fontSize: '13px', color: '#009957', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              ✅ Request posted! Sellers will WhatsApp you if they have it.
-              <button onClick={() => setDone(false)} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: '#009957', fontSize: '18px' }}>×</button>
+          {/* Intro */}
+          <div className="flex items-center justify-between gap-3 px-1">
+            <p className="text-[14px] leading-5 text-[#5E5650]">Tell sellers what you need. We’ll let you know when it’s listed.</p>
+            <div className={'flex items-center gap-1.5 bg-[#FFF1EA] px-3 py-1.5 rounded-full shrink-0 ' + SHADOW}>
+              <span className="w-2 h-2 rounded-full bg-[#2E8B57]" />
+              <span className="text-[12px] text-[#1E1B19] font-semibold">Tricity</span>
             </div>
-          )}
+          </div>
 
-          {/* Post request form */}
-          {showForm && (
-            <div className="card fade-in" style={{ marginBottom: '24px', border: '2px solid #00B86B' }}>
-              <div className="kalam" style={{ fontSize: '18px', color: 'var(--text-primary)', marginBottom: '20px' }}>📋 What are you looking for?</div>
+          {/* Request form */}
+          <section className={'bg-white rounded-[22px] p-5 flex flex-col gap-5 ' + SHADOW}>
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-[20px] leading-[26px] font-bold text-[#1E1B19] tracking-tight">Request a book</h2>
+                <p className="text-[12px] text-[#9A908A] mt-0.5">Local parents will check their shelves</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-[#FFF1EA] flex items-center justify-center text-[#E8632B]">
+                <span className="material-symbols-outlined text-[20px]">bookmark_add</span>
+              </div>
+            </div>
 
-              <div style={{ marginBottom: '14px' }}>
-                <label className="label">Book title *</label>
-                <input value={form.title} onChange={e => update('title', e.target.value)} placeholder="e.g. NCERT Physics Class 12" className="input" />
+            <form onSubmit={submit} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="book-title" className="text-[12px] font-semibold text-[#1E1B19]">Book title <span className="text-[#E8632B]">*</span></label>
+                <input id="book-title" value={title} onChange={e => setTitle(e.target.value)} maxLength={120} placeholder="e.g. NCERT Exemplar Physics Class 12" type="text" className={inputCls} />
               </div>
 
-              <div style={{ marginBottom: '14px' }}>
-                <label className="label">Author <span style={{ color: 'var(--text-muted)', fontWeight: 400, textTransform: 'none' }}>(optional)</span></label>
-                <input value={form.author} onChange={e => update('author', e.target.value)} placeholder="e.g. H.C. Verma" className="input" />
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="book-author" className="text-[12px] text-[#5E5650]">Author (optional)</label>
+                <input id="book-author" value={author} onChange={e => setAuthor(e.target.value)} maxLength={80} placeholder="e.g. SL Arora, HC Verma" type="text" className={inputCls} />
               </div>
 
-              <div style={{ marginBottom: '14px' }}>
-                <label className="label">Category *</label>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                  {categories.map(cat => (
-                    <button key={cat} onClick={() => update('category', cat)} className={`cat-btn${form.category === cat ? ' active' : ''}`}>
-                      {emojis[cat]} {cat}
-                    </button>
+              <div className="flex flex-col gap-2">
+                <span className="text-[12px] font-semibold text-[#1E1B19]">Category</span>
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1" style={{ scrollbarWidth: 'none' }}>
+                  {CATEGORIES.map(c => (
+                    <button key={c.key} type="button" onClick={() => setCategory(c.key)} className={category === c.key ? chipOn : chipOff}>{c.label}</button>
                   ))}
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
-                <div>
-                  <label className="label">Max price (₹) <span style={{ color: 'var(--text-muted)', fontWeight: 400, textTransform: 'none' }}>(optional)</span></label>
-                  <input type="number" value={form.maxPrice} onChange={e => update('maxPrice', e.target.value)} placeholder="300" className="input" />
-                </div>
-                <div>
-                  <label className="label">Your area *</label>
-                  <select value={form.location} onChange={e => update('location', e.target.value)}
-                    style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: `2px solid ${form.location ? '#00B86B' : 'var(--border)'}`, fontSize: '14px', transition: 'all 0.15s' }}>
-                    <option value="">Select area…</option>
-                    {LOCATIONS.map(l => <option key={l} value={l}>{l}</option>)}
-                  </select>
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="book-budget" className="text-[12px] text-[#5E5650]">Highest price you will pay (optional)</label>
+                <div className="relative flex items-center">
+                  <span className="absolute left-4 text-[16px] font-bold text-[#5E5650]">₹</span>
+                  <input id="book-budget" value={budget} onChange={e => setBudget(e.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" placeholder="Maximum budget" className={inputCls + ' !pl-8'} />
                 </div>
               </div>
 
-              <div style={{ marginBottom: '20px' }}>
-                <label className="label">Note <span style={{ color: 'var(--text-muted)', fontWeight: 400, textTransform: 'none' }}>(optional)</span></label>
-                <textarea value={form.note} onChange={e => update('note', e.target.value)} placeholder="e.g. Need 2023 edition, good condition only" rows={2}
-                  style={{ width: '100%', padding: '12px 14px', borderRadius: '12px', border: '2px solid var(--border)', fontSize: '14px', resize: 'none', transition: 'all 0.15s' }} />
+              <div className="flex flex-col gap-2">
+                <span className="text-[12px] font-semibold text-[#1E1B19]">Meetup area <span className="text-[#E8632B]">*</span></span>
+                <div className="flex flex-wrap gap-2">
+                  {AREAS.map(a => (
+                    <button key={a} type="button" onClick={() => setArea(a)}
+                      className={'px-3 py-1.5 rounded-full text-[12px] transition-all ' + (area === a ? 'font-semibold bg-[#E8632B] text-white shadow-sm' : 'text-[#1E1B19] bg-[#FFF1EA] hover:bg-[#F0E2DA]')}>{a}</button>
+                  ))}
+                </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  onClick={submit}
-                  disabled={submitting || !form.title || !form.location || !isLoaded}
-                  className="btn-3d"
-                  style={{ background: form.title && form.location && isLoaded ? 'linear-gradient(135deg,#00B86B,#2D7FF9)' : '#ccc', color: '#fff', border: 'none', borderRadius: '12px', padding: '13px 20px', fontSize: '14px', fontWeight: '800', cursor: form.title && form.location && isLoaded ? 'pointer' : 'not-allowed', fontFamily: 'Poppins, sans-serif', flex: 1, boxShadow: form.title && form.location && isLoaded ? '0 4px 0 #009957' : 'none' }}>
-                  {submitting ? 'Posting…' : 'Post request →'}
-                </button>
-                <button onClick={() => setShowForm(false)} style={{ background: 'var(--bg)', border: '2px solid var(--border)', borderRadius: '12px', padding: '13px 16px', fontSize: '14px', fontWeight: '600', cursor: 'pointer', color: 'var(--text-secondary)' }}>
-                  Cancel
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="book-note" className="text-[12px] text-[#5E5650]">Note (optional)</label>
+                <textarea id="book-note" value={note} onChange={e => setNote(e.target.value)} maxLength={300} rows={2} placeholder="e.g. Clean interior pages needed for board exam prep"
+                  className="w-full bg-[#F8EDE6] text-[#1E1B19] text-[14px] px-4 py-2.5 rounded-[16px] placeholder:text-[#9A908A] focus:outline-none focus:ring-2 focus:ring-[#FCE3D6] resize-none transition-all" />
+              </div>
+
+              {formError && <p className="text-[12px] text-[#D64545]">{formError}</p>}
+
+              <div className="pt-2">
+                <button type="submit" disabled={posting}
+                  className="w-full h-[52px] bg-[#E8632B] text-white rounded-full text-[17px] leading-[22px] font-semibold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform shadow-[0_6px_20px_rgba(232,99,43,0.25)] disabled:opacity-60">
+                  <span>{posting ? 'Posting…' : isSignedIn ? 'Post request' : 'Sign in to post'}</span>
+                  {!posting && <span className="material-symbols-outlined text-[20px]">send</span>}
                 </button>
               </div>
-            </div>
-          )}
+            </form>
+          </section>
 
-          {/* Requests list */}
-          {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}>
-              <div style={{ width: '24px', height: '24px', border: '3px solid #00B86B', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          {/* Open requests */}
+          <section className="flex flex-col gap-4">
+            <div className="flex items-center justify-between gap-2 px-1">
+              <div className="flex items-baseline gap-2 min-w-0">
+                <h3 className="text-[20px] leading-[26px] font-bold text-[#1E1B19]">Open requests near you</h3>
+                <span className="text-[12px] text-[#9A908A] font-semibold shrink-0">({openRequests.length} open)</span>
+              </div>
             </div>
-          ) : requests.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '56px 20px', color: 'var(--text-muted)' }}>
-              <div style={{ fontSize: '40px', marginBottom: '12px' }}>📭</div>
-              <div className="kalam" style={{ fontSize: '18px', color: 'var(--text-secondary)', marginBottom: '6px' }}>No requests yet</div>
-              <div style={{ fontSize: '13px', fontWeight: '500' }}>Be the first to post what you're looking for.</div>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {requests.map(r => (
-                <div key={r.id} className="card card-pop fade-in">
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-                    <div style={{ width: '44px', height: '44px', borderRadius: '12px', background: '#DFFFEF', border: '2px solid #9DEAC4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', flexShrink: 0 }}>
-                      {emojis[r.category] || '📚'}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-primary)' }}>{r.title}</span>
-                        {r.maxPrice && (
-                          <span style={{ fontSize: '11px', background: '#DFFFEF', color: '#00B86B', padding: '2px 8px', borderRadius: '99px', fontWeight: '800' }}>under ₹{r.maxPrice}</span>
+
+            {isSignedIn && (
+              <div className="flex items-center p-1 bg-[#F8EDE6] rounded-full self-start shadow-[0_6px_20px_rgba(120,70,40,0.04)]">
+                <button onClick={() => setTab('all')} className={'px-3 py-1 rounded-full text-[12px] transition-all ' + (tab === 'all' ? 'font-semibold bg-white text-[#1E1B19] shadow-sm' : 'text-[#9A908A]')}>All ({openRequests.length})</button>
+                <button onClick={() => setTab('mine')} className={'px-3 py-1 rounded-full text-[12px] transition-all ' + (tab === 'mine' ? 'font-semibold bg-white text-[#1E1B19] shadow-sm' : 'text-[#9A908A]')}>My requests ({mine.length})</button>
+              </div>
+            )}
+
+            {loading ? (
+              <div className="flex flex-col gap-4">
+                {[0, 1].map(i => <div key={i} className="h-[200px] rounded-[22px] bg-white/70 animate-pulse" />)}
+              </div>
+            ) : loadError ? (
+              <div className={'bg-white rounded-[22px] p-6 text-center ' + SHADOW}>
+                <p className="text-[14px] text-[#5E5650] mb-4">{loadError}</p>
+                <button onClick={() => { setLoading(true); load() }} className="w-full h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform">Try again</button>
+              </div>
+            ) : shown.length === 0 ? (
+              <div className={'bg-white rounded-[22px] p-6 text-center ' + SHADOW}>
+                <p className="text-[14px] text-[#5E5650]">{tab === 'mine' ? 'You have not posted a request yet.' : 'No open requests yet. Post the first one above.'}</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4">
+                {shown.map(r => {
+                  const sub = [r.author, categoryLabel(r.category)].filter(Boolean).join(' · ')
+                  const found = r.status === 'found'
+                  return (
+                    <article key={r.id} className={'bg-white rounded-[22px] p-4 flex flex-col gap-3.5 transition-all ' + SHADOW + (found ? ' opacity-75' : '')}>
+                      {/* Header row */}
+                      <div className="flex items-center justify-between gap-2">
+                        {r.mine ? (
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-[12px] font-semibold px-2.5 py-0.5 rounded-full bg-[#FCE3D6] text-[#C4501A]">You posted</span>
+                            <span className="text-[12px] text-[#9A908A]">{timeAgo(r.createdAt)}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 min-w-0 text-[#9A908A]">
+                            <div className="w-7 h-7 rounded-full bg-[#FCE3D6] text-[#E8632B] flex items-center justify-center text-[12px] font-semibold shrink-0">{r.name.charAt(0).toUpperCase()}</div>
+                            <div className="flex items-center gap-1 text-[12px] min-w-0">
+                              <span className="font-semibold text-[#1E1B19] truncate">{r.name}</span>
+                              <span>·</span>
+                              <span className="whitespace-nowrap">{timeAgo(r.createdAt)}</span>
+                            </div>
+                          </div>
                         )}
+                        <span className="text-[12px] px-2.5 py-0.5 rounded-full bg-[#FFF1EA] text-[#5E5650] truncate max-w-[45%]">{r.location}</span>
                       </div>
-                      {r.author && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px', fontWeight: '500' }}>by {r.author}</div>}
-                      {r.note && <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px', lineHeight: 1.5, fontWeight: '500' }}>"{r.note}"</div>}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '500' }}>📍 {r.location}</span>
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '500' }}>👤 {r.user?.name || 'Anonymous'}</span>
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '500' }}>🕐 {new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
+
+                      {/* Book */}
+                      <div className="flex flex-col gap-1">
+                        <h4 className="text-[17px] leading-tight font-semibold text-[#1E1B19]">{r.title}</h4>
+                        {sub && <p className="text-[12px] text-[#9A908A]">{sub}</p>}
                       </div>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0 }}>
-                      {r.user?.phone && (
-                        <a href={`https://wa.me/91${r.user.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi! I saw your request for "${r.title}" on BuddyBooks. I have it — interested?`)}`}
-                          target="_blank" rel="noopener noreferrer"
-                          style={{ background: '#25D366', color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 12px', fontSize: '12px', fontWeight: '800', cursor: 'pointer', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap', boxShadow: '0 3px 0 #1da851' }}>
-                          💬 I have it!
-                        </a>
+
+                      {/* Price and note */}
+                      {(r.maxPrice || r.note) && (
+                        <div className="bg-[#FFF7F2] rounded-[16px] p-3 flex flex-col gap-1.5">
+                          {r.maxPrice ? (
+                            <div className="flex items-center justify-between">
+                              <span className="text-[12px] text-[#5E5650]">{r.mine ? 'Your offered budget' : 'Willing to pay'}</span>
+                              <span className={'text-[16px] font-bold ' + (r.mine ? 'text-[#1E1B19]' : 'text-[#C4501A]')}>Wanted up to ₹{r.maxPrice.toLocaleString('en-IN')}</span>
+                            </div>
+                          ) : null}
+                          {r.note && <p className="text-[13px] leading-relaxed text-[#5E5650]">“{r.note}”</p>}
+                        </div>
                       )}
-                      {isSignedIn && user?.id && r.user?.clerkId === user.id && (
-                        <button onClick={() => closeRequest(r.id)}
-                          style={{ background: 'rgba(239,68,68,0.1)', color: '#EF4444', border: 'none', borderRadius: '8px', padding: '7px 12px', fontSize: '11px', fontWeight: '700', cursor: 'pointer' }}>
-                          Close
-                        </button>
+
+                      {/* Actions */}
+                      {r.mine ? (
+                        <div className="flex items-center justify-between pt-1">
+                          <div className="flex items-center gap-1 text-[#5E5650]">
+                            <span className={'w-2 h-2 rounded-full ' + (found ? 'bg-[#9A908A]' : 'bg-[#2E8B57]')} />
+                            <span className="text-[12px]">{found ? 'Found' : 'Open'}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {!found && (
+                              <button onClick={() => markFound(r.id)} disabled={busyId === r.id}
+                                className="px-3 py-1.5 rounded-full bg-[#FFF1EA] hover:bg-[#F8EDE6] text-[#2E8B57] text-[12px] font-semibold flex items-center gap-1 active:scale-95 transition-all disabled:opacity-60">
+                                <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                                <span>Mark as found</span>
+                              </button>
+                            )}
+                            <button aria-label="Delete request" onClick={() => remove(r.id)} disabled={busyId === r.id}
+                              className="w-8 h-8 rounded-full bg-[#FFF1EA] hover:bg-[#F8EDE6] text-[#9A908A] hover:text-[#D64545] flex items-center justify-center active:scale-95 transition-all disabled:opacity-60">
+                              <span className="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="pt-0.5">
+                          <button onClick={() => router.push('/sell')}
+                            className="w-full py-2.5 px-4 rounded-full bg-[#FFF1EA] hover:bg-[#FCE3D6] active:scale-95 text-[#C4501A] text-[14px] font-semibold flex items-center justify-center gap-2 transition-all">
+                            <span className="material-symbols-outlined text-[18px]">sell</span>
+                            <span>I have this, list it</span>
+                          </button>
+                        </div>
                       )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                    </article>
+                  )
+                })}
+              </div>
+            )}
+          </section>
         </div>
-      </div>
-    </>
+      </main>
+    </div>
   )
 }
