@@ -2,10 +2,15 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser, SignInButton, useClerk } from '@clerk/nextjs'
+import { useDeliveryPlace, type Saved } from '@/components/LocationSheet'
+import { LOCATIONS, QUICK_SECTORS } from '@/lib/locations'
 
 const SHADOW = 'shadow-[0_6px_20px_rgba(120,70,40,0.08)]'
 const ADMIN_WA = '919914735738'
 const conditions = ['New', 'Good', 'Fair']
+const ADDR_LABELS = ['Home', 'Office', "Parents' Home", 'Other']
+const ADDR_ICON: Record<string, string> = { Home: 'home', Office: 'business', "Parents' Home": 'family_restroom', Other: 'location_on' }
+const MAX_ADDR = 3
 
 const STATUS_NOTE: Record<string, string> = {
   pending: 'Waiting for approval',
@@ -27,6 +32,16 @@ export default function ProfilePage() {
   const [phoneSaved, setPhoneSaved] = useState(false)
   const [activeTab, setActiveTab] = useState<'active' | 'sold'>('active')
 
+  // Saved delivery addresses (kept in the account, up to 3)
+  const [place, setPlace] = useDeliveryPlace()
+  const [addresses, setAddresses] = useState<Saved[]>([])
+  const [addrLoading, setAddrLoading] = useState(true)
+  const [addOpen, setAddOpen] = useState(false)
+  const [addSaving, setAddSaving] = useState(false)
+  const [addErr, setAddErr] = useState('')
+  const [areaQuery, setAreaQuery] = useState('')
+  const [addForm, setAddForm] = useState({ label: 'Home', line1: '', area: '', pin: '' })
+
   useEffect(() => {
     if (!isSignedIn) return
     fetch('/api/listings')
@@ -41,6 +56,48 @@ export default function ProfilePage() {
       })
       .catch(() => setLoading(false))
   }, [isSignedIn, user])
+
+  useEffect(() => {
+    if (!isSignedIn) return
+    fetch('/api/addresses', { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d && Array.isArray(d.addresses)) setAddresses(d.addresses) })
+      .catch(() => {})
+      .finally(() => setAddrLoading(false))
+  }, [isSignedIn])
+
+  function openAdd() {
+    setAddForm({ label: 'Home', line1: '', area: '', pin: '' })
+    setAreaQuery('')
+    setAddErr('')
+    setAddOpen(true)
+  }
+
+  async function saveAddress() {
+    setAddErr('')
+    if (addForm.line1.trim().length < 5) { setAddErr('Enter your house or flat details.'); return }
+    if (!LOCATIONS.includes(addForm.area)) { setAddErr('Pick your area from the list.'); return }
+    if (addForm.pin && addForm.pin.length !== 6) { setAddErr('PIN code must be 6 digits.'); return }
+    setAddSaving(true)
+    try {
+      const res = await fetch('/api/addresses', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(addForm) })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok) { setAddErr(d.error || 'Could not save. Please try again.'); setAddSaving(false); return }
+      setAddresses(prev => [...prev, d.address])
+      if (!place || place.kind !== 'address') setPlace({ kind: 'address', ...d.address })
+      setAddOpen(false)
+    } catch {
+      setAddErr('Could not connect. Please try again.')
+    }
+    setAddSaving(false)
+  }
+
+  async function removeAddress(a: Saved) {
+    if (!confirm('Delete this saved address?')) return
+    await fetch('/api/addresses/' + a.id, { method: 'DELETE' }).catch(() => {})
+    setAddresses(prev => prev.filter(x => x.id !== a.id))
+    if (place && place.kind === 'address' && place.id === a.id) setPlace(null)
+  }
 
   async function savePhone() {
     if (!phone.trim()) return
@@ -167,6 +224,68 @@ export default function ProfilePage() {
         </div>
       )}
 
+      {/* Add address sheet */}
+      {addOpen && (
+        <div className="fixed inset-0 z-[400] bg-black/45 flex items-end md:items-center justify-center" onClick={() => setAddOpen(false)}>
+          <div className="bg-white rounded-t-[28px] md:rounded-[28px] p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-[0_-10px_35px_rgba(30,27,25,0.2)]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }} onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1.5 rounded-full bg-[#F0E2DA] mx-auto mb-4 md:hidden" />
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <h3 className="text-[18px] font-bold">New address</h3>
+                <p className="text-[13px] text-[#9A908A] mt-0.5">We deliver within the tricity</p>
+              </div>
+              <button aria-label="Close" onClick={() => setAddOpen(false)} className="w-9 h-9 rounded-full bg-[#FFF1EA] flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 mb-3">
+              {ADDR_LABELS.map(l => (
+                <button key={l} onClick={() => setAddForm(f => ({ ...f, label: l }))}
+                  className={'px-3.5 py-2 rounded-full text-[13px] active:scale-95 transition-transform ' + (addForm.label === l ? 'bg-[#E8632B] text-white font-semibold' : 'bg-[#FFF1EA] text-[#1E1B19] font-medium')}>{l}</button>
+              ))}
+            </div>
+
+            <div className="flex flex-col gap-2.5 mb-4">
+              <input value={addForm.line1} onChange={e => setAddForm(f => ({ ...f, line1: e.target.value.slice(0, 120) }))} placeholder="House or flat, street" type="text" className={sheetInput} />
+
+              {addForm.area ? (
+                <div className="flex items-center justify-between bg-[#FFF1EA] rounded-2xl px-4 py-3">
+                  <span className="text-[14px]">{addForm.area}</span>
+                  <button onClick={() => setAddForm(f => ({ ...f, area: '' }))} className="text-[13px] font-semibold text-[#C4501A]">Change</button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <input value={areaQuery} onChange={e => setAreaQuery(e.target.value)} placeholder="Search your sector or area" type="text" className={sheetInput} />
+                  {areaQuery.trim().length > 0 && (
+                    <div className="absolute z-10 left-0 right-0 top-[52px] bg-white rounded-2xl shadow-[0_6px_20px_rgba(120,70,40,0.18)] overflow-hidden">
+                      {LOCATIONS.filter(l => l.toLowerCase().includes(areaQuery.trim().toLowerCase())).slice(0, 6).map(m => (
+                        <button key={m} onClick={() => { setAddForm(f => ({ ...f, area: m })); setAreaQuery('') }} className="w-full px-4 py-3 text-left text-[14px] border-b border-[#F0E2DA] last:border-0 active:bg-[#FFF1EA]">{m}</button>
+                      ))}
+                    </div>
+                  )}
+                  {areaQuery.trim().length === 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {QUICK_SECTORS.map(q => (
+                        <button key={q} onClick={() => setAddForm(f => ({ ...f, area: q }))} className="px-3 py-1.5 rounded-full text-[12px] font-medium bg-white shadow-[0_6px_20px_rgba(120,70,40,0.08)] active:scale-95 transition-transform">{q.split(',')[0]}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <input value={addForm.pin} onChange={e => setAddForm(f => ({ ...f, pin: e.target.value.replace(/\D/g, '').slice(0, 6) }))} placeholder="PIN code (optional)" type="text" inputMode="numeric" className={sheetInput} />
+              {addErr && <p className="text-[12px] text-[#D64545]">{addErr}</p>}
+            </div>
+
+            <button onClick={saveAddress} disabled={addSaving} className="w-full h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform disabled:opacity-60">
+              {addSaving ? 'Saving…' : 'Save address'}
+            </button>
+            <button onClick={() => setAddOpen(false)} className="w-full h-11 mt-2.5 text-[14px] font-semibold text-[#5E5650] active:opacity-70">Cancel</button>
+          </div>
+        </div>
+      )}
+
       <main className="w-full max-w-md md:max-w-2xl mx-auto px-5 pb-[130px] lg:pb-16" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
 
         {/* Title row */}
@@ -222,6 +341,56 @@ export default function ProfilePage() {
             </button>
           </div>
           {phone.length > 0 && phone.length < 10 && <p className="text-[12px] text-[#D64545] mt-1.5">Enter a 10-digit number.</p>}
+        </section>
+
+        {/* Saved delivery addresses */}
+        <section className="mb-7">
+          <div className="flex items-center justify-between mb-2 px-1">
+            <div className="flex items-center gap-2">
+              <h3 className="text-[15px] font-bold">Saved addresses</h3>
+              <span className="px-2 py-0.5 rounded-full bg-[#FFF1EA] text-[12px] font-medium">{addresses.length} of {MAX_ADDR}</span>
+            </div>
+            {addresses.length < MAX_ADDR && (
+              <button onClick={openAdd} className="text-[12px] font-semibold text-[#C4501A] flex items-center gap-0.5 active:opacity-70">
+                <span className="material-symbols-outlined text-[15px]">add</span>Add address
+              </button>
+            )}
+          </div>
+
+          {addrLoading ? (
+            <div className="h-[84px] rounded-[22px] bg-white/70 animate-pulse" />
+          ) : addresses.length === 0 ? (
+            <div className={'bg-white rounded-[22px] p-5 text-center ' + SHADOW}>
+              <p className="text-[14px] text-[#5E5650] mb-3">No saved addresses yet. Save one and checkout fills it in for you.</p>
+              <button onClick={openAdd} className={'h-11 px-5 rounded-full bg-white text-[14px] font-semibold text-[#C4501A] active:scale-95 transition-transform ' + SHADOW}>Add an address</button>
+            </div>
+          ) : (
+            <div className={'bg-white rounded-[22px] p-2 ' + SHADOW}>
+              {addresses.map(a => {
+                const on = place?.kind === 'address' && place.id === a.id
+                return (
+                  <div key={a.id} className="flex items-center gap-4 p-3 rounded-[16px]">
+                    <div className="w-10 h-10 rounded-full bg-[#FFF1EA] flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-[20px]">{ADDR_ICON[a.label] || 'location_on'}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-[15px] font-semibold">{a.label}</p>
+                        {on && <span className="text-[12px] text-[#2E8B57] flex items-center gap-0.5"><span className="material-symbols-outlined text-[14px]">check_circle</span>Delivering here</span>}
+                      </div>
+                      <p className="text-[12px] text-[#5E5650] leading-snug">{a.line1}, {a.area}{a.pin ? ' - ' + a.pin : ''}</p>
+                      {!on && (
+                        <button onClick={() => setPlace({ kind: 'address', ...a })} className="text-[12px] font-semibold text-[#C4501A] mt-1 active:opacity-70">Deliver here</button>
+                      )}
+                    </div>
+                    <button aria-label="Delete this address" onClick={() => removeAddress(a)} className="w-9 h-9 rounded-full flex items-center justify-center text-[#9A908A] shrink-0 active:scale-90 transition-transform">
+                      <span className="material-symbols-outlined text-[18px]">delete</span>
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </section>
 
         {/* My book listings */}

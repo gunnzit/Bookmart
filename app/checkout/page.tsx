@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser, SignInButton } from '@clerk/nextjs'
 import { DELIVERY_FEE } from '@/lib/kit-prices'
+import { useDeliveryPlace, type Saved } from '@/components/LocationSheet'
 
 const SCHOOL = 'Shivalik Public School'
 const ADMIN_WA = '919914735738'
@@ -11,6 +12,10 @@ const SHADOW = 'shadow-[0_6px_20px_rgba(120,70,40,0.08)]'
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 
 // Turn an item string ("Name ₹165", "Name [Buddy (196pg)] x2 ₹100") into something to show
+function fullAddress(a: Saved) {
+  return a.line1 + ', ' + a.area + (a.pin ? ' - ' + a.pin : '')
+}
+
 function parseItem(raw: string) {
   const cut = raw.lastIndexOf(' ₹')
   const base = cut > -1 ? raw.slice(0, cut) : raw
@@ -56,6 +61,9 @@ function CheckoutInner() {
   const [address, setAddress] = useState('')
   const [phone, setPhone] = useState('')
   const [name, setName] = useState('')
+  const [place] = useDeliveryPlace()
+  const [savedAddrs, setSavedAddrs] = useState<Saved[]>([])
+  const [addrId, setAddrId] = useState<string | null>(null)
 
   // Kits passed via sessionStorage (array — supports multiple children)
   const [kits, setKits] = useState<any[] | null>(null)
@@ -73,6 +81,20 @@ function CheckoutInner() {
     }
     if (user?.fullName) setName(user.fullName)
   }, [user])
+
+  // Saved addresses: fetched when signed in; the address picked in the delivery sheet is filled in first
+  useEffect(() => {
+    if (!isSignedIn) return
+    fetch('/api/addresses', { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (!d || !Array.isArray(d.addresses)) return
+        setSavedAddrs(d.addresses)
+        const pick = (place && place.kind === 'address' && d.addresses.find((a: Saved) => a.id === place.id)) || null
+        if (pick) { setAddrId(pick.id); setAddress(fullAddress(pick)) }
+      })
+      .catch(() => {})
+  }, [isSignedIn, place])
 
   if (!kits || kits.length === 0) return null
 
@@ -326,8 +348,28 @@ function CheckoutInner() {
                 </div>
 
                 {deliveryMode === 'delivery' ? (
-                  <div>
-                    <textarea value={address} onChange={e => setAddress(e.target.value)} placeholder="House or flat no., street, sector, city" rows={3} className={inputBase + 'resize-none ' + (touched && !addressOk ? inputBad : inputOk)} />
+                  <div className="flex flex-col gap-2.5">
+                    {savedAddrs.length > 0 && (
+                      <div className="flex flex-col gap-2">
+                        {savedAddrs.map(a => {
+                          const on = addrId === a.id
+                          return (
+                            <button key={a.id} onClick={() => { setAddrId(a.id); setAddress(fullAddress(a)) }}
+                              className={'w-full rounded-[16px] p-3 text-left flex items-center justify-between gap-3 active:scale-[0.99] transition-all ' + (on ? 'bg-[#FCE3D6]/60' : 'bg-[#FFF1EA]')}>
+                              <div className="min-w-0">
+                                <p className="text-[14px] font-semibold">{a.label}</p>
+                                <p className="text-[12px] text-[#5E5650] leading-snug">{fullAddress(a)}</p>
+                              </div>
+                              {on
+                                ? <span className="w-5 h-5 rounded-full bg-[#E8632B] flex items-center justify-center shrink-0"><span className="w-2 h-2 rounded-full bg-white" /></span>
+                                : <span className="w-5 h-5 rounded-full bg-[#F8EDE6] shrink-0" />}
+                            </button>
+                          )
+                        })}
+                        <button onClick={() => { setAddrId(null); setAddress('') }} className="text-[13px] font-semibold text-[#C4501A] text-left px-1 active:opacity-70">Use a different address</button>
+                      </div>
+                    )}
+                    <textarea value={address} onChange={e => { setAddress(e.target.value); setAddrId(null) }} placeholder="House or flat no., street, sector, city" rows={3} className={inputBase + 'resize-none ' + (touched && !addressOk ? inputBad : inputOk)} />
                     {touched && !addressOk && <p className="text-[12px] text-[#D64545] mt-1">Please enter your delivery address.</p>}
                   </div>
                 ) : (
