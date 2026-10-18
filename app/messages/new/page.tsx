@@ -1,64 +1,76 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useUser, SignInButton } from '@clerk/nextjs'
 
-export default function NewChatPage() {
+const SHADOW = 'shadow-[0_6px_20px_rgba(120,70,40,0.08)]'
+
+function StartChat() {
   const router = useRouter()
+  const params = useSearchParams()
+  const listingId = params.get('listing') || ''
   const { isLoaded, isSignedIn } = useUser()
   const [error, setError] = useState('')
-  const [listingId, setListingId] = useState('')
-  const started = useRef(false)
+  const startedRef = useRef(false)
+
+  async function start() {
+    setError('')
+    try {
+      const res = await fetch('/api/chat/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (res.ok && d.id) { router.replace('/messages/' + d.id); return }
+      if (res.status === 401) { setError('signin'); return }
+      setError(typeof d.error === 'string' && d.error.length < 120 ? d.error : 'Could not start the chat.')
+    } catch {
+      setError('Could not start the chat. Please check your connection.')
+    }
+  }
 
   useEffect(() => {
     if (!isLoaded) return
-    const lid = new URLSearchParams(window.location.search).get('listing') || ''
-    setListingId(lid)
-    if (!lid) { setError('No book was selected.'); return }
-    if (!isSignedIn || started.current) return
-    started.current = true
-    fetch('/api/chat/conversations', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ listingId: lid }),
-    })
-      .then(async res => {
-        const d = await res.json().catch(() => ({}))
-        if (res.ok && d.id) router.replace('/messages/' + d.id)
-        else setError(d.error || 'Could not start the chat.')
-      })
-      .catch(() => setError('Could not connect. Please try again.'))
-  }, [isLoaded, isSignedIn])
+    if (!listingId) { setError('No book selected.'); return }
+    if (!isSignedIn) { setError('signin'); return }
+    if (startedRef.current) return
+    startedRef.current = true
+    start()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoaded, isSignedIn, listingId])
+
+  const mainBtn = 'w-full h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform'
+  const back = listingId ? '/listing/' + listingId : '/marketplace'
 
   return (
-    <div className="bg-surface text-on-surface font-body-md min-h-screen flex items-center justify-center p-5">
-      <div className="text-center max-w-sm">
-        {error ? (
+    <div className="min-h-screen flex items-center justify-center p-5 text-[#1E1B19] antialiased font-['Plus_Jakarta_Sans',sans-serif]" style={{ background: 'linear-gradient(180deg, #FDEADF 0%, #FFF7F2 100%)' }}>
+      <div className={'bg-white rounded-[28px] p-7 max-w-sm w-full text-center ' + SHADOW}>
+        {!error && <p className="text-[14px] text-[#5E5650]">Opening your chat…</p>}
+        {error === 'signin' && (
           <>
-            <span className="material-symbols-outlined text-[44px] text-primary">forum</span>
-            <h1 className="font-headline-md text-headline-md mt-2 mb-1">Can&apos;t open this chat</h1>
-            <p className="font-body-sm text-body-sm text-on-surface-variant mb-4">{error}</p>
-            <div className="flex gap-2 justify-center">
-              {listingId && <button onClick={() => router.push('/listing/' + listingId)} className="bg-surface-container-low text-on-surface font-label-lg text-label-lg font-semibold px-5 py-2.5 rounded-xl">View listing</button>}
-              <button onClick={() => router.push('/marketplace')} className="bg-primary-container text-on-primary font-label-lg text-label-lg font-bold px-5 py-2.5 rounded-xl shadow-md">Marketplace</button>
-            </div>
+            <h1 className="text-[20px] font-bold mb-1">Sign in to chat</h1>
+            <p className="text-[14px] text-[#5E5650] mb-6">Chats are private between the buyer and the seller.</p>
+            <SignInButton mode="modal"><button className={mainBtn}>Sign in</button></SignInButton>
           </>
-        ) : isLoaded && !isSignedIn ? (
+        )}
+        {error && error !== 'signin' && (
           <>
-            <span className="material-symbols-outlined text-[44px] text-primary">lock</span>
-            <h1 className="font-headline-md text-headline-md mt-2 mb-1">Sign in to chat</h1>
-            <p className="font-body-sm text-body-sm text-on-surface-variant mb-4">Chats are private between you and the seller.</p>
-            <SignInButton mode="modal">
-              <button className="bg-primary-container text-on-primary font-label-lg text-label-lg font-bold px-6 py-3 rounded-xl shadow-md">Sign in</button>
-            </SignInButton>
-          </>
-        ) : (
-          <>
-            <span className="material-symbols-outlined text-[44px] text-primary animate-pulse">forum</span>
-            <p className="font-body-sm text-body-sm text-on-surface-variant mt-2">Opening chat…</p>
+            <h1 className="text-[20px] font-bold mb-1">Can't start this chat</h1>
+            <p className="text-[14px] text-[#5E5650] mb-6">{error}</p>
+            <button onClick={() => { startedRef.current = false; start() }} className={mainBtn + ' mb-3'}>Try again</button>
+            <button onClick={() => router.push(back)} className={'w-full h-[52px] bg-white text-[#1E1B19] text-[17px] font-semibold rounded-full ' + SHADOW}>Back</button>
           </>
         )}
       </div>
     </div>
+  )
+}
+
+export default function NewChatPage() {
+  return (
+    <Suspense fallback={null}>
+      <StartChat />
+    </Suspense>
   )
 }
