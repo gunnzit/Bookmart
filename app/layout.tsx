@@ -62,8 +62,9 @@ export const metadata: Metadata = {
     icon: [{ url: '/pwa-icon/192', sizes: '192x192', type: 'image/png' }],
     apple: [{ url: '/pwa-icon/180', sizes: '180x180', type: 'image/png' }],
   },
+  // './' means: each page's canonical is its own address (the home page is /, the marketplace is /marketplace ...)
   alternates: {
-    canonical: APP_URL,
+    canonical: './',
   },
 }
 
