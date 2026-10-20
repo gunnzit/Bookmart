@@ -68,9 +68,52 @@ export const metadata: Metadata = {
   },
 }
 
+// Pageplus look for the sign-in and sign-up boxes (pop-up and pages)
+const clerkAppearance = {
+  variables: {
+    colorPrimary: '#E8632B',
+    colorText: '#1E1B19',
+    colorTextSecondary: '#5E5650',
+    colorBackground: '#FFFFFF',
+    colorInputBackground: '#FFF7F2',
+    colorInputText: '#1E1B19',
+    colorDanger: '#C4501A',
+    colorSuccess: '#2E8B57',
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    fontSize: '15px',
+    borderRadius: '16px',
+  },
+  elements: {
+    modalBackdrop: { background: 'rgba(30,27,25,0.45)' },
+    card: { borderRadius: '22px', boxShadow: '0 6px 20px rgba(120,70,40,0.08)' },
+    headerTitle: { fontSize: '20px', fontWeight: 700, color: '#1E1B19' },
+    headerSubtitle: { fontSize: '14px', color: '#5E5650' },
+    socialButtonsBlockButton: { borderRadius: '9999px', height: '48px', border: '1px solid #F0E2DA', boxShadow: 'none' },
+    socialButtonsBlockButtonText: { fontWeight: 600 },
+    dividerLine: { background: '#F0E2DA' },
+    dividerText: { color: '#9A908A', fontSize: '13px' },
+    formFieldLabel: { fontSize: '13px', fontWeight: 600, color: '#1E1B19' },
+    formFieldInput: { borderRadius: '9999px', height: '48px', border: '1px solid #F0E2DA', boxShadow: 'none' },
+    formButtonPrimary: {
+      borderRadius: '9999px',
+      height: '52px',
+      fontSize: '17px',
+      fontWeight: 600,
+      backgroundColor: '#E8632B',
+      boxShadow: '0 4px 14px rgba(232,99,43,0.35)',
+      textTransform: 'none',
+    },
+    buttonArrowIcon: { display: 'none' },
+    footerActionLink: { color: '#C4501A', fontWeight: 600 },
+    footerActionText: { color: '#5E5650' },
+    identityPreviewEditButton: { color: '#C4501A' },
+    formResendCodeLink: { color: '#C4501A', fontWeight: 600 },
+  },
+} as const
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ClerkProvider>
+    <ClerkProvider appearance={clerkAppearance}>
       <html lang="en">
         <head>
           <link rel="preconnect" href="https://fonts.googleapis.com" />
