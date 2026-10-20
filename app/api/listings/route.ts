@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client'
-import { NextResponse } from 'next/server'
+import { NextResponse, after } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
+import { notifyAdminNewListing } from '@/lib/listing-alerts'
 
 export const dynamic = 'force-dynamic'
 
@@ -160,6 +161,15 @@ export async function POST(request: Request) {
         images,
       },
     })
+
+    // Tell the admin on WhatsApp (after the reply, so the seller is not kept waiting)
+    const alertJob = () => notifyAdminNewListing({ id: listing.id, title: listing.title, price: listing.price, sellerId: listing.sellerId })
+    try {
+      after(alertJob)
+    } catch {
+      alertJob().catch(() => {})
+    }
+
     return NextResponse.json(listing)
   } catch (error) {
     console.error('POST error:', error)

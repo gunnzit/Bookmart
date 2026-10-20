@@ -8,9 +8,12 @@ async function postMessage(payload: Record<string, unknown>) {
   const token = process.env.META_WHATSAPP_TOKEN
   const phoneNumberId = process.env.META_PHONE_NUMBER_ID
 
-  if (!token || !phoneNumberId) return
+  if (!token || !phoneNumberId) {
+    console.error('WhatsApp not sent: META_WHATSAPP_TOKEN or META_PHONE_NUMBER_ID is missing')
+    return
+  }
 
-  await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
+  const res = await fetch(`https://graph.facebook.com/v19.0/${phoneNumberId}/messages`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${token}`,
@@ -18,6 +21,13 @@ async function postMessage(payload: Record<string, unknown>) {
     },
     body: JSON.stringify({ messaging_product: 'whatsapp', ...payload }),
   })
+
+  // Meta answers 200 when it accepts the message and an error code when it does not.
+  // Logging the reason makes a silent failure show up in the Vercel logs.
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    console.error('WhatsApp send failed', res.status, text.slice(0, 500))
+  }
 }
 
 // Plain text — Meta only delivers this to people who messaged your number in the last 24 hours.

@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { auth } from '@clerk/nextjs/server'
 import { after } from 'next/server'
-import { sendWhatsApp } from '@/lib/whatsapp'
+import { notifySellerDecision } from '@/lib/listing-alerts'
 import { notifyRequestMatches } from '@/lib/request-alerts'
 
 export const dynamic = 'force-dynamic'
@@ -66,15 +66,14 @@ export async function GET(request: Request, context: any) {
       throw e
     }
 
-    // Fire WhatsApp notification (non-blocking — won't break approval if it fails)
-    if (listing.seller?.phone) {
-      const message = action === 'approve'
-        ? `✅ *Your listing is live on Pageplus!*\n\n📚 *${listing.title}*\n💰 ₹${listing.price}\n\nView it here: ${APP_BASE}/listing/${listing.id}\n\n_Bedi Book Store · Pageplus_`
-        : `❌ *Your listing was not approved.*\n\n📚 *${listing.title}*\n\nReason: Does not meet our listing guidelines. Please check your photos (MRP tag must be visible) and re-list.\n\nQuestions? Chat with us: https://wa.me/919914735738\n\n_Bedi Book Store · Pageplus_`
-
-      sendWhatsApp(listing.seller.phone, message).catch(() => {
-        // Silently ignore — approval is unaffected
-      })
+    // Tell the seller on WhatsApp (after the reply, so approval stays fast and never fails because of it)
+    {
+      const sellerJob = () => notifySellerDecision(listing.id, action === 'approve')
+      try {
+        after(sellerJob)
+      } catch {
+        sellerJob().catch(() => {})
+      }
     }
 
     // Tell buyers who asked for this book (after the reply is sent, so approval stays fast)

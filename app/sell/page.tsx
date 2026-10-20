@@ -161,13 +161,10 @@ export default function SellPage() {
 
   useEffect(() => {
     if (!isSignedIn || !user) return
-    fetch('/api/listings?admin=false')
+    fetch('/api/user')
       .then(r => r.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          const mine = data.find((l: any) => l.sellerId === user.id)
-          if (mine?.seller?.phone) { setHasPhone(true); setPhone(mine.seller.phone) }
-        }
+      .then(d => {
+        if (d?.hasPhone) { setHasPhone(true); setPhone(String(d.phone || '')) }
         setPhoneChecked(true)
       })
       .catch(() => setPhoneChecked(true))
@@ -208,7 +205,7 @@ export default function SellPage() {
     await fetch('/api/user', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ clerkId: user?.id, phone: phone.trim() }),
+      body: JSON.stringify({ phone: phone.trim() }),
     })
     setSavingPhone(false)
     setHasPhone(true)

@@ -3,6 +3,18 @@ import { prisma, getMe } from '@/lib/chat'
 
 export const dynamic = 'force-dynamic'
 
+// GET: does the signed-in person already have a WhatsApp number saved? Only their own number is sent back.
+export async function GET() {
+  try {
+    const me = await getMe()
+    if (!me) return NextResponse.json({ error: 'Sign in required' }, { status: 401 })
+    const u = await prisma.user.findUnique({ where: { id: me.id }, select: { phone: true } })
+    return NextResponse.json({ hasPhone: !!u?.phone, phone: u?.phone || '' })
+  } catch {
+    return NextResponse.json({ error: 'Could not check your number.' }, { status: 500 })
+  }
+}
+
 // POST: make sure the signed-in person has a user record. The pages call this on sign-in.
 // Who they are comes from the login session on the server. Anything the browser sends is ignored.
 // Only the id and name are sent back, never phone or email.
@@ -32,7 +44,12 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Enter a valid WhatsApp number.' }, { status: 400 })
     }
 
-    await prisma.user.update({ where: { id: me.id }, data: { phone } })
+    // Remember when the number was first saved (used by the unfinished-listing reminder)
+    const before = await prisma.user.findUnique({ where: { id: me.id }, select: { phone: true } })
+    await prisma.user.update({
+      where: { id: me.id },
+      data: before?.phone ? { phone } : { phone, phoneSavedAt: new Date() },
+    })
     return NextResponse.json({ ok: true })
   } catch (error) {
     return NextResponse.json({ error: 'Could not save your number.' }, { status: 500 })

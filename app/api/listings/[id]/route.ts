@@ -2,6 +2,7 @@ import { NextResponse, after } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { prisma, getMe } from '@/lib/chat'
 import { notifyRequestMatches } from '@/lib/request-alerts'
+import { notifySellerDecision } from '@/lib/listing-alerts'
 
 export const dynamic = 'force-dynamic'
 
@@ -147,6 +148,16 @@ export async function PATCH(request: Request, context: any) {
     }
 
     const updated = await prisma.listing.update({ where: { id }, data })
+
+    // If the admin approved or rejected it from here, tell the seller
+    if ((data.status === 'active' || data.status === 'rejected') && listing.status !== data.status) {
+      const sellerJob = () => notifySellerDecision(updated.id, data.status === 'active')
+      try {
+        after(sellerJob)
+      } catch {
+        sellerJob().catch(() => {})
+      }
+    }
 
     // If the admin approved it from here, tell buyers who asked for this book
     if (data.status === 'active' && listing.status !== 'active') {
