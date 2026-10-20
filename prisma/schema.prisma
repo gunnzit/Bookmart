@@ -17,6 +17,7 @@ model User {
   clerkId   String?    @unique
   // For the "you did not finish your listing" reminder
   phoneSavedAt    DateTime?
+  phoneVerifiedAt DateTime?
   draftReminderAt DateTime?
   listings  Listing[]
   orders    Order[]
@@ -243,4 +244,16 @@ model RequestAlert {
 
   @@unique([requestId, listingId])
   @@index([listingId])
+}
+
+// One live WhatsApp verification code per person
+model PhoneOtp {
+  userId      String   @id
+  phone       String
+  codeHash    String
+  expiresAt   DateTime
+  attempts    Int      @default(0)
+  sentCount   Int      @default(1)
+  windowStart DateTime @default(now())
+  lastSentAt  DateTime @default(now())
 }

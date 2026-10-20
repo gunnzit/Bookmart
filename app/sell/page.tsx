@@ -128,7 +128,11 @@ export default function SellPage() {
   const [phoneChecked, setPhoneChecked] = useState(false)
   const [hasPhone, setHasPhone] = useState(false)
   const [phone, setPhone] = useState('')
-  const [savingPhone, setSavingPhone] = useState(false)
+  const [otpStep, setOtpStep] = useState<'number' | 'code'>('number')
+  const [code, setCode] = useState('')
+  const [otpBusy, setOtpBusy] = useState(false)
+  const [otpMsg, setOtpMsg] = useState('')
+  const [resendIn, setResendIn] = useState(0)
 
   const [form, setForm] = useState({
     title: '', board: '', grade: '', edition: '', note: '',
@@ -164,11 +168,18 @@ export default function SellPage() {
     fetch('/api/user')
       .then(r => r.json())
       .then(d => {
-        if (d?.hasPhone) { setHasPhone(true); setPhone(String(d.phone || '')) }
+        if (d?.phone) setPhone(String(d.phone))
+        if (d?.verified) setHasPhone(true)
         setPhoneChecked(true)
       })
       .catch(() => setPhoneChecked(true))
   }, [isSignedIn, user])
+
+  useEffect(() => {
+    if (resendIn <= 0) return
+    const t = setTimeout(() => setResendIn(v => v - 1), 1000)
+    return () => clearTimeout(t)
+  }, [resendIn])
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -199,16 +210,67 @@ export default function SellPage() {
     setForm(prev => ({ ...prev, [field]: value }))
   }
 
-  async function savePhone() {
-    if (phone.length < 10) return
-    setSavingPhone(true)
-    await fetch('/api/user', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: phone.trim() }),
-    })
-    setSavingPhone(false)
-    setHasPhone(true)
+  const OTP_ERRORS: Record<string, string> = {
+    bad_number: 'Enter a valid 10-digit mobile number.',
+    phone_taken: 'This number is already verified on another Pageplus account.',
+    too_many: 'Too many codes sent. Please try again in an hour.',
+    send_failed: 'We could not send the code. Check that this number is on WhatsApp and try again.',
+    expired: 'That code has expired. Tap Resend to get a new one.',
+    locked: 'Too many wrong tries. Tap Resend to get a new code.',
+    no_code: 'Request a new code first.',
+    bad_code: 'Enter the 6-digit code.',
+  }
+
+  async function sendCode() {
+    if (phone.length < 10 || otpBusy) return
+    setOtpBusy(true)
+    setOtpMsg('')
+    try {
+      const res = await fetch('/api/phone-otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (res.ok) {
+        setOtpStep('code')
+        setCode('')
+        setResendIn(Number(d.resendIn) || 60)
+      } else if (d.error === 'wait') {
+        setOtpStep('code')
+        setResendIn(Number(d.seconds) || 60)
+        setOtpMsg('A code was just sent. Please wait before asking for another.')
+      } else {
+        setOtpMsg(OTP_ERRORS[d.error] || 'Something went wrong. Please try again.')
+      }
+    } catch {
+      setOtpMsg('Could not connect. Please try again.')
+    }
+    setOtpBusy(false)
+  }
+
+  async function verifyCode() {
+    if (code.length !== 6 || otpBusy) return
+    setOtpBusy(true)
+    setOtpMsg('')
+    try {
+      const res = await fetch('/api/phone-otp/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, code }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (res.ok) {
+        setHasPhone(true)
+      } else if (d.error === 'wrong') {
+        setOtpMsg('Wrong code. ' + (d.left > 0 ? d.left + (d.left === 1 ? ' try left.' : ' tries left.') : 'Tap Resend to get a new code.'))
+      } else {
+        setOtpMsg(OTP_ERRORS[d.error] || 'Something went wrong. Please try again.')
+      }
+    } catch {
+      setOtpMsg('Could not connect. Please try again.')
+    }
+    setOtpBusy(false)
   }
 
   const filteredLocations = locationSearch.length > 0
@@ -307,7 +369,8 @@ export default function SellPage() {
         setDone(true)
       } else {
         const data = await res.json().catch(() => ({}))
-        if (data.error === 'listing_rejected') setError('Listing not approved. ' + (data.reason || ''))
+        if (data.error === 'phone_not_verified') { setHasPhone(false); setOtpStep('number') }
+        else if (data.error === 'listing_rejected') setError('Listing not approved. ' + (data.reason || ''))
         else setError('Something went wrong. Please try again.')
       }
     } catch (err: any) {
@@ -331,30 +394,61 @@ export default function SellPage() {
       <header className="px-5 pt-4 flex items-center gap-3">
         <button onClick={() => router.push('/marketplace')} aria-label="Back"
           className={`w-10 h-10 rounded-full bg-white ${SHADOW} flex items-center justify-center text-[18px] active:scale-95 transition-transform`}>←</button>
-        <h1 className="text-[20px] font-bold">Your WhatsApp number</h1>
+        <h1 className="text-[20px] font-bold">Verify your WhatsApp</h1>
       </header>
       <div className="max-w-md mx-auto px-5 mt-6">
         <div className={CARD}>
-          <p className="text-[14px] text-[#5E5650] leading-[20px] mb-4">
-            Buyers can reach you on WhatsApp when you reply in chat. Add it once and you are set.
-          </p>
-          <div className="flex gap-2">
-            <div className="flex items-center bg-[#FFF1EA] rounded-[16px] px-3.5 text-[14px] text-[#5E5650] font-medium shrink-0">+91</div>
-            <input
-              value={phone}
-              inputMode="numeric"
-              onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-              placeholder="98765 43210"
-              className={INPUT}
-            />
-          </div>
-          {phone.length > 0 && phone.length < 10 && (
-            <p className="text-[12px] text-[#D64545] mt-2">Enter a 10-digit number.</p>
+          {otpStep === 'number' ? (
+            <>
+              <p className="text-[14px] text-[#5E5650] leading-[20px] mb-4">
+                We will send a 6-digit code on WhatsApp to confirm this number. Buyers and our team use it to reach you about your books.
+              </p>
+              <div className="flex gap-2">
+                <div className="flex items-center bg-[#FFF1EA] rounded-[16px] px-3.5 text-[14px] text-[#5E5650] font-medium shrink-0">+91</div>
+                <input
+                  value={phone}
+                  inputMode="numeric"
+                  onChange={e => { setPhone(e.target.value.replace(/\D/g, '').slice(0, 10)); setOtpMsg('') }}
+                  placeholder="98765 43210"
+                  className={INPUT}
+                />
+              </div>
+              {phone.length > 0 && phone.length < 10 && (
+                <p className="text-[12px] text-[#D64545] mt-2">Enter a 10-digit number.</p>
+              )}
+              {otpMsg && <p className="text-[12px] text-[#D64545] mt-2">{otpMsg}</p>}
+              <button onClick={sendCode} disabled={otpBusy || phone.length < 10}
+                className="mt-5 w-full h-[52px] rounded-full bg-[#E8632B] text-white text-[17px] font-semibold disabled:opacity-40 active:scale-[0.98] transition-transform">
+                {otpBusy ? 'Sending…' : 'Send code on WhatsApp'}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-[14px] text-[#5E5650] leading-[20px] mb-4">
+                We sent a 6-digit code on WhatsApp to +91 {phone}. It is valid for 10 minutes.
+              </p>
+              <input
+                value={code}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                onChange={e => { setCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setOtpMsg('') }}
+                placeholder="------"
+                className={`${INPUT} text-center !text-[28px] tracking-[0.4em] font-bold`}
+              />
+              {otpMsg && <p className="text-[12px] text-[#D64545] mt-2">{otpMsg}</p>}
+              <button onClick={verifyCode} disabled={otpBusy || code.length !== 6}
+                className="mt-5 w-full h-[52px] rounded-full bg-[#E8632B] text-white text-[17px] font-semibold disabled:opacity-40 active:scale-[0.98] transition-transform">
+                {otpBusy ? 'Checking…' : 'Verify and continue'}
+              </button>
+              <div className="flex items-center justify-between mt-3">
+                <button onClick={() => { setOtpStep('number'); setOtpMsg(''); setCode('') }} className="py-2 text-[14px] text-[#5E5650]">Change number</button>
+                <button onClick={sendCode} disabled={resendIn > 0 || otpBusy} className="py-2 text-[14px] font-semibold text-[#C4501A] disabled:text-[#9A908A]">
+                  {resendIn > 0 ? `Resend in ${resendIn}s` : 'Resend code'}
+                </button>
+              </div>
+              <a href="https://wa.me/919914735738" className="block text-center text-[12px] text-[#5E5650] mt-2">Not getting the code? Chat with us</a>
+            </>
           )}
-          <button onClick={savePhone} disabled={savingPhone || phone.length < 10}
-            className="mt-5 w-full h-[52px] rounded-full bg-[#E8632B] text-white text-[17px] font-semibold disabled:opacity-40 active:scale-[0.98] transition-transform">
-            {savingPhone ? 'Saving…' : 'Save and continue'}
-          </button>
           <button onClick={() => router.push('/marketplace')} className="w-full mt-2 py-3 text-[14px] text-[#5E5650]">Not now</button>
         </div>
       </div>

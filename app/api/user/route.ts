@@ -8,8 +8,8 @@ export async function GET() {
   try {
     const me = await getMe()
     if (!me) return NextResponse.json({ error: 'Sign in required' }, { status: 401 })
-    const u = await prisma.user.findUnique({ where: { id: me.id }, select: { phone: true } })
-    return NextResponse.json({ hasPhone: !!u?.phone, phone: u?.phone || '' })
+    const u = await prisma.user.findUnique({ where: { id: me.id }, select: { phone: true, phoneVerifiedAt: true } })
+    return NextResponse.json({ hasPhone: !!u?.phone, phone: u?.phone || '', verified: !!u?.phone && !!u?.phoneVerifiedAt })
   } catch {
     return NextResponse.json({ error: 'Could not check your number.' }, { status: 500 })
   }
@@ -45,10 +45,16 @@ export async function PATCH(request: Request) {
     }
 
     // Remember when the number was first saved (used by the unfinished-listing reminder)
+    // A changed number is no longer verified (selling needs a verified number, see /api/phone-otp)
     const before = await prisma.user.findUnique({ where: { id: me.id }, select: { phone: true } })
+    const changed = before?.phone !== phone
     await prisma.user.update({
       where: { id: me.id },
-      data: before?.phone ? { phone } : { phone, phoneSavedAt: new Date() },
+      data: {
+        phone,
+        ...(before?.phone ? {} : { phoneSavedAt: new Date() }),
+        ...(changed ? { phoneVerifiedAt: null } : {}),
+      },
     })
     return NextResponse.json({ ok: true })
   } catch (error) {

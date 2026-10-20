@@ -108,6 +108,17 @@ export async function POST(request: Request) {
     const userId = await getUserId()
     if (!userId) return NextResponse.json({ error: 'Sign in required' }, { status: 401 })
 
+    // Selling needs a WhatsApp number verified with a code (the admin is exempt)
+    if (userId !== ADMIN_ID) {
+      const seller = await prisma.user.findFirst({
+        where: { OR: [{ id: userId }, { clerkId: userId }] },
+        select: { phone: true, phoneVerifiedAt: true },
+      })
+      if (!seller?.phone || !seller.phoneVerifiedAt) {
+        return NextResponse.json({ error: 'phone_not_verified' }, { status: 403 })
+      }
+    }
+
     const body = await request.json().catch(() => ({}))
 
     // The seller is always the signed-in person
