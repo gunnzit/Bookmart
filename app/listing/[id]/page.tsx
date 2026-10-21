@@ -500,14 +500,23 @@ export default function ListingPage() {
       <main className={'w-full max-w-md md:max-w-5xl mx-auto px-5 ' + (canChat ? 'pb-32 lg:pb-16' : 'pb-16')} style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
 
         {/* Top bar */}
-        <header className="flex items-center justify-between mb-4">
-          <button aria-label="Back" onClick={() => (window.history.length > 1 ? router.back() : router.push('/marketplace'))} className={iconBtn}>
-            <span className="material-symbols-outlined text-[22px]">arrow_back</span>
-          </button>
+        <header className="grid grid-cols-[1fr_auto_1fr] items-center mb-4">
+          <div className="flex justify-start">
+            <button aria-label="Back" onClick={() => (window.history.length > 1 ? router.back() : router.push('/marketplace'))} className={iconBtn}>
+              <span className="material-symbols-outlined text-[22px]">arrow_back</span>
+            </button>
+          </div>
           <h1 className="text-[16px] font-semibold">Book detail</h1>
-          <button aria-label="Share" onClick={shareBook} className={iconBtn}>
-            <span className="material-symbols-outlined text-[20px]">share</span>
-          </button>
+          <div className="flex justify-end gap-2">
+            {!isOwner && (
+              <button aria-label="Report this listing" onClick={reportListing} className={iconBtn}>
+                <span className="material-symbols-outlined text-[20px]">flag</span>
+              </button>
+            )}
+            <button aria-label="Share" onClick={shareBook} className={iconBtn}>
+              <span className="material-symbols-outlined text-[20px]">share</span>
+            </button>
+          </div>
         </header>
 
         <div className="lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
