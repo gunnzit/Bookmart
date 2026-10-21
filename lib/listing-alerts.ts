@@ -68,3 +68,27 @@ export async function notifySellerDecision(listingId: string, approved: boolean)
     console.error('Seller alert failed', e)
   }
 }
+
+// To the admin: someone reported a listing.
+// Template name: META_ADMIN_REPORT_TEMPLATE  (variables: book, reason, number of reports, note, link)
+export async function notifyAdminReport(listingId: string, reason: string, note: string, count: number) {
+  try {
+    const phone = process.env.ADMIN_WHATSAPP
+    if (!phone) {
+      console.error('Report alert not sent: ADMIN_WHATSAPP is not set')
+      return
+    }
+    const listing = await prisma.listing.findUnique({ where: { id: listingId }, select: { title: true } })
+    const title = listing?.title || 'A listing'
+    const link = `${APP_BASE}/listing/${listingId}`
+    const shownNote = note || 'No note'
+    await send(
+      phone,
+      process.env.META_ADMIN_REPORT_TEMPLATE,
+      [title, reason, String(count), shownNote, link],
+      `🚩 A listing was reported\n\n📚 ${title}\nReason: ${reason}\nReports so far: ${count}\nNote: ${shownNote}\n\nReview it: ${link}`
+    )
+  } catch (e) {
+    console.error('Report alert failed', e)
+  }
+}

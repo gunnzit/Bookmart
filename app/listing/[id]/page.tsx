@@ -9,6 +9,15 @@ const SHARE_BASE = 'https://pageplus.in'
 
 const SHADOW = 'shadow-[0_6px_20px_rgba(120,70,40,0.08)]'
 
+const REPORT_REASONS = [
+  { key: 'scam', label: 'Looks fake or a scam' },
+  { key: 'price', label: 'Wrong or misleading price' },
+  { key: 'sold', label: 'Already sold' },
+  { key: 'photos', label: 'Photos do not match the book' },
+  { key: 'inappropriate', label: 'Not a book or inappropriate' },
+  { key: 'other', label: 'Something else' },
+]
+
 // Frosted glass, the same look as the bottom bar and the Sets page
 const GLASS: CSSProperties = {
   background: 'rgba(255,255,255,0.55)',
@@ -91,6 +100,11 @@ export default function ListingPage() {
   const [reviewDone, setReviewDone] = useState(false)
   const [canReview, setCanReview] = useState(false)
   const [reviewReason, setReviewReason] = useState('')
+  const [reportOpen, setReportOpen] = useState(false)
+  const [reportReason, setReportReason] = useState('')
+  const [reportNote, setReportNote] = useState('')
+  const [reportBusy, setReportBusy] = useState(false)
+  const [reportError, setReportError] = useState('')
 
   useEffect(() => {
     fetch('/api/listings/' + id + '?track=true')
@@ -204,8 +218,39 @@ export default function ListingPage() {
   }
 
   function reportListing() {
-    const text = 'REPORT: Listing "' + (listing?.title || '') + '" (ID: ' + id + ') at ' + SHARE_BASE + '/listing/' + id + ' — Reason: '
-    window.open('https://wa.me/' + ADMIN_WA + '?text=' + encodeURIComponent(text), '_blank')
+    if (!isSignedIn) { openSignIn(); return }
+    setReportReason('')
+    setReportNote('')
+    setReportError('')
+    setReportOpen(true)
+  }
+
+  async function submitReport() {
+    if (!reportReason || reportBusy) return
+    setReportBusy(true)
+    setReportError('')
+    try {
+      const res = await fetch('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listingId: id, reason: reportReason, note: reportNote }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (res.ok) {
+        setReportOpen(false)
+        setToast('Thanks, our team will look at this listing')
+      } else if (d.error === 'too_many') {
+        setReportError('You have sent many reports today. Please try again tomorrow.')
+      } else if (d.error === 'signin') {
+        setReportOpen(false)
+        openSignIn()
+      } else {
+        setReportError('Could not send the report. Please try again.')
+      }
+    } catch {
+      setReportError('Could not connect. Please try again.')
+    }
+    setReportBusy(false)
   }
 
   async function startChat(listingId: string) {
@@ -406,6 +451,42 @@ export default function ListingPage() {
           <button aria-label="Close" onClick={() => setLightbox(false)} className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white flex items-center justify-center">
             <span className="material-symbols-outlined text-[20px]">close</span>
           </button>
+        </div>
+      )}
+
+      {/* Report sheet */}
+      {reportOpen && (
+        <div className="fixed inset-0 z-[400] bg-black/45 flex items-end md:items-center justify-center" onClick={() => setReportOpen(false)}>
+          <div className="bg-white rounded-t-[28px] md:rounded-[28px] p-6 w-full max-w-md shadow-[0_-10px_35px_rgba(30,27,25,0.2)]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }} onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1.5 rounded-full bg-[#F0E2DA] mx-auto mb-4 md:hidden" />
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <h3 className="text-[18px] font-bold">Report this listing</h3>
+                <p className="text-[13px] text-[#9A908A] mt-0.5">Tell us what is wrong. Our team will check it.</p>
+              </div>
+              <button aria-label="Close" onClick={() => setReportOpen(false)} className="w-9 h-9 rounded-full bg-[#FFF1EA] flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {REPORT_REASONS.map(r => (
+                <button key={r.key} type="button" onClick={() => { setReportReason(r.key); setReportError('') }}
+                  className={'px-3.5 py-1.5 rounded-full text-[13px] active:scale-95 transition-transform ' + (reportReason === r.key ? 'bg-[#E8632B] text-white font-semibold' : 'bg-[#FFF1EA] text-[#1E1B19] font-medium')}>
+                  {r.label}
+                </button>
+              ))}
+            </div>
+            <textarea value={reportNote} onChange={e => setReportNote(e.target.value.slice(0, 200))} rows={3}
+              placeholder="Add details (optional)" className={inputCls + ' resize-none'} />
+            {reportError && <p className="text-[12px] text-[#D64545] mt-2">{reportError}</p>}
+            <div className="flex gap-2.5 mt-5">
+              <button onClick={() => setReportOpen(false)} className="h-[52px] px-6 rounded-full bg-white border border-[#F0E2DA] text-[15px] font-semibold active:scale-95 transition-transform">Cancel</button>
+              <button onClick={submitReport} disabled={!reportReason || reportBusy}
+                className="flex-1 h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full disabled:opacity-40 active:scale-[0.98] transition-transform">
+                {reportBusy ? 'Sending…' : 'Send report'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

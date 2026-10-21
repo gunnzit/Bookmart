@@ -257,3 +257,17 @@ model PhoneOtp {
   windowStart DateTime @default(now())
   lastSentAt  DateTime @default(now())
 }
+
+// A buyer flagging a listing. One report per person per listing.
+model Report {
+  id         String   @id @default(cuid())
+  listingId  String
+  reporterId String
+  reason     String
+  note       String?
+  createdAt  DateTime @default(now())
+
+  @@unique([listingId, reporterId])
+  @@index([listingId])
+  @@index([reporterId, createdAt])
+}
