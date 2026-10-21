@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client'
 import { NextResponse, after } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { notifyAdminNewListing } from '@/lib/listing-alerts'
+import { PHONE_OTP_REQUIRED } from '@/lib/features'
 
 export const dynamic = 'force-dynamic'
 
@@ -128,7 +129,7 @@ export async function POST(request: Request) {
     if (!userId) return NextResponse.json({ error: 'Sign in required' }, { status: 401 })
 
     // Selling needs a WhatsApp number verified with a code (the admin is exempt)
-    if (userId !== ADMIN_ID) {
+    if (PHONE_OTP_REQUIRED && userId !== ADMIN_ID) {
       const seller = await prisma.user.findFirst({
         where: { OR: [{ id: userId }, { clerkId: userId }] },
         select: { phone: true, phoneVerifiedAt: true },

@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { createClient } from '@supabase/supabase-js'
+import { PHONE_OTP_REQUIRED } from '@/lib/features'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -169,7 +170,8 @@ export default function SellPage() {
       .then(r => r.json())
       .then(d => {
         if (d?.phone) setPhone(String(d.phone))
-        if (d?.verified) setHasPhone(true)
+        // With the code check switched off, a saved number is enough
+        if (d?.verified || (!PHONE_OTP_REQUIRED && d?.hasPhone)) setHasPhone(true)
         setPhoneChecked(true)
       })
       .catch(() => setPhoneChecked(true))
@@ -225,6 +227,24 @@ export default function SellPage() {
     if (phone.length < 10 || otpBusy) return
     setOtpBusy(true)
     setOtpMsg('')
+
+    // Code check switched off: just save the number
+    if (!PHONE_OTP_REQUIRED) {
+      try {
+        const res = await fetch('/api/user', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone }),
+        })
+        if (res.ok) setHasPhone(true)
+        else setOtpMsg('Enter a valid WhatsApp number.')
+      } catch {
+        setOtpMsg('Could not connect. Please try again.')
+      }
+      setOtpBusy(false)
+      return
+    }
+
     try {
       const res = await fetch('/api/phone-otp/send', {
         method: 'POST',
@@ -394,14 +414,16 @@ export default function SellPage() {
       <header className="px-5 pt-4 flex items-center gap-3">
         <button onClick={() => router.push('/marketplace')} aria-label="Back"
           className={`w-10 h-10 rounded-full bg-white ${SHADOW} flex items-center justify-center text-[18px] active:scale-95 transition-transform`}>←</button>
-        <h1 className="text-[20px] font-bold">Verify your WhatsApp</h1>
+        <h1 className="text-[20px] font-bold">{PHONE_OTP_REQUIRED ? 'Verify your WhatsApp' : 'Your WhatsApp number'}</h1>
       </header>
       <div className="max-w-md mx-auto px-5 mt-6">
         <div className={CARD}>
           {otpStep === 'number' ? (
             <>
               <p className="text-[14px] text-[#5E5650] leading-[20px] mb-4">
-                We will send a 6-digit code on WhatsApp to confirm this number. Buyers and our team use it to reach you about your books.
+                {PHONE_OTP_REQUIRED
+                  ? 'We will send a 6-digit code on WhatsApp to confirm this number. Buyers and our team use it to reach you about your books.'
+                  : 'Buyers and our team use this number to reach you about your books. Add it once and you are set.'}
               </p>
               <div className="flex gap-2">
                 <div className="flex items-center bg-[#FFF1EA] rounded-[16px] px-3.5 text-[14px] text-[#5E5650] font-medium shrink-0">+91</div>
@@ -419,7 +441,7 @@ export default function SellPage() {
               {otpMsg && <p className="text-[12px] text-[#D64545] mt-2">{otpMsg}</p>}
               <button onClick={sendCode} disabled={otpBusy || phone.length < 10}
                 className="mt-5 w-full h-[52px] rounded-full bg-[#E8632B] text-white text-[17px] font-semibold disabled:opacity-40 active:scale-[0.98] transition-transform">
-                {otpBusy ? 'Sending…' : 'Send code on WhatsApp'}
+                {otpBusy ? (PHONE_OTP_REQUIRED ? 'Sending…' : 'Saving…') : (PHONE_OTP_REQUIRED ? 'Send code on WhatsApp' : 'Save and continue')}
               </button>
             </>
           ) : (
