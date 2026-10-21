@@ -609,6 +609,21 @@ export default function ListingPage() {
             {isOwner && (
               <section className={'bg-white rounded-[22px] p-5 flex flex-col gap-3 ' + SHADOW}>
                 <h2 className="text-[15px] font-semibold">This is your listing</h2>
+                {(!listing.status || listing.status === 'active') && (
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {[
+                      { icon: 'visibility', n: listing.views || 0, t: 'Views' },
+                      { icon: 'forum', n: listing.stats?.chats || 0, t: 'Chats' },
+                      { icon: 'favorite', n: listing.stats?.saves || 0, t: 'Saves' },
+                    ].map(x => (
+                      <div key={x.t} className="bg-[#F8EDE6] rounded-[16px] py-3 flex flex-col items-center gap-0.5">
+                        <span className="material-symbols-outlined text-[18px] text-[#E8632B]">{x.icon}</span>
+                        <span className="text-[17px] leading-[22px] font-bold">{x.n}</span>
+                        <span className="text-[12px] text-[#5E5650]">{x.t}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {listing.status && listing.status !== 'active' && (
                   <p className={'text-[13px] rounded-2xl px-3.5 py-2.5 ' + (listing.status === 'rejected' ? 'bg-[#FFDAD6] text-[#93000A]' : 'bg-[#FFF1EA] text-[#5E5650]')}>
                     {listing.status === 'rejected' ? 'Not approved. Please check your photos and list again.' : 'Waiting for approval. It goes live once checked.'}

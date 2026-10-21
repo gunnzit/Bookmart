@@ -86,15 +86,34 @@ export async function GET() {
       orderBy: { createdAt: 'desc' },
     })
 
+    // How much attention each of the signed-in seller's own books got (never shown for other people's books)
+    const chatCount = new Map<string, number>()
+    const saveCount = new Map<string, number>()
+    if (!isAdmin && userId) {
+      const mine = rows.filter(l => l.sellerId === userId).map(l => l.id)
+      if (mine.length > 0) {
+        const [chats, saves] = await Promise.all([
+          prisma.conversation.groupBy({ by: ['listingId'], where: { listingId: { in: mine } }, _count: { _all: true } }),
+          prisma.wishlist.groupBy({ by: ['listingId'], where: { listingId: { in: mine } }, _count: { _all: true } }),
+        ])
+        chats.forEach(c => chatCount.set(c.listingId, c._count._all))
+        saves.forEach(c => saveCount.set(c.listingId, c._count._all))
+      }
+    }
+
     // Phone numbers and emails are never sent to other people.
     const out = isAdmin
       ? rows
-      : rows.map(l => ({
-          ...l,
-          seller: l.sellerId === userId
-            ? { id: l.seller.id, name: l.seller.name, phone: l.seller.phone }
-            : { id: l.seller.id, name: l.seller.name },
-        }))
+      : rows.map(l => l.sellerId === userId
+          ? {
+              ...l,
+              seller: { id: l.seller.id, name: l.seller.name, phone: l.seller.phone },
+              stats: { chats: chatCount.get(l.id) || 0, saves: saveCount.get(l.id) || 0 },
+            }
+          : {
+              ...l,
+              seller: { id: l.seller.id, name: l.seller.name },
+            })
 
     return NextResponse.json(out)
   } catch (error) {

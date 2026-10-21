@@ -55,8 +55,20 @@ export async function GET(request: Request, context: any) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })
     }
 
-    if (track && listing.status === 'active') {
+    // The seller looking at their own book is not a view
+    const counted = track && listing.status === 'active' && !who.isOwner
+    if (counted) {
       await prisma.listing.update({ where: { id }, data: { views: { increment: 1 } } })
+    }
+
+    // Attention numbers, shown only to the seller (and the admin)
+    let stats: { chats: number; saves: number } | undefined
+    if (who.isOwner || who.isAdmin) {
+      const [chats, saves] = await Promise.all([
+        prisma.conversation.count({ where: { listingId: id } }),
+        prisma.wishlist.count({ where: { listingId: id } }),
+      ])
+      stats = { chats, saves }
     }
 
     const seller = who.isAdmin
@@ -68,7 +80,8 @@ export async function GET(request: Request, context: any) {
     return NextResponse.json({
       ...listing,
       seller,
-      views: track && listing.status === 'active' ? listing.views + 1 : listing.views,
+      views: counted ? listing.views + 1 : listing.views,
+      ...(stats ? { stats } : {}),
     })
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 })

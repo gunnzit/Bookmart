@@ -445,10 +445,18 @@ export default function ProfilePage() {
                           <span className="text-[16px] font-bold shrink-0">{l.price === 0 ? 'Free' : '₹' + (l.price || 0).toLocaleString('en-IN')}</span>
                         </div>
                         <p className="text-[12px] text-[#5E5650] mt-0.5">{[l.condition, l.location].filter(Boolean).join(' · ')}</p>
-                        <div className="flex items-center gap-1.5 mt-2">
-                          <span className={'w-2 h-2 rounded-full inline-block ' + (note ? 'bg-[#F5B82E]' : 'bg-[#E8632B]')} />
-                          <span className="text-[12px] font-medium">{note || (l.views || 0) + (l.views === 1 ? ' view' : ' views')}</span>
-                        </div>
+                        {note ? (
+                          <div className="flex items-center gap-1.5 mt-2">
+                            <span className="w-2 h-2 rounded-full inline-block bg-[#F5B82E]" />
+                            <span className="text-[12px] font-medium">{note}</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-3 mt-2 text-[12px] font-medium">
+                            <span className="flex items-center gap-1" title="Views"><span className="material-symbols-outlined text-[15px] text-[#E8632B]">visibility</span>{l.views || 0}{l.views === 1 ? ' view' : ' views'}</span>
+                            <span className="flex items-center gap-1" title="Chats"><span className="material-symbols-outlined text-[15px] text-[#E8632B]">forum</span>{l.stats?.chats || 0}{l.stats?.chats === 1 ? ' chat' : ' chats'}</span>
+                            <span className="flex items-center gap-1" title="Saves"><span className="material-symbols-outlined text-[15px] text-[#E8632B]">favorite</span>{l.stats?.saves || 0}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="mt-3.5 flex items-center gap-2">
