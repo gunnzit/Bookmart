@@ -3,6 +3,7 @@ import { NextResponse, after } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { notifyAdminNewListing } from '@/lib/listing-alerts'
 import { PHONE_OTP_REQUIRED } from '@/lib/features'
+import { getMe } from '@/lib/chat'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,7 +12,7 @@ const prisma = globalForPrisma.prisma ?? new PrismaClient()
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 // Same admin as the admin pages (set ADMIN_CLERK_ID in Vercel to override)
-const ADMIN_ID = process.env.ADMIN_CLERK_ID || 'user_3KzRslgyuOOk5UY4fABoZ67plzS'
+const ADMIN_ID = process.env.ADMIN_CLERK_ID || 'user_3EMHmiU5Qw2vZpxYOFM7viVRYZD'
 
 const CATEGORIES = ['textbook', 'novel', 'notebook', 'art', 'stationery', 'competitive']
 const CONDITIONS = ['New', 'Good', 'Fair']
@@ -72,6 +73,8 @@ Respond with JSON only, nothing else.`,
 export async function GET() {
   try {
     const userId = await getUserId()
+    // Makes sure an old account is linked to this sign-in before looking for "my books"
+    if (userId) await getMe().catch(() => null)
     const isAdmin = !!userId && userId === ADMIN_ID
 
     // Admin: everything. Everyone else: live listings, plus their own.
@@ -127,6 +130,7 @@ export async function POST(request: Request) {
   try {
     const userId = await getUserId()
     if (!userId) return NextResponse.json({ error: 'Sign in required' }, { status: 401 })
+    await getMe().catch(() => null)
 
     // Selling needs a WhatsApp number verified with a code (the admin is exempt)
     if (PHONE_OTP_REQUIRED && userId !== ADMIN_ID) {

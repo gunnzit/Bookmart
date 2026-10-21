@@ -40,7 +40,19 @@ export async function getMe(): Promise<{ id: string; name: string } | null> {
     const email = cu?.primaryEmailAddress?.emailAddress
     if (!cu || !email) return null
     const byEmail = await prisma.user.findUnique({ where: { email }, select })
-    if (byEmail) return byEmail
+    if (byEmail) {
+      // Same email, new sign-in ID (for example after Clerk moved from test to live mode).
+      // Re-key the old record to the new ID. Their books, saves, chats and reviews follow
+      // automatically, because those tables point at this record and update with it.
+      if (byEmail.id !== userId) {
+        try {
+          return await prisma.user.update({ where: { id: byEmail.id }, data: { id: userId, clerkId: userId }, select })
+        } catch {
+          return byEmail
+        }
+      }
+      return byEmail
+    }
     return await prisma.user.create({
       data: { id: userId, clerkId: userId, name: cu.fullName || cu.firstName || 'Pageplus user', email },
       select,
