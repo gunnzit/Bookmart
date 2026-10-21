@@ -7,7 +7,7 @@ const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 const prisma = globalForPrisma.prisma ?? new PrismaClient()
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
-const ADMIN_ID = process.env.ADMIN_CLERK_ID || 'user_3EMHmiU5Qw2vZpxYOFM7viVRYZD'
+const ADMIN_ID = process.env.ADMIN_CLERK_ID || 'user_3KzRslgyuOOk5UY4fABoZ67plzS'
 
 // POST — PUBLIC. A customer asks to be notified when an item is back.
 // Body: { itemName, phone, buyerName? }

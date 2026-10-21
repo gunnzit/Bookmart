@@ -3,7 +3,7 @@ import { useUser } from '@clerk/nextjs'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
-const ADMIN_ID = 'user_3EMHmiU5Qw2vZpxYOFM7viVRYZD'
+const ADMIN_ID = 'user_3KzRslgyuOOk5UY4fABoZ67plzS'
 
 export default function AdminHubPage() {
   const { isSignedIn, user, isLoaded } = useUser()

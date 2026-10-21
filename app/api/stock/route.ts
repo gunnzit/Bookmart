@@ -7,7 +7,7 @@ const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 const prisma = globalForPrisma.prisma ?? new PrismaClient()
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
-const ADMIN_ID = process.env.ADMIN_CLERK_ID || 'user_3EMHmiU5Qw2vZpxYOFM7viVRYZD'
+const ADMIN_ID = process.env.ADMIN_CLERK_ID || 'user_3KzRslgyuOOk5UY4fABoZ67plzS'
 
 // GET — PUBLIC. Returns the list of out-of-stock item names so the kit page can
 // disable them. Fails OPEN (empty list) so a DB hiccup never breaks the store.

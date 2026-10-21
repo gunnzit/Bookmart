@@ -6,7 +6,7 @@ const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 const prisma = globalForPrisma.prisma ?? new PrismaClient()
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
-const ADMIN_ID = process.env.ADMIN_CLERK_ID || 'user_3EMHmiU5Qw2vZpxYOFM7viVRYZD'
+const ADMIN_ID = process.env.ADMIN_CLERK_ID || 'user_3KzRslgyuOOk5UY4fABoZ67plzS'
 const CANCEL_WINDOW_MS = 24 * 60 * 60 * 1000 // 24 hours
 
 // Server-side rule: a customer may request cancellation only while the order is

@@ -11,7 +11,7 @@ const prisma = globalForPrisma.prisma ?? new PrismaClient()
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 // Same admin as the admin pages (set ADMIN_CLERK_ID in Vercel to override)
-const ADMIN_ID = process.env.ADMIN_CLERK_ID || 'user_3EMHmiU5Qw2vZpxYOFM7viVRYZD'
+const ADMIN_ID = process.env.ADMIN_CLERK_ID || 'user_3KzRslgyuOOk5UY4fABoZ67plzS'
 
 const CATEGORIES = ['textbook', 'novel', 'notebook', 'art', 'stationery', 'competitive']
 const CONDITIONS = ['New', 'Good', 'Fair']
