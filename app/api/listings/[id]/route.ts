@@ -71,10 +71,12 @@ export async function GET(request: Request, context: any) {
       stats = { chats, saves }
     }
 
+    // Only a yes/no for the Verified badge. The phone number itself is never sent.
+    const verified = !!listing.seller?.phoneVerifiedAt
     const seller = who.isAdmin
-      ? listing.seller
+      ? (listing.seller ? { ...listing.seller, verified } : null)
       : listing.seller
-        ? { id: listing.seller.id, name: listing.seller.name }
+        ? { id: listing.seller.id, name: listing.seller.name, verified }
         : null
 
     return NextResponse.json({
@@ -161,6 +163,31 @@ export async function PATCH(request: Request, context: any) {
     }
 
     const updated = await prisma.listing.update({ where: { id }, data })
+
+    // Keep a private record of who bought it (only a person who chatted about this book can be picked)
+    if (typeof body.sold === 'boolean') {
+      try {
+        if (body.sold) {
+          let buyerId: string | null = null
+          if (typeof body.soldToId === 'string' && body.soldToId) {
+            const conv = await prisma.conversation.findFirst({
+              where: { listingId: id, buyerId: body.soldToId },
+              select: { buyerId: true },
+            })
+            buyerId = conv ? conv.buyerId : null
+          }
+          await prisma.sale.upsert({
+            where: { listingId: id },
+            create: { listingId: id, sellerId: listing.sellerId, buyerId },
+            update: { buyerId },
+          })
+        } else {
+          await prisma.sale.deleteMany({ where: { listingId: id } })
+        }
+      } catch (e) {
+        console.error('Sale record error:', e)
+      }
+    }
 
     // If the admin approved or rejected it from here, tell the seller
     if ((data.status === 'active' || data.status === 'rejected') && listing.status !== data.status) {

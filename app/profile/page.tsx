@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser, SignInButton, useClerk } from '@clerk/nextjs'
+import SoldSheet from '@/components/SoldSheet'
 import { useDeliveryPlace, type Saved } from '@/components/LocationSheet'
 import { LOCATIONS, QUICK_SECTORS } from '@/lib/locations'
 
@@ -31,6 +32,7 @@ export default function ProfilePage() {
   const [savingPhone, setSavingPhone] = useState(false)
   const [phoneSaved, setPhoneSaved] = useState(false)
   const [activeTab, setActiveTab] = useState<'active' | 'sold'>('active')
+  const [soldFor, setSoldFor] = useState<any>(null)
 
   // Saved delivery addresses (kept in the account, up to 3)
   const [place, setPlace] = useDeliveryPlace()
@@ -139,6 +141,8 @@ export default function ProfilePage() {
   }
 
   async function toggleSold(id: string, currentSold: boolean) {
+    // Marking sold asks who bought it first
+    if (!currentSold) { setSoldFor(listings.find(l => l.id === id) || null); return }
     await fetch('/api/listings/' + id, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sold: !currentSold }) })
     setListings(listings.map(l => l.id === id ? { ...l, sold: !currentSold } : l))
   }
@@ -184,6 +188,16 @@ export default function ProfilePage() {
 
   return (
     <div className={pageCls} style={pageStyle}>
+
+      {/* Mark as sold: pick who bought it */}
+      {soldFor && (
+        <SoldSheet
+          listingId={soldFor.id}
+          title={soldFor.title}
+          onClose={() => setSoldFor(null)}
+          onDone={() => { setListings(prev => prev.map(l => l.id === soldFor.id ? { ...l, sold: true } : l)); setSoldFor(null) }}
+        />
+      )}
 
       {/* Edit listing sheet */}
       {editing && (
@@ -322,6 +336,12 @@ export default function ProfilePage() {
           </div>
           {soldListings.length > 0 && (
             <p className="text-[12px] text-[#5E5650] mt-3 px-1">Sold items add up to <span className="font-semibold text-[#1E1B19]">₹{totalEarnings.toLocaleString('en-IN')}</span>.</p>
+          )}
+          {user?.id && (
+            <a href={'/seller/' + user.id} className="mt-3 flex items-center justify-between rounded-[16px] bg-[#FFF1EA] px-4 py-3 text-[14px] font-semibold text-[#C4501A] active:opacity-80">
+              <span>See how buyers see you</span>
+              <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+            </a>
           )}
         </section>
 

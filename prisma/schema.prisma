@@ -53,6 +53,7 @@ model Listing {
   wishlist  Wishlist[]
   status    String     @default("pending")
   conversations Conversation[]
+  sale      Sale?
 }
 
 model Wishlist {
@@ -259,6 +260,19 @@ model PhoneOtp {
 }
 
 // A buyer flagging a listing. One report per person per listing.
+// Who bought a book, recorded when the seller marks it sold. Never sent to the public.
+model Sale {
+  id        String   @id @default(cuid())
+  listingId String   @unique
+  sellerId  String
+  buyerId   String?
+  createdAt DateTime @default(now())
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([sellerId])
+  @@index([buyerId])
+}
+
 model Report {
   id         String   @id @default(cuid())
   listingId  String

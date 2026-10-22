@@ -2,6 +2,8 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useUser, useClerk } from '@clerk/nextjs'
+import SoldSheet from '@/components/SoldSheet'
+import VerifiedBadge from '@/components/VerifiedBadge'
 
 // ── Contact / links (change here only) ────────────────────────────────────
 const ADMIN_WA = '919914735738'
@@ -78,6 +80,7 @@ export default function ListingPage() {
   const [editing, setEditing] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [soldBusy, setSoldBusy] = useState(false)
+  const [soldSheet, setSoldSheet] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<any>({})
   const [activeImg, setActiveImg] = useState(0)
@@ -162,6 +165,7 @@ export default function ListingPage() {
 
   async function toggleSold(next: boolean) {
     if (soldBusy) return
+    if (next) { setSoldSheet(true); return }
     const ask = next
       ? 'Mark this book as sold? Buyers will see it as Sold right away.'
       : 'Mark this book as available again?'
@@ -490,6 +494,16 @@ export default function ListingPage() {
         </div>
       )}
 
+      {/* Mark as sold: pick who bought it */}
+      {soldSheet && (
+        <SoldSheet
+          listingId={id}
+          title={listing.title}
+          onClose={() => setSoldSheet(false)}
+          onDone={() => { setSoldSheet(false); setListing((prev: any) => prev ? { ...prev, sold: true } : prev); setToast('Marked as sold') }}
+        />
+      )}
+
       {/* Toast */}
       {toast && (
         <div className="fixed inset-x-0 flex justify-center pointer-events-none px-5" style={{ zIndex: 350, top: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}>
@@ -678,11 +692,11 @@ export default function ListingPage() {
 
             {/* Seller */}
             <section className={'bg-white rounded-[22px] p-5 ' + SHADOW}>
-              <div className="flex items-center gap-3.5">
+              <a href={listing.seller?.id ? '/seller/' + listing.seller.id : undefined} className="flex items-center gap-3.5 active:opacity-80">
                 <div className="w-12 h-12 rounded-full bg-[#FCE3D6] text-[#C4501A] flex items-center justify-center text-[18px] font-bold shrink-0">{sellerName.charAt(0).toUpperCase()}</div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
-                    <h2 className="text-[15px] font-semibold truncate">{sellerName}</h2>
+                    <div className="flex items-center gap-1 min-w-0"><h2 className="text-[15px] font-semibold truncate">{sellerName}</h2>{listing.seller?.verified && <VerifiedBadge />}</div>
                     {reviewTotal > 0 && (
                       <span className="flex items-center gap-1 text-[12px] font-semibold shrink-0">
                         <span className="material-symbols-outlined text-[15px] text-[#F5B82E]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>{reviewAvg}
@@ -694,7 +708,8 @@ export default function ListingPage() {
                     {listing.location ? ' • ' + String(listing.location).split(',')[0] : ''}
                   </p>
                 </div>
-              </div>
+              {listing.seller?.id && <span className="material-symbols-outlined text-[20px] text-[#9A908A] shrink-0">chevron_right</span>}
+              </a>
             </section>
 
             {/* Condition and notes */}
