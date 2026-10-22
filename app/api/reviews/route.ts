@@ -3,22 +3,11 @@ import { prisma, getMe } from '@/lib/chat'
 
 export const dynamic = 'force-dynamic'
 
-// Who may review a seller: only a buyer who really talked to them about that book.
-// true  = the buyer AND the seller must each have sent at least one message in that chat
-// false = the buyer sending one message is enough
-const REQUIRE_SELLER_REPLY = true
-
-async function hasChatted(buyerId: string, sellerId: string, listingId: string): Promise<boolean> {
-  const conv = await prisma.conversation.findUnique({
-    where: { listingId_buyerId: { listingId, buyerId } },
-    select: { id: true },
-  })
-  if (!conv) return false
-  const fromBuyer = await prisma.message.count({ where: { conversationId: conv.id, senderId: buyerId } })
-  if (fromBuyer === 0) return false
-  if (!REQUIRE_SELLER_REPLY) return true
-  const fromSeller = await prisma.message.count({ where: { conversationId: conv.id, senderId: sellerId } })
-  return fromSeller > 0
+// Who may review a seller: only the buyer the seller marked this book as sold to.
+// (The seller picks the buyer in the "Who bought it?" sheet, which creates the Sale record.)
+async function boughtThisBook(buyerId: string, listingId: string): Promise<boolean> {
+  const sale = await prisma.sale.findUnique({ where: { listingId }, select: { buyerId: true } })
+  return !!sale && sale.buyerId === buyerId
 }
 
 // GET /api/reviews?sellerId=xxx — public. Only the reviewer's name is sent, never ids.
@@ -48,8 +37,8 @@ export async function GET(request: Request) {
         reason = 'own'
       } else if (await prisma.review.findFirst({ where: { reviewerId: me.id, listingId }, select: { id: true } })) {
         reason = 'done'
-      } else if (!(await hasChatted(me.id, sellerId, listingId))) {
-        reason = 'chat_first'
+      } else if (!(await boughtThisBook(me.id, listingId))) {
+        reason = 'not_buyer'
       } else {
         canReview = true
         reason = 'ok'
@@ -86,9 +75,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Cannot review yourself' }, { status: 400 })
     }
 
-    // Only people who chatted with the seller about this book
-    if (!(await hasChatted(me.id, listing.sellerId, listingId))) {
-      return NextResponse.json({ error: 'chat_first' }, { status: 403 })
+    // Only the buyer the seller marked this book sold to
+    if (!(await boughtThisBook(me.id, listingId))) {
+      return NextResponse.json({ error: 'not_buyer' }, { status: 403 })
     }
 
     // One review per person per listing

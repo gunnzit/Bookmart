@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser, SignInButton, useClerk } from '@clerk/nextjs'
 import SoldSheet from '@/components/SoldSheet'
+import RatePending from '@/components/RatePending'
 import { useDeliveryPlace, type Saved } from '@/components/LocationSheet'
 import { LOCATIONS, QUICK_SECTORS } from '@/lib/locations'
 
@@ -344,6 +345,8 @@ export default function ProfilePage() {
             </a>
           )}
         </section>
+
+        <RatePending />
 
         {/* WhatsApp number */}
         <section className={'bg-white rounded-[22px] p-[18px] mb-7 ' + SHADOW}>

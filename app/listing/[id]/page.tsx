@@ -330,7 +330,7 @@ export default function ListingPage() {
       body: JSON.stringify({ listingId: id, rating: reviewRating, comment: reviewComment }),
     })
     const data = await res.json()
-    if (data.error === 'chat_first') { alert('You can review the seller after you have chatted with them about this book.'); setSubmittingReview(false); return }
+    if (data.error === 'not_buyer') { alert('Only the buyer the seller marked this book sold to can review.'); setSubmittingReview(false); return }
     if (data.error === 'already_reviewed') { alert('You have already reviewed this listing'); setSubmittingReview(false); return }
     if (data.id) {
       setReviews(prev => [{ ...data, reviewer: { name: user.fullName } }, ...prev])
@@ -774,8 +774,8 @@ export default function ListingPage() {
                 {showReviewForm ? 'Cancel' : 'Write a review'}
               </button>
             )}
-            {!isOwner && isSignedIn && !reviewDone && !canReview && reviewReason === 'chat_first' && (
-              <p className="text-[12px] text-[#9A908A] max-w-[170px] text-right">Chat with the seller about this book to review them.</p>
+            {!isOwner && isSignedIn && !reviewDone && !canReview && reviewReason === 'not_buyer' && sold && (
+              <p className="text-[12px] text-[#9A908A] max-w-[170px] text-right">Only the buyer of this book can review the seller.</p>
             )}
             {!isOwner && !isSignedIn && (
               <button onClick={() => openSignIn()} className={'px-4 py-2 rounded-full text-[13px] font-semibold shrink-0 bg-white active:scale-95 transition-transform ' + SHADOW}>Sign in to review</button>

@@ -2,6 +2,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useUser, SignInButton } from '@clerk/nextjs'
+import SoldSheet from '@/components/SoldSheet'
+import VerifiedBadge from '@/components/VerifiedBadge'
 
 type Msg = { id: string; senderId: string; body: string; createdAt: string; pending?: boolean; failed?: boolean }
 
@@ -55,6 +57,8 @@ export default function ChatPage() {
   const [offerError, setOfferError] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
   const [soldBusy, setSoldBusy] = useState(false)
+  const [soldSheet, setSoldSheet] = useState(false)
+  const [sellerVerified, setSellerVerified] = useState(false)
 
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -107,6 +111,18 @@ export default function ChatPage() {
     }
     prevLenRef.current = msgs.length
   }, [msgs])
+
+  // A buyer sees the green tick next to a seller whose number is verified
+  useEffect(() => {
+    const lid = info?.listing?.id
+    if (!lid || !info?.isBuyer) return
+    let alive = true
+    fetch('/api/listings/' + lid, { cache: 'no-store' })
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (alive && d?.seller?.verified) setSellerVerified(true) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [info?.listing?.id, info?.isBuyer])
 
   async function send(raw: string, retryId?: string) {
     const clean = raw.trim().slice(0, 1000)
@@ -191,6 +207,7 @@ export default function ChatPage() {
 
   async function toggleSold(next: boolean) {
     if (soldBusy || !info?.listing?.id) return
+    if (next) { setSoldSheet(true); return }
     const ask = next
       ? 'Mark this book as sold? Buyers will see it as Sold right away.'
       : 'Mark this book as available again?'
@@ -230,6 +247,17 @@ export default function ChatPage() {
 
   return (
     <div className={pageCls + ' flex flex-col min-h-screen'} style={pageStyle}>
+
+      {/* Mark as sold: this chat's buyer is already selected */}
+      {soldSheet && (
+        <SoldSheet
+          listingId={info.listing.id}
+          title={info.listing.title}
+          conversationId={id}
+          onClose={() => setSoldSheet(false)}
+          onDone={() => { setSoldSheet(false); setInfo((prev: any) => prev ? { ...prev, listing: { ...prev.listing, sold: true } } : prev) }}
+        />
+      )}
 
       {/* Make an offer sheet */}
       {offerOpen && (
@@ -277,7 +305,7 @@ export default function ChatPage() {
             <span className="material-symbols-outlined text-[20px]">arrow_back</span>
           </button>
           <div className="flex-1 min-w-0 flex flex-col items-center text-center">
-            <h1 className="text-[15px] font-semibold truncate max-w-full">{info.otherName}</h1>
+            <div className="flex items-center gap-1 max-w-full min-w-0"><h1 className="text-[15px] font-semibold truncate">{info.otherName}</h1>{info.isBuyer && sellerVerified && <VerifiedBadge size={16} />}</div>
             <span className="text-[12px] text-[#9A908A]">{info.isBuyer ? 'Seller' : 'Buyer'}</span>
           </div>
           <div className="flex items-center gap-1 shrink-0 relative">

@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 
 // GET: people who chatted with the seller about this book. Only the seller can ask.
 // Gives first names only. Phones and emails are never sent.
-export async function GET(_request: Request, context: any) {
+export async function GET(request: Request, context: any) {
   try {
     const { id } = await context.params
     const me = await getMe()
@@ -22,7 +22,16 @@ export async function GET(_request: Request, context: any) {
       select: { buyerId: true, lastMessageAt: true, buyer: { select: { name: true } } },
     })
 
+    // When opened from inside a chat (?conv=...), say which buyer that chat is with
+    const convId = new URL(request.url).searchParams.get('conv')
+    let preselect: string | null = null
+    if (convId) {
+      const c = await prisma.conversation.findFirst({ where: { id: convId, listingId: id }, select: { buyerId: true } })
+      preselect = c ? c.buyerId : null
+    }
+
     return NextResponse.json({
+      preselect,
       buyers: convs.map(c => ({
         id: c.buyerId,
         name: firstName(c.buyer.name),

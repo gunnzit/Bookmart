@@ -8,11 +8,13 @@ type Buyer = { id: string; name: string; lastMessageAt: string }
 export default function SoldSheet({
   listingId,
   title,
+  conversationId,
   onClose,
   onDone,
 }: {
   listingId: string
   title: string
+  conversationId?: string
   onClose: () => void
   onDone: () => void
 }) {
@@ -23,13 +25,14 @@ export default function SoldSheet({
 
   useEffect(() => {
     let alive = true
-    fetch('/api/listings/' + listingId + '/buyers', { cache: 'no-store' })
+    fetch('/api/listings/' + listingId + '/buyers' + (conversationId ? '?conv=' + encodeURIComponent(conversationId) : ''), { cache: 'no-store' })
       .then(r => (r.ok ? r.json() : { buyers: [] }))
       .then(d => {
         if (!alive) return
         const list: Buyer[] = Array.isArray(d.buyers) ? d.buyers : []
         setBuyers(list)
         if (list.length === 0) setPick('elsewhere')
+        else if (d.preselect && list.some(b => b.id === d.preselect)) setPick(d.preselect)
       })
       .catch(() => {
         if (!alive) return
@@ -37,7 +40,7 @@ export default function SoldSheet({
         setPick('elsewhere')
       })
     return () => { alive = false }
-  }, [listingId])
+  }, [listingId, conversationId])
 
   async function confirm() {
     if (!pick || busy) return
@@ -129,7 +132,7 @@ export default function SoldSheet({
             {busy ? 'Saving…' : 'Mark as sold'}
           </button>
         </div>
-        <p className="text-[12px] text-[#9A908A] text-center mt-3">The buyer is only saved for your records. It is never shown to others.</p>
+        <p className="text-[12px] text-[#9A908A] text-center mt-3">Only this buyer can rate you for this sale. Who bought it is never shown to others.</p>
       </div>
     </div>
   )
