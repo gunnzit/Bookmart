@@ -25,7 +25,9 @@ const CSS = `
 }
 `
 
-// Gives Clerk's own pieces the wrap&read look
+// Gives Clerk's own pieces the wrap&read look. These are direct styles (not Tailwind classes),
+// because Clerk's own styles would otherwise win over Tailwind.
+const none = { boxShadow: 'none', border: 'none', background: 'transparent', backgroundColor: 'transparent', backgroundImage: 'none' }
 const appearance = {
   variables: {
     colorPrimary: '#fbbf24',
@@ -35,30 +37,46 @@ const appearance = {
     colorBackground: '#ffffff',
     colorInputBackground: '#fcf9f4',
     colorInputText: '#1c1c19',
-    borderRadius: '9999px',
+    borderRadius: '1rem',
     fontFamily: "'Plus Jakarta Sans', sans-serif",
     fontSize: '15px',
   },
   elements: {
-    rootBox: 'w-full',
-    cardBox: 'w-full shadow-none border-0 bg-transparent',
-    card: 'w-full shadow-none border-0 bg-transparent p-0 gap-4',
-    header: 'hidden',
-    socialButtonsBlockButton: 'h-12 rounded-full bg-white border-0 shadow-sm active:scale-[0.98] transition-all',
-    socialButtonsBlockButtonText: 'font-bold text-[14px]',
-    dividerLine: 'bg-[#e5e2dd]',
-    dividerText: 'uppercase tracking-wider text-[12px] font-semibold text-[#817661]',
-    formFieldLabel: 'text-[12px] font-semibold text-[#4f4633]',
-    formFieldInput: 'h-12 rounded-full bg-[#fcf9f4] border-0 shadow-inner px-5 focus:bg-white',
-    formButtonPrimary: 'h-12 rounded-full bg-[#fbbf24] hover:bg-[#f9bd22] text-[#6c4f00] font-bold text-[14px] normal-case shadow-md active:scale-[0.98] transition-all',
-    footer: 'bg-transparent',
-    footerAction: 'bg-transparent',
-    footerActionText: 'text-[#4f4633]',
-    footerActionLink: 'text-[#795900] font-bold hover:text-[#5c4300]',
-    formResendCodeLink: 'text-[#795900] font-bold',
-    otpCodeFieldInput: 'rounded-2xl bg-[#fcf9f4] border-0 shadow-inner',
-    identityPreview: 'rounded-full bg-[#fcf9f4] border-0',
-    alert: 'rounded-2xl',
+    rootBox: { width: '100%' },
+    cardBox: { width: '100%', ...none },
+    card: { width: '100%', padding: 0, gap: '16px', borderRadius: 0, ...none },
+    header: { display: 'none' },
+    headerTitle: { display: 'none' },
+    headerSubtitle: { display: 'none' },
+    socialButtonsBlockButton: {
+      height: '48px', borderRadius: '9999px', backgroundColor: '#ffffff', border: 'none',
+      boxShadow: '0 1px 3px rgba(30,27,25,.12)', transition: 'transform .15s ease',
+      '&:active': { transform: 'scale(.98)' },
+    },
+    socialButtonsBlockButtonText: { fontWeight: 700, fontSize: '14px' },
+    dividerLine: { backgroundColor: '#e5e2dd' },
+    dividerText: { textTransform: 'uppercase', letterSpacing: '.08em', fontSize: '12px', fontWeight: 600, color: '#817661' },
+    formFieldLabel: { fontSize: '12px', fontWeight: 600, color: '#4f4633' },
+    formFieldInput: {
+      height: '48px', borderRadius: '9999px', backgroundColor: '#fcf9f4', border: 'none',
+      boxShadow: 'inset 0 1px 3px rgba(30,27,25,.08)', padding: '0 20px',
+      '&:focus': { backgroundColor: '#ffffff', boxShadow: '0 0 0 2px #F7CF65' },
+    },
+    formButtonPrimary: {
+      height: '48px', borderRadius: '9999px', textTransform: 'none', fontWeight: 700, fontSize: '14px',
+      backgroundColor: '#fbbf24 !important', backgroundImage: 'none !important', color: '#6c4f00 !important',
+      boxShadow: '0 4px 12px rgba(251,191,36,.4) !important', border: 'none !important',
+      '&:hover': { backgroundColor: '#f9bd22 !important' },
+      '&:active': { transform: 'scale(.98)' },
+    },
+    footer: { ...none },
+    footerAction: { ...none },
+    footerActionText: { color: '#4f4633' },
+    footerActionLink: { color: '#795900', fontWeight: 700, '&:hover': { color: '#5c4300' } },
+    formResendCodeLink: { color: '#795900', fontWeight: 700 },
+    otpCodeFieldInput: { borderRadius: '16px', backgroundColor: '#fcf9f4', border: 'none', boxShadow: 'inset 0 1px 3px rgba(30,27,25,.08)' },
+    identityPreview: { borderRadius: '9999px', backgroundColor: '#fcf9f4', border: 'none' },
+    alert: { borderRadius: '16px' },
   },
 }
 
