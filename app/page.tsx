@@ -5,6 +5,7 @@ import { useUser, SignInButton, useClerk } from '@clerk/nextjs'
 import { schools, isRegister } from '@/lib/kit-prices'
 import LocationSheet, { useDeliveryPlace } from '@/components/LocationSheet'
 import { SETS_OPEN } from '@/lib/features'
+import Logo from '@/components/Logo'
 
 // ── Contact (change here only) ────────────────────────────────────────────
 const WHATSAPP_NUMBER = '918872235738'
@@ -12,7 +13,6 @@ const WA_HELP_LINK = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURICo
 
 // ── Photos (put your own files in public/photos) ──────────────────────────
 const STORE_PHOTO = '/photos/store.jpg'
-const LOGO = '/logo.svg'
 
 const HOME_CATS = [
   { key: 'textbook', label: 'Textbooks', cls: 'bg-[#FDE7C7] hover:bg-amber-100 border-amber-300/60' },
@@ -89,7 +89,6 @@ export default function HomePage() {
   const [cart, setCart] = useState<{ selectedClass: number; items: string[]; kitSubtotal: number }[]>([])
   const [sheetOpen, setSheetOpen] = useState(false)
   const [place, setPlace] = useDeliveryPlace()
-  const [logoOk, setLogoOk] = useState(true)
   const [storeOk, setStoreOk] = useState(true)
   const [unread, setUnread] = useState(0)
   const [reqs, setReqs] = useState<any[]>([])
@@ -256,9 +255,7 @@ export default function HomePage() {
           {/* Logo and top actions */}
           <div className="flex items-center justify-between mb-3">
             <a href="/" className="flex items-center">
-              {logoOk
-                ? <img src={LOGO} alt="wrap&read" className="h-8 object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]" onError={() => setLogoOk(false)} />
-                : <span className="text-[24px] font-extrabold tracking-tight leading-none">wrap<span className="text-[#EA580C]">&amp;</span>read</span>}
+              <Logo height={32} className="drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]" />
             </a>
             <div className="flex items-center space-x-2">
               <button type="button" aria-label="Notifications" className={iconBtn}>
