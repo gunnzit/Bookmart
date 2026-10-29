@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useUser, useClerk, SignInButton } from '@clerk/nextjs'
+import { useUser } from '@clerk/nextjs'
 import LocationSheet, { useDeliveryPlace } from '@/components/LocationSheet'
 import Logo from '@/components/Logo'
 
@@ -107,8 +107,11 @@ function TypeLine() {
 
 export default function MarketplaceClient({ initial }: { initial: any[] }) {
   const router = useRouter()
+  // Sign-in is now a real page (/sign-in). After signing in, the person comes back here.
+  function goSignIn() {
+    router.push('/sign-in?redirect_url=' + encodeURIComponent(window.location.pathname + window.location.search))
+  }
   const { isSignedIn, user } = useUser()
-  const { openSignIn } = useClerk()
   const [place, setPlace] = useDeliveryPlace()
 
   const [listings, setListings] = useState<any[]>(initial)
@@ -268,7 +271,7 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
 
   async function toggleHeart(l: any, e: React.MouseEvent) {
     e.stopPropagation()
-    if (!isSignedIn || !user) { openSignIn(); return }
+    if (!isSignedIn || !user) { goSignIn(); return }
     try {
       const res = await fetch('/api/wishlist', {
         method: 'POST',
@@ -306,13 +309,13 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
 
   function openChat(l: any, e: React.MouseEvent) {
     e.stopPropagation()
-    if (!isSignedIn) { openSignIn(); return }
+    if (!isSignedIn) { goSignIn(); return }
     if (user?.id === l.sellerId) { router.push('/listing/' + l.id); return }
     startChat(l.id)
   }
 
   function goSell() {
-    if (!isSignedIn) { openSignIn(); return }
+    if (!isSignedIn) { goSignIn(); return }
     router.push('/sell')
   }
 
@@ -409,7 +412,7 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
               <button type="button" aria-label="Notifications" className={iconBtn}>
                 <i className="fa-regular fa-bell text-[15px]" />
               </button>
-              <button type="button" aria-label={unread > 0 ? 'Messages, ' + unread + ' unread' : 'Messages'} onClick={() => (isSignedIn ? router.push('/messages') : openSignIn())} className={iconBtn}>
+              <button type="button" aria-label={unread > 0 ? 'Messages, ' + unread + ' unread' : 'Messages'} onClick={() => (isSignedIn ? router.push('/messages') : goSignIn())} className={iconBtn}>
                 <i className="fa-regular fa-comment-dots text-[15px]" />
                 {unread > 0 && (
                   <span className="absolute -top-1 -right-1 bg-[#EA580C] text-white text-[10px] font-extrabold px-1 rounded-full border-2 border-[#F7CF65] leading-tight wr-pulse">{unread > 9 ? '9+' : unread}</span>
@@ -420,11 +423,9 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
                   <i className="fa-regular fa-user text-sm" />
                 </button>
               ) : (
-                <SignInButton mode="modal">
-                  <button type="button" aria-label="Sign in" className="w-9 h-9 bg-[#FEEBC8] rounded-full flex items-center justify-center border border-amber-300 text-stone-800 font-semibold cursor-pointer shadow-sm">
-                    <i className="fa-regular fa-user text-sm" />
-                  </button>
-                </SignInButton>
+                <button type="button" aria-label="Sign in" onClick={goSignIn} className="w-9 h-9 bg-[#FEEBC8] rounded-full flex items-center justify-center border border-amber-300 text-stone-800 font-semibold cursor-pointer shadow-sm">
+                  <i className="fa-regular fa-user text-sm" />
+                </button>
               )}
             </div>
           </div>

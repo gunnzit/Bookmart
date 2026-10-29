@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { useUser, SignInButton } from '@clerk/nextjs'
+import { useUser } from '@clerk/nextjs'
 import { LOCATIONS, QUICK_SECTORS } from '@/lib/locations'
 
 export type Saved = { id: string; label: string; line1: string; area: string; pin?: string | null }
@@ -129,6 +129,11 @@ export default function LocationSheet({ open, onClose, place, onSelect }: {
   })
 
   if (!open) return null
+
+  // Sign-in is a real page (/sign-in). After signing in, the person comes back here.
+  function goSignIn() {
+    window.location.assign('/sign-in?redirect_url=' + encodeURIComponent(window.location.pathname + window.location.search))
+  }
 
   const matches = query.trim().length > 0
     ? LOCATIONS.filter(l => l.toLowerCase().includes(query.trim().toLowerCase())).slice(0, 6)
@@ -279,9 +284,7 @@ export default function LocationSheet({ open, onClose, place, onSelect }: {
             {!isSignedIn ? (
               <div className="wrls-pop rounded-2xl bg-[#f6f3ee] border border-stone-200 p-4 text-center" style={delay(3)}>
                 <p className="text-xs text-stone-600 mb-3">Sign in to save your addresses and use them at checkout.</p>
-                <SignInButton mode="modal">
-                  <button type="button" className="wrls-btn bg-stone-900 text-amber-300 text-xs font-bold px-5 py-2.5 rounded-full shadow active:scale-95 transition-transform">Sign in</button>
-                </SignInButton>
+                <button type="button" onClick={goSignIn} className="wrls-btn bg-stone-900 text-amber-300 text-xs font-bold px-5 py-2.5 rounded-full shadow active:scale-95 transition-transform">Sign in</button>
               </div>
             ) : loading ? (
               <div className="flex flex-col gap-2.5">
