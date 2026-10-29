@@ -11,11 +11,12 @@ const MAX_SHOW_MS = 8000  // safety: never get stuck
 
 type Key = 'home' | 'sets' | 'books' | 'market'
 
-const TABS: { key: Key; label: string; icon: string; href: string; soon?: boolean }[] = [
-  { key: 'home', label: 'Home', icon: 'home', href: '/' },
-  { key: 'market', label: 'Market', icon: 'storefront', href: '/marketplace' },
-  { key: 'sets', label: 'Sets', icon: 'menu_book', href: '/school-sets', soon: !SETS_OPEN },
-  { key: 'books', label: 'Books', icon: 'edit', href: '/books', soon: !BOOKS_OPEN },
+// Icons are Font Awesome (loaded in layout.tsx). The 4th tab is the Shop (books, stationery).
+const TABS: { key: Key; label: string; icon: string; href: string; soon?: boolean; soonText: string }[] = [
+  { key: 'home', label: 'Home', icon: 'fa-house', href: '/', soonText: '' },
+  { key: 'market', label: 'Market', icon: 'fa-book-open', href: '/marketplace', soonText: '' },
+  { key: 'sets', label: 'Sets', icon: 'fa-bag-shopping', href: '/school-sets', soon: !SETS_OPEN, soonText: 'Sets are coming soon' },
+  { key: 'books', label: 'Shop', icon: 'fa-cart-shopping', href: '/books', soon: !BOOKS_OPEN, soonText: 'Shop is coming soon' },
 ]
 
 // Pages that show the bar (Profile and My Orders still show it, with no tab lit)
@@ -78,8 +79,8 @@ export default function GlassNav() {
   }, [overlay])
 
   // Tabs that are not open yet: show a short message instead of opening the page
-  function showSoon(label: string) {
-    setSoonMsg(label + ' are coming soon')
+  function showSoon(text: string) {
+    setSoonMsg(text)
     setTimeout(() => setSoonMsg(''), 1800)
   }
 
@@ -100,7 +101,7 @@ export default function GlassNav() {
       {soonMsg && visible && (
         <div
           className="fixed inset-x-0 flex justify-center pointer-events-none px-5"
-          style={{ zIndex: 310, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 84px)' }}
+          style={{ zIndex: 310, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 72px)' }}
         >
           <div className="bg-white rounded-full px-4 py-2 text-[14px] font-medium text-[#1E1B19]" style={{ boxShadow: '0 6px 20px rgba(120,70,40,0.12)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             {soonMsg}
@@ -113,22 +114,11 @@ export default function GlassNav() {
           aria-label="Main"
           // Phones: all pages. Larger screens: Home only (other pages have their own header menu).
           className={'fixed inset-x-0 flex justify-center pointer-events-none px-5 ' + (pathname === '/' ? '' : 'md:hidden')}
-          style={{ zIndex: 300, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}
+          style={{ zIndex: 300, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
         >
           <div
-            className="pointer-events-auto flex items-center"
-            style={{
-              gap: 4,
-              padding: 6,
-              borderRadius: 9999,
-              // Frosted glass: see-through, blurred, with a light edge
-              background: 'rgba(255,255,255,0.55)',
-              backdropFilter: 'blur(20px) saturate(180%)',
-              WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-              border: '1px solid rgba(255,255,255,0.7)',
-              boxShadow: '0 6px 20px rgba(120,70,40,0.12)',
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-            }}
+            className="pointer-events-auto w-fit max-w-[320px] bg-white/90 backdrop-blur-md border border-stone-200/80 rounded-full px-2 py-1.5 flex items-center justify-center gap-1"
+            style={{ boxShadow: '0 8px 30px rgba(0,0,0,0.12)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
           >
             {TABS.map(t => {
               const on = selected === t.key
@@ -136,40 +126,23 @@ export default function GlassNav() {
               return (
                 <button
                   key={t.key}
-                  onClick={() => (soon ? showSoon(t.label) : go(t.key, t.href))}
+                  type="button"
+                  onClick={() => (soon ? showSoon(t.soonText) : go(t.key, t.href))}
                   aria-label={soon ? t.label + ' (coming soon)' : t.label}
                   aria-disabled={soon || undefined}
                   aria-current={on ? 'page' : undefined}
-                  className="relative flex items-center justify-center active:scale-95"
-                  style={{
-                    height: 40,
-                    minWidth: 40,
-                    padding: on ? '0 16px' : '0 10px',
-                    borderRadius: 9999,
-                    background: on ? '#E8632B' : 'transparent',
-                    color: on ? '#FFFFFF' : '#3D3530',
-                    opacity: soon ? 0.45 : 1,
-                    boxShadow: on ? '0 4px 12px rgba(232,99,43,0.35)' : 'none',
-                    transition: 'all 320ms cubic-bezier(0.34, 1.3, 0.64, 1)',
-                  }}
+                  className={'relative flex items-center justify-center h-8 rounded-full select-none transition-all duration-300 ease-out active:scale-95 ' + (on ? 'px-3.5 bg-[#F7CF65] text-stone-900 font-bold shadow-xs' : 'w-8 text-stone-500 hover:text-stone-800')}
+                  style={{ opacity: soon ? 0.5 : 1 }}
                 >
+                  <i className={'fa-solid ' + t.icon + ' text-xs transition-colors'} />
                   <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: 20, fontVariationSettings: on ? "'FILL' 1" : "'FILL' 0" }}
-                  >
-                    {t.icon}
-                  </span>
-                  <span
+                    className="overflow-hidden whitespace-nowrap font-bold transition-all duration-300"
                     style={{
                       display: 'inline-block',
-                      overflow: 'hidden',
-                      whiteSpace: 'nowrap',
-                      maxWidth: on ? 70 : 0,
+                      maxWidth: on ? 80 : 0,
                       marginLeft: on ? 6 : 0,
                       opacity: on ? 1 : 0,
-                      fontSize: 13,
-                      fontWeight: 600,
-                      transition: 'max-width 320ms ease, margin-left 320ms ease, opacity 220ms ease',
+                      fontSize: 12,
                     }}
                   >
                     {t.label}
@@ -177,7 +150,7 @@ export default function GlassNav() {
                   {soon && (
                     <span
                       className="absolute pointer-events-none"
-                      style={{ top: -9, right: -6, padding: '1px 6px', borderRadius: 9999, background: '#FCE3D6', color: '#C4501A', fontSize: 10, fontWeight: 700, opacity: 1 }}
+                      style={{ top: -9, right: -8, padding: '1px 6px', borderRadius: 9999, background: '#FCE389', color: '#1C1917', border: '1px solid #FCD34D', fontSize: 9, fontWeight: 700, opacity: 1 }}
                     >
                       Soon
                     </span>

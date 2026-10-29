@@ -1,56 +1,77 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useUser, useClerk, SignInButton } from '@clerk/nextjs'
+import { useUser, SignInButton, useClerk } from '@clerk/nextjs'
 import { schools, isRegister } from '@/lib/kit-prices'
 import LocationSheet, { useDeliveryPlace } from '@/components/LocationSheet'
 import { SETS_OPEN } from '@/lib/features'
 
 // ── Contact (change here only) ────────────────────────────────────────────
 const WHATSAPP_NUMBER = '918872235738'
-const WA_HELP_LINK = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent('Hi, I need help with a school book set on Pageplus')
+const WA_HELP_LINK = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent('Hi, I need help with a school book set on wrap&read')
 
 // ── Photos (put your own files in public/photos) ──────────────────────────
-const HERO_PHOTO = '/photos/hero.jpg'
 const STORE_PHOTO = '/photos/store.jpg'
-
-const SHADOW = 'shadow-[0_6px_20px_rgba(120,70,40,0.08)]'
+const LOGO = '/logo.svg'
 
 const HOME_CATS = [
-  { key: 'textbook', label: 'Textbooks' },
-  { key: 'novel', label: 'Novels' },
-  { key: 'competitive', label: 'Competitive' },
-  { key: 'stationery', label: 'Stationery' },
+  { key: 'textbook', label: 'Textbooks', cls: 'bg-[#FDE7C7] hover:bg-amber-100 border-amber-300/60' },
+  { key: 'novel', label: 'Novels', cls: 'bg-[#FCE2EB] hover:bg-pink-100 border-pink-300/60' },
+  { key: 'competitive', label: 'Competitive', cls: 'bg-[#E2F7E4] hover:bg-emerald-100 border-emerald-300/60' },
+  { key: 'stationery', label: 'Stationery', cls: 'bg-[#ECE7FE] hover:bg-purple-100 border-purple-300/60' },
+]
+
+// Soft colours for books that have no photo yet (they rotate)
+const TINTS = [
+  { bg: 'bg-orange-50/60', bd: 'border-orange-100', tx: 'text-amber-900' },
+  { bg: 'bg-cyan-50/60', bd: 'border-cyan-100', tx: 'text-sky-800' },
+  { bg: 'bg-amber-50', bd: 'border-amber-100', tx: 'text-red-800' },
+  { bg: 'bg-yellow-100/70', bd: 'border-amber-200', tx: 'text-stone-900' },
+]
+const STUDENT_TINTS = [
+  { bg: 'bg-emerald-100', bd: 'border-emerald-200', tag: 'bg-emerald-700', tx: 'text-emerald-900' },
+  { bg: 'bg-blue-100', bd: 'border-blue-200', tag: 'bg-blue-700', tx: 'text-blue-900' },
+  { bg: 'bg-teal-100', bd: 'border-teal-200', tag: 'bg-teal-700', tx: 'text-teal-900' },
+  { bg: 'bg-orange-100', bd: 'border-orange-200', tag: 'bg-orange-700', tx: 'text-orange-900' },
+]
+const REQ_TINTS = [
+  { bg: 'bg-amber-100', bd: 'border-amber-200', tx: 'text-amber-900' },
+  { bg: 'bg-blue-100', bd: 'border-blue-200', tx: 'text-blue-900' },
+  { bg: 'bg-emerald-100', bd: 'border-emerald-200', tx: 'text-emerald-900' },
 ]
 
 const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : '')
 const first = (n?: string | null) => String(n || '').trim().split(/\s+/)[0] || ''
 const priceText = (p: any) => (Number(p) === 0 ? 'Free' : '₹' + p)
-
-const SHORT_NAME: Record<string, string> = {
-  'Delhi Public School': 'DPS Sector 40-C',
-  'Shivalik Public School': 'Shivalik Public',
+const condCls = (c: string) =>
+  /new/i.test(c) ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200'
+const ago = (d?: string) => {
+  if (!d) return ''
+  const days = Math.floor((Date.now() - new Date(d).getTime()) / 86400000)
+  if (!(days >= 0)) return ''
+  return days === 0 ? 'Posted today' : days === 1 ? 'Posted yesterday' : 'Posted ' + days + ' days ago'
 }
 
 // Same default selection rules as the School Sets page (so the price matches)
 function kitSummary(school: string, cls: number) {
   const kit = schools[school]?.[cls]
-  if (!kit) return { total: 0, books: 0, notebooks: 0 }
+  if (!kit) return { total: 0, books: 0, notebooks: 0, stationery: 0 }
   let total = 0
   let books = 0
   let notebooks = 0
+  let stationery = 0
   for (const sec of ['ncert', 'pvt'] as const) {
     for (const it of kit[sec]) {
       if (!it.oos && !it.optional) { total += it.price; books++ }
     }
   }
   for (const it of kit.stationery) {
-    if (!it.oos) total += it.price
+    if (!it.oos) { total += it.price; stationery++ }
   }
   for (const n of kit.notebooks) {
     if (!n.oos) { total += (isRegister(n.name) ? 68 : 50) * n.qty; notebooks += n.qty }
   }
-  return { total, books, notebooks }
+  return { total, books, notebooks, stationery }
 }
 
 export default function HomePage() {
@@ -68,7 +89,7 @@ export default function HomePage() {
   const [cart, setCart] = useState<{ selectedClass: number; items: string[]; kitSubtotal: number }[]>([])
   const [sheetOpen, setSheetOpen] = useState(false)
   const [place, setPlace] = useDeliveryPlace()
-  const [heroOk, setHeroOk] = useState(true)
+  const [logoOk, setLogoOk] = useState(true)
   const [storeOk, setStoreOk] = useState(true)
   const [unread, setUnread] = useState(0)
   const [reqs, setReqs] = useState<any[]>([])
@@ -126,7 +147,6 @@ export default function HomePage() {
   const schoolNames = Object.keys(schools)
   const classes = Object.keys(schools[school]).map(Number).sort((a, b) => a - b)
   const summary = kitSummary(school, cls)
-  const shortName = SHORT_NAME[school] || school
   const cartTotal = cart.reduce((sum, k) => sum + (k.kitSubtotal || 0), 0)
 
   const featured = listings.filter(l => l.featured).slice(0, 6)
@@ -134,11 +154,11 @@ export default function HomePage() {
   const gridList = (others.length >= 2 ? others : listings).slice(0, 4)
   const free = listings.filter(l => Number(l.price) === 0).slice(0, 6)
 
-  const placeLine = !place
-    ? 'Choose your delivery area'
-    : place.kind === 'pickup'
-      ? 'Pickup from Sector 40-C'
-      : 'Deliver to ' + place.area.split(',')[0]
+  const setLine = [
+    summary.books + ' books',
+    summary.notebooks > 0 ? summary.notebooks + ' notebooks' : '',
+    summary.stationery > 0 ? summary.stationery + ' stationery items' : '',
+  ].filter(Boolean).join(' • ')
 
   function pickSchool(name: string) {
     setSchool(name)
@@ -199,376 +219,472 @@ export default function HomePage() {
     router.push('/sell')
   }
 
-  function chatButton(l: any) {
+  function heart(l: any, cls: string, size: string) {
+    const on = saved.has(l.id)
     return (
-      <button aria-label="Chat to buy" disabled={!!chatBusy} onClick={e => openChat(l, e)} className="w-8 h-8 rounded-full bg-[#FFF1EA] text-[#E8632B] flex items-center justify-center shrink-0 active:scale-90 transition-transform disabled:opacity-60">
-        <span className={'material-symbols-outlined text-[16px] ' + (chatBusy === l.id ? 'animate-spin' : '')}>{chatBusy === l.id ? 'progress_activity' : 'chat_bubble'}</span>
+      <button aria-label={on ? 'Remove from saved' : 'Save book'} onClick={e => toggleHeart(l, e)} className={cls}>
+        <i className={(on ? 'fa-solid text-red-500 ' : 'fa-regular ') + 'fa-heart ' + size} />
       </button>
     )
   }
 
-  const iconBtn = 'relative w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#1E1B19] active:scale-90 transition-transform ' + SHADOW
+  function seeAll(href: string, label = 'See all') {
+    return (
+      <button onClick={() => router.push(href)} className="text-[13px] font-bold text-stone-700 hover:text-black flex items-center space-x-1">
+        <span>{label}</span>
+        <i className="fa-solid fa-arrow-right text-[11px]" />
+      </button>
+    )
+  }
+
+  const placeText = !place
+    ? <span className="truncate text-[12px] font-semibold text-stone-800">Choose your delivery area</span>
+    : place.kind === 'pickup'
+      ? <span className="truncate text-[12px] font-semibold text-stone-800">Pickup from <strong className="font-bold text-stone-900">Sector 40-C</strong></span>
+      : <span className="truncate text-[12px] font-semibold text-stone-800">Deliver to <strong className="font-bold text-stone-900">{place.area.split(',').slice(0, 2).join(',').trim()}</strong></span>
+
+  const iconBtn = 'relative w-9 h-9 bg-white/80 rounded-full flex items-center justify-center text-stone-900 shadow-sm cursor-pointer hover:bg-white transition border border-amber-300/40'
 
   return (
-    <div
-      className="min-h-screen text-[#1E1B19] antialiased font-['Plus_Jakarta_Sans',sans-serif]"
-      style={{ background: 'linear-gradient(180deg, #FDEADF 0%, #FFF7F2 100%)' }}
-    >
+    <div className="min-h-screen bg-[#ECEAE5] flex justify-center text-stone-900 antialiased font-['Plus_Jakarta_Sans',sans-serif]">
       <LocationSheet open={sheetOpen} onClose={() => setSheetOpen(false)} place={place} onSelect={setPlace} />
 
-      <main className="w-full max-w-md md:max-w-3xl mx-auto px-5 pb-36 flex flex-col gap-5" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
+      <div className="w-full max-w-[430px] bg-[#FAF8F5] min-h-screen flex flex-col relative shadow-2xl border-x border-stone-200 pb-28">
 
-        {/* 1. App bar */}
-        <header>
-          <div className="flex items-center justify-between">
-            <a href="/" className="text-[26px] font-extrabold tracking-tight leading-none active:scale-95 transition-transform">
-              Page<span className="text-[#E8632B]">plus</span>
+        {/* ── Top header ───────────────────────────────────────────── */}
+        <header className="bg-[#F7CF65] px-4 pb-5 rounded-b-[2.2rem] shadow-sm sticky top-0 z-40" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
+          {/* Logo and top actions */}
+          <div className="flex items-center justify-between mb-3">
+            <a href="/" className="flex items-center">
+              {logoOk
+                ? <img src={LOGO} alt="wrap&read" className="h-8 object-contain drop-shadow-[0_1px_1px_rgba(0,0,0,0.15)]" onError={() => setLogoOk(false)} />
+                : <span className="text-[24px] font-extrabold tracking-tight leading-none">wrap<span className="text-[#EA580C]">&amp;</span>read</span>}
             </a>
-            <div className="flex items-center gap-2.5">
-              {SETS_OPEN && (
-              <button aria-label="Kit bag" onClick={() => router.push('/school-sets')} className={iconBtn}>
-                <span className="material-symbols-outlined text-[20px]">shopping_bag</span>
-                {cart.length > 0 && <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#E8632B] ring-2 ring-white" />}
+            <div className="flex items-center space-x-2">
+              <button type="button" aria-label="Notifications" className={iconBtn}>
+                <i className="fa-regular fa-bell text-[15px]" />
               </button>
-              )}
-              <button aria-label={unread > 0 ? 'Messages, ' + unread + ' unread' : 'Messages'} onClick={() => (isSignedIn ? router.push('/messages') : openSignIn())} className={iconBtn}>
-                <span className="material-symbols-outlined text-[20px]">forum</span>
+              <button type="button" aria-label={unread > 0 ? 'Messages, ' + unread + ' unread' : 'Messages'} onClick={() => (isSignedIn ? router.push('/messages') : openSignIn())} className={iconBtn}>
+                <i className="fa-regular fa-comment-dots text-[15px]" />
                 {unread > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#E8632B] text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white">{unread > 9 ? '9+' : unread}</span>
+                  <span className="absolute -top-1 -right-1 bg-[#EA580C] text-white text-[10px] font-extrabold px-1 rounded-full border-2 border-[#F7CF65] leading-tight">{unread > 9 ? '9+' : unread}</span>
                 )}
               </button>
               {isSignedIn ? (
-                <button aria-label="Profile" onClick={() => router.push('/profile')} className={iconBtn}>
-                  <span className="material-symbols-outlined text-[20px]">person</span>
+                <button type="button" aria-label="Profile" onClick={() => router.push('/profile')} className="w-9 h-9 bg-[#FEEBC8] rounded-full flex items-center justify-center border border-amber-300 text-stone-800 font-semibold cursor-pointer shadow-sm">
+                  <i className="fa-regular fa-user text-sm" />
                 </button>
               ) : (
                 <SignInButton mode="modal">
-                  <button aria-label="Sign in" className={iconBtn}>
-                    <span className="material-symbols-outlined text-[20px]">person</span>
+                  <button type="button" aria-label="Sign in" className="w-9 h-9 bg-[#FEEBC8] rounded-full flex items-center justify-center border border-amber-300 text-stone-800 font-semibold cursor-pointer shadow-sm">
+                    <i className="fa-regular fa-user text-sm" />
                   </button>
                 </SignInButton>
               )}
             </div>
           </div>
-          <button onClick={() => setSheetOpen(true)} className="flex items-center gap-1 text-[13px] font-medium text-[#5E5650] mt-1.5 active:opacity-70">
-            <span>{placeLine}</span>
-            <span className="material-symbols-outlined text-[16px] text-[#9A908A]">expand_more</span>
+
+          {/* Delivery location pill */}
+          <button type="button" onClick={() => setSheetOpen(true)} className="w-full bg-white py-2 px-3.5 rounded-full flex items-center justify-between text-[13px] font-bold text-stone-800 shadow-sm border border-amber-200/50 mb-3 active:scale-[0.99] transition">
+            <div className="flex items-center truncate">
+              <i className="fa-solid fa-location-dot text-stone-900 mr-2 text-[13px]" />
+              {placeText}
+            </div>
+            <i className="fa-solid fa-chevron-down text-[11px] text-stone-500 ml-2" />
           </button>
+
+          {/* Search and filter */}
+          <form onSubmit={handleSearch} className="flex items-center space-x-2">
+            <div className="relative flex-1">
+              <i className="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400 text-[13px]" />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search books, authors, schools..."
+                type="text"
+                className="w-full bg-white pl-9 pr-3 py-2 rounded-full text-[13px] placeholder-stone-400 font-medium border-0 focus:ring-1 focus:ring-stone-800 focus:outline-none shadow-sm"
+              />
+            </div>
+            <button type="button" onClick={() => router.push('/marketplace')} className="bg-white px-3.5 py-2 rounded-full flex items-center space-x-1.5 text-[13px] font-bold text-stone-800 shadow-sm border border-amber-100 flex-shrink-0 active:scale-95 transition">
+              <i className="fa-solid fa-sliders text-[13px]" />
+              <span>Filter</span>
+            </button>
+          </form>
+
+          {/* Quick category chips */}
+          <nav aria-label="Categories" className="flex items-center justify-between gap-1.5 mt-3 pt-0.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+            {HOME_CATS.map(c => (
+              <button key={c.key} type="button" onClick={() => router.push('/marketplace?cat=' + c.key)}
+                className={'flex-1 py-1.5 px-2.5 rounded-xl flex items-center justify-center text-[12px] font-bold text-stone-800 border whitespace-nowrap text-center ' + c.cls}>
+                {c.label}
+              </button>
+            ))}
+          </nav>
         </header>
 
-        {/* 2. Search */}
-        <form onSubmit={handleSearch} className={'flex items-center w-full h-12 bg-white rounded-full pl-4 pr-1.5 gap-2.5 ' + SHADOW}>
-          <span className="material-symbols-outlined text-[20px] text-[#9A908A] shrink-0">search</span>
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search books, notebooks, class…"
-            type="text"
-            className="flex-1 min-w-0 bg-transparent text-[14px] text-[#1E1B19] placeholder:text-[#9A908A] focus:outline-none"
-          />
-          <button type="button" aria-label="Browse marketplace filters" onClick={() => router.push('/marketplace')} className="w-9 h-9 rounded-full bg-[#FFF1EA] flex items-center justify-center text-[#1E1B19] shrink-0 active:scale-90 transition-transform">
-            <span className="material-symbols-outlined text-[18px]">tune</span>
-          </button>
-        </form>
+        {/* ── Main content ─────────────────────────────────────────── */}
+        <main className="px-3.5 pt-4 space-y-4">
 
-        {/* 3. Category chips */}
-        <section className="-mx-5 px-5 overflow-x-auto flex items-center gap-2 pb-1" style={{ scrollbarWidth: 'none' }}>
-          {HOME_CATS.map(c => (
-            <button key={c.key} onClick={() => router.push('/marketplace?cat=' + c.key)}
-              className={'px-5 py-2 rounded-full text-[14px] font-medium bg-white text-[#1E1B19] whitespace-nowrap shrink-0 active:scale-95 transition-transform ' + SHADOW}>
-              {c.label}
-            </button>
-          ))}
-        </section>
-
-        {/* 4. Sell banner (the one main button on this screen) */}
-        <section className={'relative overflow-hidden bg-white rounded-[22px] p-5 flex flex-col gap-4 ' + SHADOW}>
-          <div className="absolute -right-10 -top-10 w-36 h-36 rounded-full bg-[#FCE3D6]/40 pointer-events-none" />
-          <div className="relative flex flex-col gap-1">
-            <span className="text-[12px] font-semibold text-[#C4501A]">Sell to students near you</span>
-            <h2 className="text-[20px] font-bold leading-tight">Have old books? List them in 2 minutes</h2>
-            <p className="text-[14px] text-[#5E5650]">Earn cash and help a neighbourhood student.</p>
-          </div>
-          <button onClick={goSell} className="relative w-full h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full flex items-center justify-center gap-2 active:scale-[0.98] transition-transform">
-            <span className="material-symbols-outlined text-[20px]">add_circle</span>
-            <span>Sell a book</span>
-          </button>
-        </section>
-
-        {SETS_OPEN && (<>
-        {/* 3. Hero */}
-        <section className={'relative w-full rounded-[22px] overflow-hidden aspect-[16/10] flex flex-col justify-end p-5 ' + SHADOW} style={{ background: 'linear-gradient(135deg, #C4501A 0%, #E8632B 100%)' }}>
-          {heroOk && (
-            <img src={HERO_PHOTO} alt="" className="absolute inset-0 w-full h-full object-cover" onError={() => setHeroOk(false)} />
-          )}
-          {!heroOk && <span className="material-symbols-outlined absolute right-5 top-5 text-white/25 text-[96px]">menu_book</span>}
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(30,27,25,0.78), rgba(30,27,25,0.3) 55%, rgba(30,27,25,0))' }} />
-          <div className="relative flex flex-col items-start gap-3">
-            <h1 className="text-white text-[19px] font-bold leading-snug max-w-[250px]">
-              School books for 2026-27, ready at Sector 40-C
-            </h1>
-            <button onClick={() => pickerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className="px-5 py-2.5 bg-white text-[#1E1B19] text-[13px] font-semibold rounded-full active:scale-95 transition-transform">
-              Find your set
-            </button>
-          </div>
-        </section>
-
-        {/* 4. School picker */}
-        <section ref={pickerRef} className="flex flex-col gap-3 scroll-mt-4">
-          <div className="flex items-center gap-2 overflow-x-auto -mx-5 px-5" style={{ scrollbarWidth: 'none' }}>
-            {schoolNames.map(n => {
-              const on = n === school
-              return (
-                <button key={n} onClick={() => pickSchool(n)}
-                  className={'px-4 py-2 rounded-full text-[13px] whitespace-nowrap shrink-0 active:scale-95 transition-transform ' + (on ? 'bg-[#E8632B] text-white font-semibold ' : 'bg-white text-[#1E1B19] font-medium ') + SHADOW}>
-                  {SHORT_NAME[n] || n}
-                </button>
-              )
-            })}
-          </div>
-
-          <div className="flex items-center gap-2 overflow-x-auto -mx-5 px-5 pb-1" style={{ scrollbarWidth: 'none' }}>
-            {classes.map(c => {
-              const on = c === cls
-              return (
-                <button key={c} onClick={() => setCls(c)}
-                  className={'px-3.5 py-1.5 rounded-full text-[12px] whitespace-nowrap shrink-0 transition-colors ' + (on ? 'bg-[#E8632B] text-white font-semibold ' : 'bg-white text-[#1E1B19] font-medium ') + SHADOW}>
-                  Class {c}
-                </button>
-              )
-            })}
-          </div>
-
-          <div className={'bg-white rounded-[22px] p-4 flex flex-col gap-4 ' + SHADOW}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h2 className="text-[15px] font-bold leading-snug">{shortName} · Class {cls} set</h2>
-                <p className="text-[13px] text-[#9A908A] mt-0.5">
-                  {summary.books} books{summary.notebooks > 0 ? ' + ' + summary.notebooks + ' notebooks' : ''}
-                </p>
+          {/* Sell a book banner */}
+          <section className="bg-gradient-to-r from-[#FDEEAB] via-[#FCE99B] to-[#FCE389] p-4 rounded-2xl shadow-sm border border-amber-200 relative overflow-hidden flex items-center justify-between">
+            <div className="z-10 max-w-[55%]">
+              <h2 className="text-lg font-black text-stone-900 leading-tight">Sell a book</h2>
+              <p className="text-[13px] text-stone-700 mt-1 font-medium leading-snug">Give your books a second life.</p>
+              <button type="button" onClick={goSell} className="inline-flex items-center space-x-1.5 bg-stone-900 text-white text-[12px] font-bold px-3.5 py-1.5 rounded-full mt-3 shadow hover:bg-black transition">
+                <span>Start selling</span>
+                <i className="fa-solid fa-arrow-right text-[11px]" />
+              </button>
+            </div>
+            <div className="relative w-36 h-24 flex items-end justify-center pr-1">
+              <div className="absolute top-2 left-2 flex space-x-1 text-stone-700 font-bold opacity-60">
+                <span className="block w-2.5 h-0.5 bg-stone-700 rotate-[-30deg]" />
+                <span className="block w-3 h-0.5 bg-stone-700" />
+                <span className="block w-2.5 h-0.5 bg-stone-700 rotate-[30deg]" />
               </div>
-              <span className="text-[18px] font-extrabold shrink-0">₹{summary.total.toLocaleString('en-IN')}</span>
+              <div className="relative flex flex-col items-center">
+                <div className="w-20 h-4 bg-teal-600 rounded shadow-sm border-t border-teal-400 flex items-center px-1"><span className="w-full h-0.5 bg-white/40 rounded" /></div>
+                <div className="w-24 h-5 bg-amber-600 rounded shadow-sm -mt-0.5 border-t border-amber-400 flex items-center px-1"><span className="w-full h-0.5 bg-white/40 rounded" /></div>
+                <div className="w-28 h-6 bg-blue-700 rounded shadow border-t border-blue-400 flex items-center px-1"><span className="w-full h-1 bg-white/30 rounded" /></div>
+              </div>
+              <div className="w-7 h-10 bg-stone-900 rounded-b-md ml-2 flex items-start justify-center pt-0.5 space-x-0.5 relative shadow">
+                <div className="w-1 h-6 bg-red-500 rounded-full transform -rotate-12" />
+                <div className="w-1.5 h-7 bg-amber-400 rounded-full transform rotate-3" />
+                <div className="w-1 h-5 bg-blue-400 rounded-full" />
+              </div>
             </div>
-            <button
-              onClick={() => router.push('/school-sets?school=' + encodeURIComponent(school) + '&class=' + cls)}
-              className="w-full h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full flex items-center justify-center active:scale-[0.98] transition-transform">
-              View set
-            </button>
-          </div>
-        </section>
+          </section>
 
-        </>)}
-
-        {/* 5. Featured books */}
-        {featured.length > 0 && (
-          <section className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-[17px] font-bold">Featured books</h2>
-              <button onClick={() => router.push('/marketplace')} className="text-[13px] font-semibold text-[#9A908A] active:opacity-70">See all</button>
-            </div>
-            <div className="-mx-5 px-5 flex gap-3.5 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
-              {featured.map(l => (
-                <div key={l.id} onClick={() => router.push('/listing/' + l.id)} className={'w-44 shrink-0 bg-white rounded-[22px] p-3 flex flex-col justify-between cursor-pointer ' + SHADOW}>
-                  <div className="flex flex-col gap-2.5">
-                    <div className="relative w-full h-44 rounded-[18px] overflow-hidden bg-[#F8EDE6] flex items-center justify-center text-[34px]">
-                      {l.images?.[0] ? <img src={l.images[0]} alt={l.title} className="w-full h-full object-cover" /> : <span>{l.emoji || '📚'}</span>}
-                      {l.category && <span className="absolute top-2 left-2 bg-white/90 text-[#1E1B19] text-[12px] font-semibold px-2 py-0.5 rounded-full">{cap(l.category)}</span>}
-                    </div>
-                    <div className="flex flex-col">
-                      <h3 className="text-[13px] font-bold leading-tight line-clamp-1">{l.title}</h3>
-                      <span className="text-[12px] text-[#9A908A] truncate">{l.subtitle || l.condition}</span>
-                    </div>
+          {/* Complete school sets (only while sets are open) */}
+          {SETS_OPEN && (
+            <section className="bg-gradient-to-br from-[#FEF7D9] via-[#FDF1BF] to-[#FCE59F] p-4 rounded-3xl border border-amber-300/70 shadow-sm relative">
+              <span className="inline-block bg-[#FBD65B] border border-amber-400/80 px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider uppercase text-stone-900 mb-1.5">School Sets</span>
+              <div className="flex justify-between items-start">
+                <div className="max-w-[58%]">
+                  <h2 className="text-xl font-black text-stone-900 leading-tight">Complete School Sets Delivered to Your Door</h2>
+                  <div className="flex items-center flex-wrap gap-x-2 gap-y-1 mt-2.5 text-[12px] font-semibold text-stone-700">
+                    <span className="flex items-center"><i className="fa-solid fa-bag-shopping text-stone-700 mr-1 text-[11px]" />Books</span>
+                    <span className="text-stone-400">+</span>
+                    <span className="flex items-center"><i className="fa-regular fa-newspaper text-stone-700 mr-1 text-[11px]" />Notebooks</span>
+                    <span className="text-stone-400">+</span>
+                    <span className="flex items-center"><i className="fa-solid fa-pen-fancy text-stone-700 mr-1 text-[11px]" />Stationery</span>
                   </div>
-                  <div className="flex items-center justify-between pt-2">
-                    <div className="flex flex-col">
-                      <span className="text-[15px] font-extrabold">{priceText(l.price)}</span>
-                      {Number(l.origPrice) > Number(l.price) && <span className="text-[12px] text-[#9A908A] line-through">₹{l.origPrice}</span>}
+                  <button type="button" onClick={() => pickerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })} className="mt-3.5 bg-stone-900 text-white text-[12px] font-bold px-3.5 py-1.5 rounded-full inline-flex items-center space-x-1 shadow hover:bg-black transition">
+                    <span>Find your set</span>
+                    <i className="fa-solid fa-arrow-down text-[11px]" />
+                  </button>
+                </div>
+                <div className="relative w-32 h-32 flex items-center justify-center">
+                  <div className="w-24 h-28 bg-[#1E293B] rounded-2xl relative shadow-lg border-2 border-stone-800 flex flex-col items-center p-1.5">
+                    <div className="w-8 h-2 bg-amber-500 rounded-full mt-1" />
+                    <div className="w-16 h-10 border-2 border-dashed border-stone-600 rounded-lg mt-2 flex items-center justify-center">
+                      <span className="text-[9px] font-bold text-amber-400 uppercase tracking-widest">KIT</span>
                     </div>
-                    {chatButton(l)}
+                    <div className="w-20 h-7 bg-[#0F172A] rounded-lg mt-1 border-t-2 border-amber-500" />
+                  </div>
+                  <div className="absolute -left-1 bottom-1 w-14 h-16 bg-blue-600 rounded-sm shadow-md border-l-2 border-white -rotate-12 flex flex-col justify-end p-1 text-[8px] text-white font-bold">
+                    Class {cls}
                   </div>
                 </div>
-              ))}
-            </div>
-          </section>
-        )}
+              </div>
 
-        {/* 6. Books from students near you */}
-        <section className="flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="text-[17px] font-bold">Books from students near you</h2>
-            <button onClick={() => router.push('/marketplace')} className="text-[13px] font-semibold text-[#9A908A] active:opacity-70">See all</button>
-          </div>
+              {/* School and class selector card */}
+              <div ref={pickerRef} className="bg-white p-3.5 rounded-2xl mt-4 shadow-sm border border-amber-200/70 space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[11px] font-bold text-stone-500 mb-1">Select your school</label>
+                    <div className="relative">
+                      <select value={school} onChange={e => pickSchool(e.target.value)} className="w-full bg-[#FAF9F5] border border-stone-200 rounded-xl text-[13px] font-bold text-stone-800 py-1.5 pl-2.5 pr-6 appearance-none focus:outline-none focus:ring-1 focus:ring-stone-800 truncate">
+                        {schoolNames.map(n => <option key={n} value={n}>{n}</option>)}
+                      </select>
+                      <i className="fa-solid fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-stone-500 pointer-events-none" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-stone-500 mb-1">Select class</label>
+                    <div className="relative">
+                      <select value={cls} onChange={e => setCls(Number(e.target.value))} className="w-full bg-[#FAF9F5] border border-stone-200 rounded-xl text-[13px] font-bold text-stone-800 py-1.5 pl-2.5 pr-6 appearance-none focus:outline-none focus:ring-1 focus:ring-stone-800">
+                        {classes.map(c => <option key={c} value={c}>Class {c}</option>)}
+                      </select>
+                      <i className="fa-solid fa-chevron-down absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-stone-500 pointer-events-none" />
+                    </div>
+                  </div>
+                </div>
 
-          {listings.length === 0 ? (
-            <div className={'bg-white rounded-[22px] p-5 text-center ' + SHADOW}>
-              <p className="text-[14px] text-[#5E5650] mb-3">No books listed yet. Be the first to sell yours.</p>
-              <button onClick={goSell} className="px-5 py-2.5 bg-[#FFF1EA] text-[#C4501A] text-[14px] font-semibold rounded-full active:scale-95 transition-transform">Sell a book</button>
+                <div className="bg-[#FFF4D2] border border-amber-300 rounded-xl p-2.5 flex items-center justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-[13px] font-bold text-stone-900 truncate">Class {cls} Complete Set</h4>
+                    <p className="text-[10px] text-stone-600 font-medium truncate">{setLine}</p>
+                  </div>
+                  <div className="border-l border-amber-300/80 pl-2 shrink-0 text-right">
+                    <span className="block text-[9px] text-stone-500 font-medium leading-none">Estimated Total</span>
+                    <div className="flex items-center space-x-0.5 justify-end mt-0.5">
+                      <span className="text-[13px] font-black text-stone-900 leading-none">₹{summary.total.toLocaleString('en-IN')}</span>
+                      <i title="Estimated from the default selection of the set" className="fa-regular fa-circle-question text-[10px] text-stone-400" />
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => router.push('/school-sets?school=' + encodeURIComponent(school) + '&class=' + cls)} className="bg-stone-900 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg flex items-center space-x-1 shrink-0 hover:bg-black transition">
+                    <span className="whitespace-nowrap">View set</span>
+                    <i className="fa-solid fa-arrow-right text-[9px]" />
+                  </button>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Featured books */}
+          {featured.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-2.5">
+                <h2 className="text-base font-black text-stone-900">Featured Books</h2>
+                {seeAll('/marketplace')}
+              </div>
+              <div className="flex space-x-2.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+                {featured.map((l, i) => {
+                  const t = TINTS[i % TINTS.length]
+                  const off = Number(l.origPrice) > Number(l.price) ? Math.round((1 - Number(l.price) / Number(l.origPrice)) * 100) : 0
+                  const sub = l.author || l.subtitle || l.condition || ''
+                  return (
+                    <div key={l.id} onClick={() => router.push('/listing/' + l.id)} className="w-28 flex-shrink-0 bg-white p-2 rounded-2xl border border-stone-200 shadow-2xs relative flex flex-col justify-between cursor-pointer">
+                      <div className={'relative rounded-xl p-1 mb-1.5 aspect-[3/4] flex items-center justify-center overflow-hidden border ' + t.bg + ' ' + t.bd}>
+                        {l.images?.[0]
+                          ? <img src={l.images[0]} alt={l.title} className="absolute inset-0 w-full h-full object-cover" />
+                          : <div className="text-center p-1"><span className={'block text-[12px] font-black tracking-tight leading-tight line-clamp-3 ' + t.tx}>{l.title}</span></div>}
+                        {off > 0 && <span className="absolute top-1 left-1 bg-[#EA580C] text-white text-[9px] font-black px-1 py-0.5 rounded z-10">{off}% OFF</span>}
+                        {heart(l, 'absolute top-1 right-1 w-5 h-5 bg-white/80 rounded-full flex items-center justify-center text-stone-400 hover:text-red-500 z-10', 'text-[11px]')}
+                      </div>
+                      <div>
+                        <h3 className="text-[13px] font-bold text-stone-900 truncate">{l.title}</h3>
+                        {sub && <p className="text-[11px] text-stone-500 truncate">{sub}</p>}
+                        <div className="flex items-baseline space-x-1 mt-1">
+                          <span className="text-[13px] font-black text-[#EA580C]">{priceText(l.price)}</span>
+                          {Number(l.origPrice) > Number(l.price) && <span className="text-[10px] text-stone-400 line-through">₹{l.origPrice}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Books from students near you */}
+          <section>
+            <div className="flex items-center justify-between mb-2.5">
+              <h2 className="text-base font-black text-stone-900">Books from students near you</h2>
+              {seeAll('/marketplace')}
             </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {gridList.map(l => {
-                const isSaved = saved.has(l.id)
-                const pct = Number(l.origPrice) > Number(l.price) && Number(l.price) > 0 ? Math.round((Number(l.price) / Number(l.origPrice)) * 100) : 0
-                const who = [first(l.seller?.name), l.location].filter(Boolean).join(' · ')
-                return (
-                  <div key={l.id} onClick={() => router.push('/listing/' + l.id)} className={'bg-white rounded-[22px] p-3 flex flex-col justify-between cursor-pointer ' + SHADOW}>
-                    <div className="flex flex-col gap-2">
-                      <div className="relative w-full aspect-[3/4] rounded-[18px] overflow-hidden bg-[#FFF1EA] flex items-center justify-center text-[34px]">
-                        {l.images?.[0] ? <img src={l.images[0]} alt={l.title} className="w-full h-full object-cover" /> : <span>{l.emoji || '📚'}</span>}
-                        {pct > 0 && <span className="absolute top-2 left-2 bg-white/95 text-[#C4501A] text-[12px] font-semibold px-2 py-0.5 rounded-full">{pct}% of MRP</span>}
-                        <button aria-label={isSaved ? 'Remove from saved' : 'Save book'} onClick={e => toggleHeart(l, e)}
-                          className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white flex items-center justify-center active:scale-90 transition-transform shadow-[0_2px_10px_rgba(120,70,40,0.12)]">
-                          <span className="material-symbols-outlined text-[16px]" style={{ color: isSaved ? '#E8632B' : '#9A908A', fontVariationSettings: isSaved ? "'FILL' 1" : "'FILL' 0" }}>favorite</span>
+            {listings.length === 0 ? (
+              <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs text-center">
+                <p className="text-[13px] text-stone-600 mb-3">No books listed yet. Be the first to sell yours.</p>
+                <button type="button" onClick={goSell} className="bg-[#FFF4D2] hover:bg-amber-200 text-stone-900 text-[12px] font-bold px-4 py-1.5 rounded-lg border border-amber-300 transition">Sell a book</button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2.5">
+                {gridList.map((l, i) => {
+                  const t = STUDENT_TINTS[i % STUDENT_TINTS.length]
+                  const pct = Number(l.origPrice) > Number(l.price) && Number(l.price) > 0 ? Math.round((Number(l.price) / Number(l.origPrice)) * 100) : 0
+                  const who = [first(l.seller?.name), l.location].filter(Boolean).join(' • ')
+                  const author = l.author || ''
+                  return (
+                    <div key={l.id} onClick={() => router.push('/listing/' + l.id)} className="bg-white p-2.5 rounded-2xl border border-stone-200 shadow-2xs flex flex-col justify-between cursor-pointer">
+                      <div className="flex space-x-2">
+                        <div className={'relative w-14 h-[72px] rounded-lg flex-shrink-0 flex items-center justify-center p-1 overflow-hidden border ' + t.bg + ' ' + t.bd}>
+                          {l.images?.[0]
+                            ? <img src={l.images[0]} alt={l.title} className="absolute inset-0 w-full h-full object-cover" />
+                            : <div className={'text-center text-[9px] font-black mt-4 line-clamp-3 ' + t.tx}>{l.title}</div>}
+                          {pct > 0 && <span className={'absolute top-0.5 left-0.5 text-white text-[8px] font-bold px-1 rounded z-10 whitespace-nowrap leading-tight ' + t.tag}>{pct}% of MRP</span>}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between">
+                            <h3 className="text-[12px] font-bold text-stone-900 leading-tight truncate">{l.title}</h3>
+                            {heart(l, 'ml-1 shrink-0', 'text-[11px] ' + (saved.has(l.id) ? '' : 'text-stone-300'))}
+                          </div>
+                          {author && <p className="text-[10px] text-stone-500 truncate">{author}</p>}
+                          {who && <p className="text-[10px] text-stone-500 truncate"><i className="fa-solid fa-user text-[8px] mr-1" />{who}</p>}
+                          {l.condition && <span className={'inline-block mt-1 text-[9px] font-bold px-1.5 py-0.5 rounded border ' + condCls(String(l.condition))}>{l.condition}</span>}
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-stone-100">
+                        <div className="flex items-baseline space-x-1 min-w-0">
+                          <span className="text-[13px] font-black text-amber-700">{priceText(l.price)}</span>
+                          {Number(l.origPrice) > Number(l.price) && <span className="text-[10px] text-stone-400 line-through">₹{l.origPrice}</span>}
+                        </div>
+                        <button type="button" disabled={!!chatBusy} onClick={e => openChat(l, e)} className="bg-[#FFF4D2] hover:bg-amber-200 text-stone-900 text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center space-x-1 border border-amber-300 transition disabled:opacity-60">
+                          <i className={(chatBusy === l.id ? 'fa-solid fa-spinner fa-spin' : 'fa-regular fa-comment') + ' text-[10px]'} />
+                          <span>Chat</span>
                         </button>
                       </div>
-                      <div className="flex flex-col">
-                        <h3 className="text-[13px] font-bold leading-tight line-clamp-1">{l.title}</h3>
-                        {who && <span className="text-[12px] text-[#5E5650] truncate">{who}</span>}
-                        {l.condition && <span className="text-[12px] text-[#2E8B57] font-medium">{l.condition}</span>}
-                      </div>
                     </div>
-                    <div className="flex items-center justify-between pt-2.5">
-                      <div className="flex items-baseline gap-1 min-w-0">
-                        <span className="text-[15px] font-extrabold">{priceText(l.price)}</span>
-                        {Number(l.origPrice) > Number(l.price) && <span className="text-[12px] text-[#9A908A] line-through">₹{l.origPrice}</span>}
-                      </div>
-                      {chatButton(l)}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </section>
-
-        {/* 7. People are looking for */}
-        {reqs.length > 0 && (
-          <section className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-[17px] font-bold">People are looking for</h2>
-              <button onClick={() => router.push('/requests')} className="text-[13px] font-semibold text-[#9A908A] active:opacity-70">See all requests</button>
-            </div>
-            <div className="flex flex-col gap-2.5">
-              {reqs.map(r => {
-                const wanted = r.maxPrice ? 'Wanted up to ₹' + r.maxPrice : 'Wanted'
-                const who = r.mine ? r.location : [r.name, r.location ? '(' + r.location + ')' : ''].filter(Boolean).join(' ')
-                return (
-                  <div key={r.id} className={'w-full bg-white rounded-[22px] p-4 flex items-center justify-between gap-3 ' + SHADOW}>
-                    <div className="flex flex-col min-w-0">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <h3 className="text-[15px] font-semibold truncate">{r.title}</h3>
-                        {r.mine && <span className="px-2 py-0.5 rounded-full bg-[#FCE3D6] text-[#C4501A] text-[12px] font-semibold shrink-0">You</span>}
-                      </div>
-                      <span className="text-[12px] text-[#5E5650] truncate">{[wanted, who].filter(Boolean).join(' · ')}</span>
-                    </div>
-                    {r.mine ? (
-                      <span className="shrink-0 text-[12px] text-[#9A908A]">Awaiting offers</span>
-                    ) : (
-                      <button onClick={goSell} className="shrink-0 px-3 py-1.5 rounded-full bg-[#FFF1EA] text-[#C4501A] text-[12px] font-semibold flex items-center gap-1 active:scale-95 transition-transform">
-                        <span className="material-symbols-outlined text-[15px]">chat</span>
-                        <span>I have this</span>
-                      </button>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+            )}
           </section>
-        )}
 
-        {/* 8. Free community books */}
-        {free.length > 0 && (
-          <section className="flex flex-col gap-3">
-            <div className="flex items-center gap-2">
-              <h2 className="text-[17px] font-bold">Free community books</h2>
-              <span className="px-2.5 py-0.5 rounded-full bg-[#2E8B57]/10 text-[#2E8B57] text-[12px] font-semibold">Pay it forward</span>
-            </div>
-            <div className="-mx-5 px-5 flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
-              {free.map(l => (
-                <div key={l.id} onClick={() => router.push('/listing/' + l.id)} className={'w-48 shrink-0 bg-white rounded-[22px] p-3.5 flex flex-col justify-between cursor-pointer ' + SHADOW}>
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[12px] font-semibold text-[#2E8B57]">Giveaway</span>
-                    <h3 className="text-[13px] font-bold leading-tight line-clamp-2">{l.title}</h3>
-                    {first(l.seller?.name) && <span className="text-[12px] text-[#9A908A]">Listed by {first(l.seller?.name)}</span>}
-                  </div>
-                  <div className="flex items-center justify-between pt-3">
-                    <span className="text-[15px] font-extrabold text-[#2E8B57]">Free</span>
-                    <button disabled={!!chatBusy} onClick={e => openChat(l, e)} className="px-3 py-1.5 rounded-full bg-[#FFF1EA] text-[#1E1B19] text-[12px] font-semibold active:scale-95 transition-transform disabled:opacity-60">
+          {/* People are looking for */}
+          {reqs.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-2.5">
+                <h2 className="text-base font-black text-stone-900">People are looking for</h2>
+                {seeAll('/requests')}
+              </div>
+              <div className="flex space-x-2.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+                {reqs.map((r, i) => {
+                  const t = REQ_TINTS[i % REQ_TINTS.length]
+                  const subject = String(r.title || '').split(/\s+/)[0]
+                  const who = r.mine ? r.location : [first(r.name), r.location].filter(Boolean).join(' • ')
+                  const when = ago(r.createdAt)
+                  return (
+                    <div key={r.id} className="w-40 flex-shrink-0 bg-white p-2.5 rounded-2xl border border-stone-200 shadow-2xs flex flex-col justify-between">
+                      <div className="flex items-start space-x-2">
+                        <div className={'relative w-10 h-14 rounded flex-shrink-0 flex items-center justify-center text-[8px] font-bold border ' + t.bg + ' ' + t.bd + ' ' + t.tx}>
+                          {r.mine && <span className="absolute -top-1 -left-1 bg-[#EA580C] text-white text-[8px] font-black px-1 rounded-full">You</span>}
+                          <span className="truncate px-0.5">{subject}</span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-[11px] font-bold text-stone-900 leading-snug line-clamp-2">{r.title}</h3>
+                          {r.maxPrice ? <span className="text-[10px] text-stone-500">Up to ₹{r.maxPrice}</span> : null}
+                          {r.mine
+                            ? <div className="mt-1"><span className="inline-block bg-amber-100 text-amber-800 text-[9px] font-bold px-1.5 py-0.5 rounded">Awaiting offers</span></div>
+                            : who ? <p className="text-[9px] text-stone-500 truncate mt-0.5">{who}</p> : null}
+                        </div>
+                      </div>
+                      {r.mine ? (
+                        when ? <p className="text-[9px] text-stone-400 mt-2 font-medium">{when}</p> : null
+                      ) : (
+                        <button type="button" onClick={goSell} className="mt-2 w-full bg-[#FCE389] hover:bg-amber-300 text-stone-900 text-[10px] font-bold py-1 rounded-lg border border-amber-300 transition">
+                          I have this
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Free community books */}
+          {free.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-2.5">
+                <h2 className="text-base font-black text-stone-900">Free community books</h2>
+                {seeAll('/marketplace')}
+              </div>
+              <div className="flex space-x-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+                {free.map(l => (
+                  <div key={l.id} onClick={() => router.push('/listing/' + l.id)} className="w-24 flex-shrink-0 bg-white p-1.5 rounded-xl border border-stone-200 shadow-2xs flex flex-col justify-between cursor-pointer">
+                    <div className="relative bg-emerald-50 rounded-lg p-1 aspect-[3/4] flex items-center justify-center border border-emerald-100 overflow-hidden">
+                      {l.images?.[0]
+                        ? <img src={l.images[0]} alt={l.title} className="absolute inset-0 w-full h-full object-cover" />
+                        : <span className="text-[9px] font-bold text-emerald-950 text-center line-clamp-3">{l.title}</span>}
+                      <span className="absolute top-1 left-1 bg-emerald-600 text-white text-[8px] font-black px-1 rounded z-10">FREE</span>
+                      {heart(l, 'absolute top-1 right-1 z-10 text-stone-400', 'text-[9px]')}
+                    </div>
+                    <h3 className="text-[10px] font-bold text-stone-900 mt-1 truncate">{l.title}</h3>
+                    <span className="text-[9px] text-stone-400 truncate">{l.author || l.subtitle || cap(l.category || '')}</span>
+                    <button type="button" disabled={!!chatBusy} onClick={e => openChat(l, e)} className="mt-1 w-full bg-[#FCE389] hover:bg-amber-300 text-stone-900 text-[10px] font-bold py-0.5 rounded border border-amber-300 disabled:opacity-60">
                       {chatBusy === l.id ? 'Opening…' : 'Claim'}
                     </button>
                   </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* How it works and trust */}
+          <section className="space-y-3">
+            <h2 className="text-base font-black text-stone-900">How it works</h2>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { n: 1, icon: 'fa-magnifying-glass', t: 'Find what you need', d: 'Search books, school sets or stationery.', arrow: true },
+                { n: 2, icon: 'fa-cart-shopping', t: 'Buy or get it free', d: 'Chat with verified students and get the best deals.', arrow: true },
+                { n: 3, icon: 'fa-book-bookmark', t: 'Sell your books', d: 'List your old books in minutes and help other students.', arrow: false },
+              ].map(st => (
+                <div key={st.n} className="bg-[#FFF9EA] border border-amber-200 rounded-xl p-2.5 flex flex-col justify-between relative">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <span className="w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] font-extrabold flex items-center justify-center">{st.n}</span>
+                      {st.arrow && <i className="fa-solid fa-arrow-right text-[10px] text-stone-400" />}
+                    </div>
+                    <div className="my-2 text-center"><i className={'fa-solid ' + st.icon + ' text-stone-800 text-lg'} /></div>
+                    <h4 className="text-[11px] font-bold text-stone-900">{st.t}</h4>
+                    <p className="text-[9px] text-stone-500 mt-0.5 leading-snug">{st.d}</p>
+                  </div>
                 </div>
               ))}
             </div>
-          </section>
-        )}
-
-        {/* 9. How Pageplus works */}
-        <section className={'bg-white rounded-[22px] p-5 flex flex-col gap-4 ' + SHADOW}>
-          <div className="flex flex-col">
-            <h2 className="text-[17px] font-bold">How Pageplus works</h2>
-            <span className="text-[12px] text-[#9A908A]">Safe, local peer-to-peer exchanges</span>
-          </div>
-          <div className="flex flex-col gap-3.5">
-            {[
-              { n: 1, t: 'List your book', d: 'Snap the cover and set your price in 2 minutes.' },
-              { n: 2, t: 'Chat and agree', d: 'Message directly. No middleman fees.' },
-              { n: 3, t: 'Meet and pay in person', d: 'Hand over at a safe public place near you.' },
-            ].map(st => (
-              <div key={st.n} className="flex items-start gap-3">
-                <div className="w-7 h-7 rounded-full bg-[#FCE3D6] text-[#C4501A] text-[12px] font-bold flex items-center justify-center shrink-0">{st.n}</div>
-                <div className="flex flex-col">
-                  <h3 className="text-[15px] font-semibold">{st.t}</h3>
-                  <p className="text-[14px] text-[#5E5650]">{st.d}</p>
+            <div className="bg-[#FFFBEB] border border-amber-200/90 rounded-2xl p-3 flex items-start space-x-3">
+              <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <i className="fa-solid fa-shield-halved text-sm" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-[13px] font-bold text-stone-900">Safe &amp; trusted</h4>
+                <div className="grid grid-cols-2 gap-x-2 gap-y-1 mt-1.5 text-[10px] text-stone-600 font-medium">
+                  {['Verified student community', 'Chat before buying', 'Report and get support', 'Keep our community safe'].map(x => (
+                    <span key={x} className="flex items-center"><i className="fa-solid fa-check text-emerald-600 text-[9px] mr-1" />{x}</span>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
-          <div className="bg-[#F8EDE6] rounded-[16px] p-3 flex items-center gap-2.5">
-            <span className="material-symbols-outlined text-[18px] text-[#5E5650] shrink-0">verified_user</span>
-            <p className="text-[12px] text-[#9A908A]">Meet in daylight at public places. Never share OTPs.</p>
-          </div>
-        </section>
-
-        {/* 10. School sets: coming soon */}
-        {!SETS_OPEN && (
-          <section className={'bg-[#FFF1EA] rounded-[22px] p-4 flex items-center justify-between gap-3 ' + SHADOW}>
-            <div className="flex flex-col min-w-0">
-              <h3 className="text-[15px] font-semibold">School sets and customised kits · Coming soon</h3>
-              <p className="text-[12px] text-[#5E5650] mt-0.5">Curated book sets for DPS Sector 40-C and Shivalik Public School.</p>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#E8632B] shrink-0 shadow-[0_2px_10px_rgba(120,70,40,0.06)]">
-              <span className="material-symbols-outlined text-[20px]">inventory_2</span>
             </div>
           </section>
-        )}
 
-        {/* 11. Store card */}
-        <section className={'bg-white rounded-[22px] p-4 flex flex-col gap-3.5 ' + SHADOW}>
-          <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-[18px] overflow-hidden shrink-0 bg-[#FFF1EA] flex items-center justify-center">
-              {storeOk
-                ? <img src={STORE_PHOTO} alt="Bedi Book Store" className="w-full h-full object-cover" onError={() => setStoreOk(false)} />
-                : <span className="material-symbols-outlined text-[26px] text-[#C4501A]">storefront</span>}
-            </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="text-[14px] font-bold">Bedi Book Store, Sector 40-C</h3>
-              <p className="text-[12px] text-[#9A908A] mt-0.5">Since 1994 · Booth 48 · Mon–Sat, 9am–7pm</p>
-            </div>
-          </div>
-          <a href={WA_HELP_LINK} target="_blank" rel="noopener noreferrer" className="w-full h-11 bg-[#25D366] text-white rounded-full flex items-center justify-center gap-2 text-[14px] font-semibold active:scale-[0.98] transition-transform">
-            <span className="material-symbols-outlined text-[18px]">chat</span>
-            <span>Chat on WhatsApp</span>
-          </a>
-        </section>
-      </main>
+          {/* Sets coming soon (when sets are not open yet) */}
+          {!SETS_OPEN && (
+            <section className="bg-[#FFF9EA] border border-amber-200 rounded-2xl p-3 shadow-2xs flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="text-[13px] font-black text-stone-900">School sets and customised kits · Coming soon</h3>
+                <p className="text-[10px] text-stone-600 mt-0.5">Curated book sets for DPS Sector 40-C and Shivalik Public School.</p>
+              </div>
+              <div className="w-9 h-9 rounded-full bg-white border border-amber-200 flex items-center justify-center text-stone-800 shrink-0">
+                <i className="fa-solid fa-bag-shopping text-[14px]" />
+              </div>
+            </section>
+          )}
 
-      {/* Kit bag pill (only when a kit has been added) */}
+          {/* Local store card */}
+          <section className="bg-[#FFF9EA] border border-amber-200 rounded-2xl p-3 shadow-2xs flex items-center justify-between">
+            <div className="flex items-center space-x-2.5 min-w-0">
+              <div className="w-16 h-14 bg-stone-800 rounded-xl relative overflow-hidden flex flex-col justify-end p-1 border border-stone-300 shrink-0">
+                {storeOk
+                  ? <img src={STORE_PHOTO} alt="Bedi Book Store" className="absolute inset-0 w-full h-full object-cover" onError={() => setStoreOk(false)} />
+                  : (<>
+                      <div className="absolute inset-0 opacity-60" style={{ backgroundImage: 'radial-gradient(#FCD34D 1px, transparent 1px)', backgroundSize: '6px 6px' }} />
+                      <span className="relative z-10 text-[9px] font-black text-amber-300 leading-tight">Bedi Book Store</span>
+                    </>)}
+              </div>
+              <div className="min-w-0">
+                <span className="text-[9px] text-stone-500 uppercase tracking-wider font-bold">Visit our store</span>
+                <h3 className="text-[13px] font-black text-stone-900 leading-tight">Bedi Book Store</h3>
+                <p className="text-[10px] text-stone-600 flex items-center mt-0.5">
+                  <i className="fa-solid fa-location-dot text-[9px] mr-1 text-stone-400" />
+                  Booth 48, Sector 40-C, Chandigarh
+                </p>
+                <p className="text-[9px] text-stone-500 mt-0.5">Complete school sets, books and stationery.</p>
+              </div>
+            </div>
+            <a href={WA_HELP_LINK} target="_blank" rel="noopener noreferrer" className="bg-[#25D366] hover:bg-emerald-600 text-white text-[11px] font-bold px-2.5 py-1.5 rounded-xl flex items-center space-x-1 shrink-0 shadow-xs transition ml-2">
+              <i className="fa-brands fa-whatsapp text-[13px]" />
+              <span>Chat on WhatsApp</span>
+            </a>
+          </section>
+        </main>
+      </div>
+
+      {/* Floating kit-bag bar (only when a kit has been added) */}
       {SETS_OPEN && cart.length > 0 && (
-        <div className="fixed inset-x-0 flex justify-center pointer-events-none px-5" style={{ zIndex: 40, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 88px)' }}>
-          <div className={'pointer-events-auto bg-white rounded-full pl-4 pr-1.5 py-1.5 flex items-center gap-3 ' + SHADOW}>
-            <span className="text-[13px] font-semibold">{cart.length} {cart.length > 1 ? 'kits' : 'kit'} · ₹{cartTotal.toLocaleString('en-IN')}</span>
-            <button onClick={() => router.push('/school-sets')} className="px-4 py-2 bg-[#E8632B] text-white text-[13px] font-semibold rounded-full active:scale-95 transition-transform">View bag</button>
+        <div className="fixed inset-x-0 max-w-[430px] mx-auto px-4 z-40 pointer-events-none" style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 64px)' }}>
+          <div className="bg-[#FFF9E5] border border-amber-300/90 shadow-xl rounded-full px-3 py-1.5 flex items-center justify-between pointer-events-auto">
+            <div className="flex items-center space-x-2 pl-1">
+              <div className="relative w-6 h-6 flex items-center justify-center">
+                <i className="fa-solid fa-bag-shopping text-stone-800 text-sm" />
+                <span className="absolute -top-1 -right-1 bg-amber-500 text-stone-900 text-[9px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center">{cart.length}</span>
+              </div>
+              <span className="text-[13px] font-black text-stone-900">{cart.length} {cart.length > 1 ? 'kits' : 'kit'} • ₹{cartTotal.toLocaleString('en-IN')}</span>
+            </div>
+            <button type="button" onClick={() => router.push('/school-sets')} className="bg-stone-900 hover:bg-black text-white text-[12px] font-bold px-3.5 py-1.5 rounded-full flex items-center space-x-1.5 shadow-sm transition">
+              <span>View bag</span>
+              <i className="fa-solid fa-arrow-right text-[10px]" />
+            </button>
           </div>
         </div>
       )}

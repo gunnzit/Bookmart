@@ -9,7 +9,7 @@ const APP_URL = 'https://pageplus.in'
 
 // Phone status-bar colour, and notch spacing (used by the bottom bar and headers)
 export const viewport: Viewport = {
-  themeColor: '#c4501a',
+  themeColor: '#F7CF65',
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
@@ -120,7 +120,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
           <link
             rel="stylesheet"
-            href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+            href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap"
+          />
+          <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
           />
           <link
             rel="stylesheet"
