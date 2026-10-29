@@ -3,7 +3,7 @@ import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useUser, SignInButton } from '@clerk/nextjs'
 
-const SHADOW = 'shadow-[0_6px_20px_rgba(120,70,40,0.08)]'
+const SHADOW = 'shadow-[0_6px_20px_rgba(28,28,25,0.08)]'
 
 function StartChat() {
   const router = useRouter()
@@ -40,26 +40,26 @@ function StartChat() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoaded, isSignedIn, listingId])
 
-  const mainBtn = 'w-full h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform'
+  const mainBtn = 'w-full h-[52px] bg-[#fbbf24] text-[#6c4f00] text-[15px] font-bold shadow-[0_4px_14px_rgba(251,191,36,0.35)] rounded-full active:scale-[0.98] transition-transform'
   const back = listingId ? '/listing/' + listingId : '/marketplace'
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-5 text-[#1E1B19] antialiased font-['Plus_Jakarta_Sans',sans-serif]" style={{ background: 'linear-gradient(180deg, #FDEADF 0%, #FFF7F2 100%)' }}>
-      <div className={'bg-white rounded-[28px] p-7 max-w-sm w-full text-center ' + SHADOW}>
-        {!error && <p className="text-[14px] text-[#5E5650]">Opening your chat…</p>}
+    <div className="min-h-screen flex items-center justify-center p-5 text-[#1c1c19] antialiased font-['Plus_Jakarta_Sans',sans-serif]" style={{ background: '#fcf9f4' }}>
+      <div className={'bg-white rounded-[2rem] p-7 max-w-sm w-full text-center ' + SHADOW}>
+        {!error && <p className="text-[14px] text-[#4f4633]">Opening your chat…</p>}
         {error === 'signin' && (
           <>
             <h1 className="text-[20px] font-bold mb-1">Sign in to chat</h1>
-            <p className="text-[14px] text-[#5E5650] mb-6">Chats are private between the buyer and the seller.</p>
+            <p className="text-[14px] text-[#4f4633] mb-6">Chats are private between the buyer and the seller.</p>
             <SignInButton mode="modal"><button className={mainBtn}>Sign in</button></SignInButton>
           </>
         )}
         {error && error !== 'signin' && (
           <>
             <h1 className="text-[20px] font-bold mb-1">Can't start this chat</h1>
-            <p className="text-[14px] text-[#5E5650] mb-6">{error}</p>
+            <p className="text-[14px] text-[#4f4633] mb-6">{error}</p>
             <button onClick={() => { startedRef.current = false; start() }} className={mainBtn + ' mb-3'}>Try again</button>
-            <button onClick={() => router.push(back)} className={'w-full h-[52px] bg-white text-[#1E1B19] text-[17px] font-semibold rounded-full ' + SHADOW}>Back</button>
+            <button onClick={() => router.push(back)} className={'w-full h-[52px] bg-white text-[#1c1c19] text-[17px] font-semibold rounded-full ' + SHADOW}>Back</button>
           </>
         )}
       </div>
