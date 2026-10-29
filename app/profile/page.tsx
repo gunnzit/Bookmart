@@ -7,7 +7,7 @@ import RatePending from '@/components/RatePending'
 import { useDeliveryPlace, type Saved } from '@/components/LocationSheet'
 import { LOCATIONS, QUICK_SECTORS } from '@/lib/locations'
 
-const SHADOW = 'shadow-[0_6px_20px_rgba(120,70,40,0.08)]'
+const SHADOW = 'shadow-[0_6px_20px_rgba(28,28,25,0.08)]'
 const ADMIN_WA = '919914735738'
 const conditions = ['New', 'Good', 'Fair']
 const ADDR_LABELS = ['Home', 'Office', "Parents' Home", 'Other']
@@ -155,12 +155,12 @@ export default function ProfilePage() {
   const tabListings = activeTab === 'active' ? activeListings : soldListings
 
   const initials = ((user?.firstName?.charAt(0) || '') + (user?.lastName?.charAt(0) || '')).toUpperCase() || (user?.primaryEmailAddress?.emailAddress?.charAt(0).toUpperCase() ?? 'P')
-  const iconBtn = 'w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#5E5650] active:scale-95 transition-transform shrink-0 ' + SHADOW
-  const sheetInput = 'w-full px-4 py-3 rounded-2xl bg-[#FFF1EA] text-[14px] text-[#1E1B19] placeholder:text-[#9A908A] border border-transparent focus:outline-none focus:bg-white focus:border-[#E8632B] focus:ring-2 focus:ring-[#E8632B]/20'
+  const iconBtn = 'w-10 h-10 rounded-full bg-[#f0ede9] flex items-center justify-center text-[#4f4633] active:scale-95 transition-transform shrink-0'
+  const sheetInput = 'w-full px-4 py-3 rounded-2xl bg-[#f6f3ee] text-[14px] text-[#1c1c19] placeholder:text-[#817661] border border-transparent focus:outline-none focus:bg-white focus:border-[#fbbf24] focus:ring-2 focus:ring-[#fbbf24]/20'
   const smallPill = 'h-8 px-3.5 rounded-full text-[12px] font-semibold active:scale-95 transition-transform '
 
-  const pageStyle = { background: 'linear-gradient(180deg, #FDEADF 0%, #FFF7F2 100%)' }
-  const pageCls = "min-h-screen text-[#1E1B19] antialiased font-['Plus_Jakarta_Sans',sans-serif]"
+  const pageStyle = { background: '#fcf9f4' }
+  const pageCls = "min-h-screen text-[#1c1c19] antialiased font-['Plus_Jakarta_Sans',sans-serif]"
 
   // ── Signed out ──────────────────────────────────────────────────────────
   if (!isSignedIn) {
@@ -168,9 +168,9 @@ export default function ProfilePage() {
       <div className={pageCls + ' flex items-center justify-center p-5'} style={pageStyle}>
         <div className={'bg-white rounded-[28px] p-7 max-w-sm w-full text-center ' + SHADOW}>
           <h1 className="text-[20px] font-bold mb-1">Sign in to see your profile</h1>
-          <p className="text-[14px] text-[#5E5650] mb-6">Your orders, listings and wishlist are kept here.</p>
+          <p className="text-[14px] text-[#4f4633] mb-6">Your orders, listings and wishlist are kept here.</p>
           <SignInButton mode="modal">
-            <button className="w-full h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform">Sign in</button>
+            <button className="w-full h-[52px] bg-[#fbbf24] text-[#6c4f00] text-[15px] font-bold shadow-[0_4px_14px_rgba(251,191,36,0.35)] rounded-full active:scale-[0.98] transition-transform">Sign in</button>
           </SignInButton>
           <button onClick={() => router.push('/')} className={'w-full h-11 mt-2.5 bg-white text-[14px] font-semibold rounded-full active:scale-[0.98] transition-transform ' + SHADOW}>Back to home</button>
         </div>
@@ -203,14 +203,14 @@ export default function ProfilePage() {
       {/* Edit listing sheet */}
       {editing && (
         <div className="fixed inset-0 z-[400] bg-black/45 flex items-end md:items-center justify-center" onClick={() => setEditingId(null)}>
-          <div className="bg-white rounded-t-[28px] md:rounded-[28px] p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-[0_-10px_35px_rgba(30,27,25,0.2)]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }} onClick={e => e.stopPropagation()}>
-            <div className="w-12 h-1.5 rounded-full bg-[#F0E2DA] mx-auto mb-4 md:hidden" />
+          <div className="bg-white rounded-t-[28px] md:rounded-[28px] p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-[0_-10px_35px_rgba(28,28,25,0.2)]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }} onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1.5 rounded-full bg-[#e5e2dd] mx-auto mb-4 md:hidden" />
             <div className="flex items-start justify-between gap-3 mb-4">
               <div className="min-w-0">
                 <h3 className="text-[18px] font-bold">Edit listing</h3>
-                <p className="text-[13px] text-[#9A908A] mt-0.5 truncate">{editing.title}</p>
+                <p className="text-[13px] text-[#817661] mt-0.5 truncate">{editing.title}</p>
               </div>
-              <button aria-label="Close" onClick={() => setEditingId(null)} className="w-9 h-9 rounded-full bg-[#FFF1EA] flex items-center justify-center shrink-0">
+              <button aria-label="Close" onClick={() => setEditingId(null)} className="w-9 h-9 rounded-full bg-[#f6f3ee] flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-[18px]">close</span>
               </button>
             </div>
@@ -224,17 +224,17 @@ export default function ProfilePage() {
               <div className="flex gap-2 pt-1">
                 {conditions.map(c => (
                   <button key={c} onClick={() => setForm({ ...form, condition: c })}
-                    className={'flex-1 h-10 rounded-full text-[13px] active:scale-95 transition-transform ' + (form.condition === c ? 'bg-[#E8632B] text-white font-semibold' : 'bg-[#FFF1EA] text-[#1E1B19] font-medium')}>
+                    className={'flex-1 h-10 rounded-full text-[13px] active:scale-95 transition-transform ' + (form.condition === c ? 'bg-[#fbbf24] text-[#6c4f00] font-semibold' : 'bg-[#f6f3ee] text-[#1c1c19] font-medium')}>
                     {c}
                   </button>
                 ))}
               </div>
               <input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="Location" type="text" className={sheetInput} />
             </div>
-            <button onClick={() => handleSave(editing.id)} disabled={saving} className="w-full h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform disabled:opacity-60">
+            <button onClick={() => handleSave(editing.id)} disabled={saving} className="w-full h-[52px] bg-[#fbbf24] text-[#6c4f00] text-[15px] font-bold shadow-[0_4px_14px_rgba(251,191,36,0.35)] rounded-full active:scale-[0.98] transition-transform disabled:opacity-60">
               {saving ? 'Saving…' : 'Save changes'}
             </button>
-            <button onClick={() => setEditingId(null)} className="w-full h-11 mt-2.5 text-[14px] font-semibold text-[#5E5650] active:opacity-70">Cancel</button>
+            <button onClick={() => setEditingId(null)} className="w-full h-11 mt-2.5 text-[14px] font-semibold text-[#4f4633] active:opacity-70">Cancel</button>
           </div>
         </div>
       )}
@@ -242,14 +242,14 @@ export default function ProfilePage() {
       {/* Add address sheet */}
       {addOpen && (
         <div className="fixed inset-0 z-[400] bg-black/45 flex items-end md:items-center justify-center" onClick={() => setAddOpen(false)}>
-          <div className="bg-white rounded-t-[28px] md:rounded-[28px] p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-[0_-10px_35px_rgba(30,27,25,0.2)]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }} onClick={e => e.stopPropagation()}>
-            <div className="w-12 h-1.5 rounded-full bg-[#F0E2DA] mx-auto mb-4 md:hidden" />
+          <div className="bg-white rounded-t-[28px] md:rounded-[28px] p-6 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-[0_-10px_35px_rgba(28,28,25,0.2)]" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 24px)' }} onClick={e => e.stopPropagation()}>
+            <div className="w-12 h-1.5 rounded-full bg-[#e5e2dd] mx-auto mb-4 md:hidden" />
             <div className="flex items-start justify-between gap-3 mb-4">
               <div>
                 <h3 className="text-[18px] font-bold">New address</h3>
-                <p className="text-[13px] text-[#9A908A] mt-0.5">We deliver within the tricity</p>
+                <p className="text-[13px] text-[#817661] mt-0.5">We deliver within the tricity</p>
               </div>
-              <button aria-label="Close" onClick={() => setAddOpen(false)} className="w-9 h-9 rounded-full bg-[#FFF1EA] flex items-center justify-center shrink-0">
+              <button aria-label="Close" onClick={() => setAddOpen(false)} className="w-9 h-9 rounded-full bg-[#f6f3ee] flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-[18px]">close</span>
               </button>
             </div>
@@ -257,7 +257,7 @@ export default function ProfilePage() {
             <div className="flex flex-wrap gap-2 mb-3">
               {ADDR_LABELS.map(l => (
                 <button key={l} onClick={() => setAddForm(f => ({ ...f, label: l }))}
-                  className={'px-3.5 py-2 rounded-full text-[13px] active:scale-95 transition-transform ' + (addForm.label === l ? 'bg-[#E8632B] text-white font-semibold' : 'bg-[#FFF1EA] text-[#1E1B19] font-medium')}>{l}</button>
+                  className={'px-3.5 py-2 rounded-full text-[13px] active:scale-95 transition-transform ' + (addForm.label === l ? 'bg-[#fbbf24] text-[#6c4f00] font-semibold' : 'bg-[#f6f3ee] text-[#1c1c19] font-medium')}>{l}</button>
               ))}
             </div>
 
@@ -265,24 +265,24 @@ export default function ProfilePage() {
               <input value={addForm.line1} onChange={e => setAddForm(f => ({ ...f, line1: e.target.value.slice(0, 120) }))} placeholder="House or flat, street" type="text" className={sheetInput} />
 
               {addForm.area ? (
-                <div className="flex items-center justify-between bg-[#FFF1EA] rounded-2xl px-4 py-3">
+                <div className="flex items-center justify-between bg-[#f6f3ee] rounded-2xl px-4 py-3">
                   <span className="text-[14px]">{addForm.area}</span>
-                  <button onClick={() => setAddForm(f => ({ ...f, area: '' }))} className="text-[13px] font-semibold text-[#C4501A]">Change</button>
+                  <button onClick={() => setAddForm(f => ({ ...f, area: '' }))} className="text-[13px] font-semibold text-[#795900]">Change</button>
                 </div>
               ) : (
                 <div className="relative">
                   <input value={areaQuery} onChange={e => setAreaQuery(e.target.value)} placeholder="Search your sector or area" type="text" className={sheetInput} />
                   {areaQuery.trim().length > 0 && (
-                    <div className="absolute z-10 left-0 right-0 top-[52px] bg-white rounded-2xl shadow-[0_6px_20px_rgba(120,70,40,0.18)] overflow-hidden">
+                    <div className="absolute z-10 left-0 right-0 top-[52px] bg-white rounded-2xl shadow-[0_6px_20px_rgba(28,28,25,0.18)] overflow-hidden">
                       {LOCATIONS.filter(l => l.toLowerCase().includes(areaQuery.trim().toLowerCase())).slice(0, 6).map(m => (
-                        <button key={m} onClick={() => { setAddForm(f => ({ ...f, area: m })); setAreaQuery('') }} className="w-full px-4 py-3 text-left text-[14px] border-b border-[#F0E2DA] last:border-0 active:bg-[#FFF1EA]">{m}</button>
+                        <button key={m} onClick={() => { setAddForm(f => ({ ...f, area: m })); setAreaQuery('') }} className="w-full px-4 py-3 text-left text-[14px] border-b border-[#e5e2dd] last:border-0 active:bg-[#f6f3ee]">{m}</button>
                       ))}
                     </div>
                   )}
                   {areaQuery.trim().length === 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {QUICK_SECTORS.map(q => (
-                        <button key={q} onClick={() => setAddForm(f => ({ ...f, area: q }))} className="px-3 py-1.5 rounded-full text-[12px] font-medium bg-white shadow-[0_6px_20px_rgba(120,70,40,0.08)] active:scale-95 transition-transform">{q.split(',')[0]}</button>
+                        <button key={q} onClick={() => setAddForm(f => ({ ...f, area: q }))} className="px-3 py-1.5 rounded-full text-[12px] font-medium bg-white shadow-[0_6px_20px_rgba(28,28,25,0.08)] active:scale-95 transition-transform">{q.split(',')[0]}</button>
                       ))}
                     </div>
                   )}
@@ -290,13 +290,13 @@ export default function ProfilePage() {
               )}
 
               <input value={addForm.pin} onChange={e => setAddForm(f => ({ ...f, pin: e.target.value.replace(/\D/g, '').slice(0, 6) }))} placeholder="PIN code (optional)" type="text" inputMode="numeric" className={sheetInput} />
-              {addErr && <p className="text-[12px] text-[#D64545]">{addErr}</p>}
+              {addErr && <p className="text-[12px] text-[#ba1a1a]">{addErr}</p>}
             </div>
 
-            <button onClick={saveAddress} disabled={addSaving} className="w-full h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform disabled:opacity-60">
+            <button onClick={saveAddress} disabled={addSaving} className="w-full h-[52px] bg-[#fbbf24] text-[#6c4f00] text-[15px] font-bold shadow-[0_4px_14px_rgba(251,191,36,0.35)] rounded-full active:scale-[0.98] transition-transform disabled:opacity-60">
               {addSaving ? 'Saving…' : 'Save address'}
             </button>
-            <button onClick={() => setAddOpen(false)} className="w-full h-11 mt-2.5 text-[14px] font-semibold text-[#5E5650] active:opacity-70">Cancel</button>
+            <button onClick={() => setAddOpen(false)} className="w-full h-11 mt-2.5 text-[14px] font-semibold text-[#4f4633] active:opacity-70">Cancel</button>
           </div>
         </div>
       )}
@@ -307,7 +307,7 @@ export default function ProfilePage() {
         <header className="flex items-center justify-between mb-7 h-12">
           <div className="min-w-0">
             <h1 className="text-[20px] font-bold tracking-tight">My profile</h1>
-            <p className="text-[12px] text-[#5E5650] mt-0.5 truncate">{user?.primaryEmailAddress?.emailAddress}</p>
+            <p className="text-[12px] text-[#4f4633] mt-0.5 truncate">{user?.primaryEmailAddress?.emailAddress}</p>
           </div>
           <a aria-label="Chat with the store on WhatsApp" href={'https://wa.me/' + ADMIN_WA} target="_blank" rel="noopener noreferrer" className={iconBtn}>
             <span className="material-symbols-outlined text-[20px]">help_outline</span>
@@ -315,15 +315,15 @@ export default function ProfilePage() {
         </header>
 
         {/* Identity card */}
-        <section className={'bg-white rounded-[22px] p-[18px] mb-7 ' + SHADOW}>
+        <section className={'bg-white rounded-[2rem] p-[18px] mb-7 ' + SHADOW}>
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-[#FFF1EA] flex items-center justify-center text-[20px] font-bold text-[#E8632B] shrink-0">{initials}</div>
+            <div className="w-16 h-16 rounded-full bg-[#f6f3ee] flex items-center justify-center text-[20px] font-bold text-[#795900] shrink-0">{initials}</div>
             <div className="min-w-0 flex-1">
               <h2 className="text-[15px] font-bold truncate">{user?.fullName || 'Your name'}</h2>
-              <p className="text-[12px] text-[#5E5650] mt-0.5">{phone ? '+91 ' + phone : 'Add your WhatsApp number below'}</p>
+              <p className="text-[12px] text-[#4f4633] mt-0.5">{phone ? '+91 ' + phone : 'Add your WhatsApp number below'}</p>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-2 mt-4 bg-[#FFF1EA]/60 rounded-[16px] p-2.5">
+          <div className="grid grid-cols-3 gap-2 mt-4 bg-[#f6f3ee]/60 rounded-[1rem] p-2.5">
             {[
               { v: activeListings.length, l: 'Selling' },
               { v: soldListings.length, l: 'Sold' },
@@ -331,15 +331,15 @@ export default function ProfilePage() {
             ].map(s => (
               <div key={s.l} className="flex flex-col items-center py-1 text-center">
                 <span className="text-[15px] font-bold">{s.v}</span>
-                <span className="text-[12px] text-[#5E5650] mt-0.5">{s.l}</span>
+                <span className="text-[12px] text-[#4f4633] mt-0.5">{s.l}</span>
               </div>
             ))}
           </div>
           {soldListings.length > 0 && (
-            <p className="text-[12px] text-[#5E5650] mt-3 px-1">Sold items add up to <span className="font-semibold text-[#1E1B19]">₹{totalEarnings.toLocaleString('en-IN')}</span>.</p>
+            <p className="text-[12px] text-[#4f4633] mt-3 px-1">Sold items add up to <span className="font-semibold text-[#1c1c19]">₹{totalEarnings.toLocaleString('en-IN')}</span>.</p>
           )}
           {user?.id && (
-            <a href={'/seller/' + user.id} className="mt-3 flex items-center justify-between rounded-[16px] bg-[#FFF1EA] px-4 py-3 text-[14px] font-semibold text-[#C4501A] active:opacity-80">
+            <a href={'/seller/' + user.id} className="mt-3 flex items-center justify-between rounded-[1rem] bg-[#f6f3ee] px-4 py-3 text-[14px] font-semibold text-[#795900] active:opacity-80">
               <span>See how buyers see you</span>
               <span className="material-symbols-outlined text-[20px]">chevron_right</span>
             </a>
@@ -349,21 +349,21 @@ export default function ProfilePage() {
         <RatePending />
 
         {/* WhatsApp number */}
-        <section className={'bg-white rounded-[22px] p-[18px] mb-7 ' + SHADOW}>
+        <section className={'bg-white rounded-[2rem] p-[18px] mb-7 ' + SHADOW}>
           <div className="flex items-center justify-between mb-1">
             <h3 className="text-[15px] font-semibold">WhatsApp number</h3>
             {phone.length === 10 && <span className="text-[12px] text-[#2E8B57] flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">check_circle</span>Saved</span>}
           </div>
-          <p className="text-[12px] text-[#5E5650] mb-3">Buyers contact you on this number.</p>
+          <p className="text-[12px] text-[#4f4633] mb-3">Buyers contact you on this number.</p>
           <div className="flex gap-2">
-            <div className="flex items-center px-4 rounded-2xl bg-[#FFF1EA] text-[14px] font-medium text-[#5E5650] shrink-0">+91</div>
+            <div className="flex items-center px-4 rounded-2xl bg-[#f6f3ee] text-[14px] font-medium text-[#4f4633] shrink-0">+91</div>
             <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="98765 43210" type="text" inputMode="numeric" className={sheetInput} />
             <button onClick={savePhone} disabled={savingPhone || phone.length < 10}
-              className={'shrink-0 h-[46px] px-4 rounded-full text-[14px] font-semibold bg-white active:scale-95 transition-transform disabled:opacity-50 ' + SHADOW + (phoneSaved ? ' text-[#2E8B57]' : ' text-[#C4501A]')}>
+              className={'shrink-0 h-[46px] px-4 rounded-full text-[14px] font-semibold bg-white active:scale-95 transition-transform disabled:opacity-50 ' + SHADOW + (phoneSaved ? ' text-[#2E8B57]' : ' text-[#795900]')}>
               {phoneSaved ? 'Saved' : savingPhone ? '…' : 'Save'}
             </button>
           </div>
-          {phone.length > 0 && phone.length < 10 && <p className="text-[12px] text-[#D64545] mt-1.5">Enter a 10-digit number.</p>}
+          {phone.length > 0 && phone.length < 10 && <p className="text-[12px] text-[#ba1a1a] mt-1.5">Enter a 10-digit number.</p>}
         </section>
 
         {/* Saved delivery addresses */}
@@ -371,29 +371,29 @@ export default function ProfilePage() {
           <div className="flex items-center justify-between mb-2 px-1">
             <div className="flex items-center gap-2">
               <h3 className="text-[15px] font-bold">Saved addresses</h3>
-              <span className="px-2 py-0.5 rounded-full bg-[#FFF1EA] text-[12px] font-medium">{addresses.length} of {MAX_ADDR}</span>
+              <span className="px-2 py-0.5 rounded-full bg-[#f6f3ee] text-[12px] font-medium">{addresses.length} of {MAX_ADDR}</span>
             </div>
             {addresses.length < MAX_ADDR && (
-              <button onClick={openAdd} className="text-[12px] font-semibold text-[#C4501A] flex items-center gap-0.5 active:opacity-70">
+              <button onClick={openAdd} className="text-[12px] font-semibold text-[#795900] flex items-center gap-0.5 active:opacity-70">
                 <span className="material-symbols-outlined text-[15px]">add</span>Add address
               </button>
             )}
           </div>
 
           {addrLoading ? (
-            <div className="h-[84px] rounded-[22px] bg-white/70 animate-pulse" />
+            <div className="h-[84px] rounded-[2rem] bg-white/70 animate-pulse" />
           ) : addresses.length === 0 ? (
-            <div className={'bg-white rounded-[22px] p-5 text-center ' + SHADOW}>
-              <p className="text-[14px] text-[#5E5650] mb-3">No saved addresses yet. Save one and checkout fills it in for you.</p>
-              <button onClick={openAdd} className={'h-11 px-5 rounded-full bg-white text-[14px] font-semibold text-[#C4501A] active:scale-95 transition-transform ' + SHADOW}>Add an address</button>
+            <div className={'bg-white rounded-[2rem] p-5 text-center ' + SHADOW}>
+              <p className="text-[14px] text-[#4f4633] mb-3">No saved addresses yet. Save one and checkout fills it in for you.</p>
+              <button onClick={openAdd} className={'h-11 px-5 rounded-full bg-white text-[14px] font-semibold text-[#795900] active:scale-95 transition-transform ' + SHADOW}>Add an address</button>
             </div>
           ) : (
-            <div className={'bg-white rounded-[22px] p-2 ' + SHADOW}>
+            <div className={'bg-white rounded-[2rem] p-2 ' + SHADOW}>
               {addresses.map(a => {
                 const on = place?.kind === 'address' && place.id === a.id
                 return (
-                  <div key={a.id} className="flex items-center gap-4 p-3 rounded-[16px]">
-                    <div className="w-10 h-10 rounded-full bg-[#FFF1EA] flex items-center justify-center shrink-0">
+                  <div key={a.id} className="flex items-center gap-4 p-3 rounded-[1rem]">
+                    <div className="w-10 h-10 rounded-full bg-[#f6f3ee] flex items-center justify-center shrink-0">
                       <span className="material-symbols-outlined text-[20px]">{ADDR_ICON[a.label] || 'location_on'}</span>
                     </div>
                     <div className="flex-1 min-w-0">
@@ -401,12 +401,12 @@ export default function ProfilePage() {
                         <p className="text-[15px] font-semibold">{a.label}</p>
                         {on && <span className="text-[12px] text-[#2E8B57] flex items-center gap-0.5"><span className="material-symbols-outlined text-[14px]">check_circle</span>Delivering here</span>}
                       </div>
-                      <p className="text-[12px] text-[#5E5650] leading-snug">{a.line1}, {a.area}{a.pin ? ' - ' + a.pin : ''}</p>
+                      <p className="text-[12px] text-[#4f4633] leading-snug">{a.line1}, {a.area}{a.pin ? ' - ' + a.pin : ''}</p>
                       {!on && (
-                        <button onClick={() => setPlace({ kind: 'address', ...a })} className="text-[12px] font-semibold text-[#C4501A] mt-1 active:opacity-70">Deliver here</button>
+                        <button onClick={() => setPlace({ kind: 'address', ...a })} className="text-[12px] font-semibold text-[#795900] mt-1 active:opacity-70">Deliver here</button>
                       )}
                     </div>
-                    <button aria-label="Delete this address" onClick={() => removeAddress(a)} className="w-9 h-9 rounded-full flex items-center justify-center text-[#9A908A] shrink-0 active:scale-90 transition-transform">
+                    <button aria-label="Delete this address" onClick={() => removeAddress(a)} className="w-9 h-9 rounded-full flex items-center justify-center text-[#817661] shrink-0 active:scale-90 transition-transform">
                       <span className="material-symbols-outlined text-[18px]">delete</span>
                     </button>
                   </div>
@@ -421,9 +421,9 @@ export default function ProfilePage() {
           <div className="flex items-center justify-between mb-2 px-1">
             <div className="flex items-center gap-2">
               <h3 className="text-[15px] font-bold">My book listings</h3>
-              <span className="px-2 py-0.5 rounded-full bg-[#FFF1EA] text-[12px] font-medium">{activeListings.length} live</span>
+              <span className="px-2 py-0.5 rounded-full bg-[#f6f3ee] text-[12px] font-medium">{activeListings.length} live</span>
             </div>
-            <button onClick={() => router.push('/sell')} className="text-[12px] font-semibold text-[#C4501A] flex items-center gap-0.5 active:opacity-70">
+            <button onClick={() => router.push('/sell')} className="text-[12px] font-semibold text-[#795900] flex items-center gap-0.5 active:opacity-70">
               <span className="material-symbols-outlined text-[15px]">add</span>Sell another
             </button>
           </div>
@@ -431,7 +431,7 @@ export default function ProfilePage() {
           <div className="flex gap-2 mb-3">
             {(['active', 'sold'] as const).map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)}
-                className={'px-4 py-2 rounded-full text-[13px] active:scale-95 transition-transform ' + (activeTab === tab ? 'bg-[#E8632B] text-white font-semibold shadow-[0_4px_14px_rgba(232,99,43,0.3)]' : 'bg-white text-[#1E1B19] font-medium ' + SHADOW)}>
+                className={'px-4 py-2 rounded-full text-[13px] active:scale-95 transition-transform ' + (activeTab === tab ? 'bg-[#fbbf24] text-[#6c4f00] font-semibold shadow-[0_4px_14px_rgba(251,191,36,0.3)]' : 'bg-white text-[#1c1c19] font-medium ' + SHADOW)}>
                 {tab === 'active' ? 'Active (' + activeListings.length + ')' : 'Sold (' + soldListings.length + ')'}
               </button>
             ))}
@@ -439,14 +439,14 @@ export default function ProfilePage() {
 
           {loading ? (
             <div className="flex flex-col gap-3">
-              {[0, 1].map(i => <div key={i} className="h-[132px] rounded-[22px] bg-white/70 animate-pulse" />)}
+              {[0, 1].map(i => <div key={i} className="h-[132px] rounded-[2rem] bg-white/70 animate-pulse" />)}
             </div>
           ) : tabListings.length === 0 ? (
-            <div className={'bg-white rounded-[22px] p-6 text-center ' + SHADOW}>
+            <div className={'bg-white rounded-[2rem] p-6 text-center ' + SHADOW}>
               <p className="text-[15px] font-semibold">{activeTab === 'active' ? 'No active listings' : 'Nothing sold yet'}</p>
-              <p className="text-[13px] text-[#5E5650] mt-1 mb-4">{activeTab === 'active' ? 'Post your first book and it shows up here.' : 'Mark a book as sold when it is gone.'}</p>
+              <p className="text-[13px] text-[#4f4633] mt-1 mb-4">{activeTab === 'active' ? 'Post your first book and it shows up here.' : 'Mark a book as sold when it is gone.'}</p>
               {activeTab === 'active' && (
-                <button onClick={() => router.push('/sell')} className="w-full h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform">Sell a book</button>
+                <button onClick={() => router.push('/sell')} className="w-full h-[52px] bg-[#fbbf24] text-[#6c4f00] text-[15px] font-bold shadow-[0_4px_14px_rgba(251,191,36,0.35)] rounded-full active:scale-[0.98] transition-transform">Sell a book</button>
               )}
             </div>
           ) : (
@@ -454,38 +454,38 @@ export default function ProfilePage() {
               {tabListings.map(l => {
                 const note = l.status && l.status !== 'active' ? STATUS_NOTE[l.status] : ''
                 return (
-                  <article key={l.id} className={'bg-white rounded-[22px] p-[18px] ' + SHADOW}>
+                  <article key={l.id} className={'bg-white rounded-[2rem] p-[18px] ' + SHADOW}>
                     <div className="flex items-start gap-4 cursor-pointer" onClick={() => router.push('/listing/' + l.id)}>
-                      <div className="relative w-16 h-20 rounded-[18px] overflow-hidden bg-[#FFF1EA] shrink-0 flex items-center justify-center">
+                      <div className="relative w-16 h-20 rounded-[1rem] overflow-hidden bg-[#f6f3ee] shrink-0 flex items-center justify-center">
                         {l.images?.[0]
                           ? <img src={l.images[0]} alt="" className={'w-full h-full object-cover ' + (l.sold ? 'opacity-60 grayscale-[25%]' : '')} />
-                          : <span className="material-symbols-outlined text-[28px] text-[#C4501A]/50">menu_book</span>}
-                        {l.sold && <span className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold text-[#1E1B19] bg-white/40">Sold</span>}
+                          : <span className="material-symbols-outlined text-[28px] text-[#795900]/50">menu_book</span>}
+                        {l.sold && <span className="absolute inset-0 flex items-center justify-center text-[11px] font-semibold text-[#1c1c19] bg-white/40">Sold</span>}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
-                          <h4 className={'text-[15px] font-semibold leading-snug line-clamp-2 ' + (l.sold ? 'text-[#9A908A]' : '')}>{l.title}</h4>
+                          <h4 className={'text-[15px] font-semibold leading-snug line-clamp-2 ' + (l.sold ? 'text-[#817661]' : '')}>{l.title}</h4>
                           <span className="text-[16px] font-bold shrink-0">{l.price === 0 ? 'Free' : '₹' + (l.price || 0).toLocaleString('en-IN')}</span>
                         </div>
-                        <p className="text-[12px] text-[#5E5650] mt-0.5">{[l.condition, l.location].filter(Boolean).join(' · ')}</p>
+                        <p className="text-[12px] text-[#4f4633] mt-0.5">{[l.condition, l.location].filter(Boolean).join(' · ')}</p>
                         {note ? (
                           <div className="flex items-center gap-1.5 mt-2">
-                            <span className="w-2 h-2 rounded-full inline-block bg-[#F5B82E]" />
+                            <span className="w-2 h-2 rounded-full inline-block bg-[#fbbf24]" />
                             <span className="text-[12px] font-medium">{note}</span>
                           </div>
                         ) : (
                           <div className="flex items-center gap-3 mt-2 text-[12px] font-medium">
-                            <span className="flex items-center gap-1" title="Views"><span className="material-symbols-outlined text-[15px] text-[#E8632B]">visibility</span>{l.views || 0}{l.views === 1 ? ' view' : ' views'}</span>
-                            <span className="flex items-center gap-1" title="Chats"><span className="material-symbols-outlined text-[15px] text-[#E8632B]">forum</span>{l.stats?.chats || 0}{l.stats?.chats === 1 ? ' chat' : ' chats'}</span>
-                            <span className="flex items-center gap-1" title="Saves"><span className="material-symbols-outlined text-[15px] text-[#E8632B]">favorite</span>{l.stats?.saves || 0}</span>
+                            <span className="flex items-center gap-1" title="Views"><span className="material-symbols-outlined text-[15px] text-[#795900]">visibility</span>{l.views || 0}{l.views === 1 ? ' view' : ' views'}</span>
+                            <span className="flex items-center gap-1" title="Chats"><span className="material-symbols-outlined text-[15px] text-[#795900]">forum</span>{l.stats?.chats || 0}{l.stats?.chats === 1 ? ' chat' : ' chats'}</span>
+                            <span className="flex items-center gap-1" title="Saves"><span className="material-symbols-outlined text-[15px] text-[#795900]">favorite</span>{l.stats?.saves || 0}</span>
                           </div>
                         )}
                       </div>
                     </div>
                     <div className="mt-3.5 flex items-center gap-2">
-                      <button onClick={() => toggleSold(l.id, l.sold)} className={smallPill + 'bg-[#FFF1EA] text-[#1E1B19]'}>{l.sold ? 'Relist' : 'Mark sold'}</button>
-                      <button onClick={() => startEdit(l)} className={smallPill + 'bg-[#FFF1EA] text-[#1E1B19]'}>Edit</button>
-                      <button onClick={() => handleDelete(l.id)} className={smallPill + 'ml-auto text-[#D64545] bg-transparent'}>Delete</button>
+                      <button onClick={() => toggleSold(l.id, l.sold)} className={smallPill + 'bg-[#f6f3ee] text-[#1c1c19]'}>{l.sold ? 'Relist' : 'Mark sold'}</button>
+                      <button onClick={() => startEdit(l)} className={smallPill + 'bg-[#f6f3ee] text-[#1c1c19]'}>Edit</button>
+                      <button onClick={() => handleDelete(l.id)} className={smallPill + 'ml-auto text-[#ba1a1a] bg-transparent'}>Delete</button>
                     </div>
                   </article>
                 )
@@ -496,10 +496,10 @@ export default function ProfilePage() {
 
         {/* Store */}
         <section className="mb-7">
-          <div className={'bg-white rounded-[22px] p-[18px] flex items-center gap-4 ' + SHADOW}>
+          <div className={'bg-white rounded-[2rem] p-[18px] flex items-center gap-4 ' + SHADOW}>
             <div className="min-w-0 flex-1">
               <h4 className="text-[15px] font-bold truncate">Bedi Book Store</h4>
-              <p className="text-[12px] text-[#5E5650] mt-0.5">Booth 48, Sector 40-C, Chandigarh</p>
+              <p className="text-[12px] text-[#4f4633] mt-0.5">Booth 48, Sector 40-C, Chandigarh</p>
             </div>
             <a aria-label="Chat with the store on WhatsApp" href={'https://wa.me/' + ADMIN_WA} target="_blank" rel="noopener noreferrer" className={'w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#25D366] shrink-0 active:scale-95 transition-transform ' + SHADOW}>
               <span className="material-symbols-outlined text-[22px]">chat</span>
@@ -508,24 +508,24 @@ export default function ProfilePage() {
         </section>
 
         {/* Menu */}
-        <section className={'bg-white rounded-[22px] p-2 mb-7 ' + SHADOW}>
+        <section className={'bg-white rounded-[2rem] p-2 mb-7 ' + SHADOW}>
           {menu.map(m => (
-            <a key={m.href} href={m.href} className="flex items-center gap-4 p-3 rounded-[16px] hover:bg-[#FFF1EA]/60 transition-colors">
-              <div className="w-10 h-10 rounded-full bg-[#FFF1EA] flex items-center justify-center shrink-0">
+            <a key={m.href} href={m.href} className="flex items-center gap-4 p-3 rounded-[1rem] hover:bg-[#f6f3ee]/60 transition-colors">
+              <div className="w-10 h-10 rounded-full bg-[#f6f3ee] flex items-center justify-center shrink-0">
                 <span className="material-symbols-outlined text-[20px]">{m.icon}</span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[15px] font-semibold">{m.title}</p>
-                <p className="text-[12px] text-[#5E5650] truncate">{m.sub}</p>
+                <p className="text-[12px] text-[#4f4633] truncate">{m.sub}</p>
               </div>
-              <span className="material-symbols-outlined text-[20px] text-[#9A908A]">chevron_right</span>
+              <span className="material-symbols-outlined text-[20px] text-[#817661]">chevron_right</span>
             </a>
           ))}
-          <button onClick={() => signOut({ redirectUrl: '/' })} className="w-full flex items-center gap-4 p-3 rounded-[16px] hover:bg-[#FFF1EA]/60 transition-colors text-left">
-            <div className="w-10 h-10 rounded-full bg-[#FFF1EA] flex items-center justify-center shrink-0 text-[#9A908A]">
+          <button onClick={() => signOut({ redirectUrl: '/' })} className="w-full flex items-center gap-4 p-3 rounded-[1rem] hover:bg-[#f6f3ee]/60 transition-colors text-left">
+            <div className="w-10 h-10 rounded-full bg-[#f6f3ee] flex items-center justify-center shrink-0 text-[#817661]">
               <span className="material-symbols-outlined text-[20px]">logout</span>
             </div>
-            <p className="flex-1 text-[14px] text-[#5E5650]">Log out</p>
+            <p className="flex-1 text-[14px] text-[#4f4633]">Log out</p>
           </button>
         </section>
       </main>
