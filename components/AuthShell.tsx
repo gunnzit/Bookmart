@@ -1,5 +1,6 @@
 'use client'
-import { SignIn, SignUp } from '@clerk/nextjs'
+import { SignIn, SignUp, useAuth } from '@clerk/nextjs'
+import { useRouter } from 'next/navigation'
 import Logo from '@/components/Logo'
 
 // The wrap&read sign-in / sign-up page. Clerk does the real work (Google, email, codes,
@@ -10,18 +11,25 @@ const CSS = `
 @keyframes wrAuUp{0%{opacity:0;transform:translateY(40px)}100%{opacity:1;transform:none}}
 @keyframes wrAuBob{0%,100%{translate:0 0}50%{translate:0 -5px}}
 @keyframes wrAuGlow{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:.9;transform:scale(1.15)}}
+@keyframes wrAuSk{0%{background-position:100% 0}100%{background-position:-100% 0}}
+@keyframes wrAuReveal{0%{opacity:0;transform:translateY(14px) scale(.97)}100%{opacity:1;transform:none}}
 @keyframes wrAuShine{0%{transform:translateX(-130%)}45%,100%{transform:translateX(130%)}}
 .wrau-pop{animation:wrAuPop .6s cubic-bezier(.22,1,.36,1) var(--d,0ms) backwards}
 .wrau-up{animation:wrAuUp .7s cubic-bezier(.22,1,.36,1) var(--d,0ms) backwards}
 .wrau-bob{animation:wrAuBob 3.4s ease-in-out infinite}
 .wrau-glow{animation:wrAuGlow 5s ease-in-out infinite}
+.wrau-sk{background:linear-gradient(90deg,#f1ede6 25%,#fbf8f1 40%,#f1ede6 60%);background-size:300% 100%;animation:wrAuSk 1.4s ease-in-out infinite}
+.wrau-reveal{animation:wrAuReveal .55s cubic-bezier(.22,1,.36,1) both}
+.wrau-card [class*="astAuthentication"]{display:none!important}
+.wrau-back{transition:transform .15s ease}
+.wrau-back:active{transform:scale(.9)}
 .wrau-tile{transition:transform .2s ease,box-shadow .2s ease}
 .wrau-tile:active{transform:scale(.98)}
 @media (hover:hover){.wrau-tile:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(120,70,40,.1)}}
 .wrau-card .cl-formButtonPrimary{position:relative;overflow:hidden;isolation:isolate}
 .wrau-card .cl-formButtonPrimary::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,.45) 50%,transparent 65%);transform:translateX(-130%);animation:wrAuShine 4s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce){
-.wrau-pop,.wrau-up,.wrau-bob,.wrau-glow,.wrau-card .cl-formButtonPrimary::after{animation:none!important}
+.wrau-pop,.wrau-up,.wrau-bob,.wrau-glow,.wrau-sk,.wrau-reveal,.wrau-card .cl-formButtonPrimary::after{animation:none!important}
 }
 `
 
@@ -44,7 +52,7 @@ const appearance = {
   elements: {
     rootBox: { width: '100%' },
     cardBox: { width: '100%', ...none },
-    card: { width: '100%', padding: 0, gap: '16px', borderRadius: 0, ...none },
+    card: { width: '100%', padding: 0, gap: '16px', borderRadius: 0, overflow: 'visible', ...none },
     header: { display: 'none' },
     headerTitle: { display: 'none' },
     headerSubtitle: { display: 'none' },
@@ -81,14 +89,36 @@ const appearance = {
 }
 
 export default function AuthShell({ mode }: { mode: 'in' | 'up' }) {
+  const router = useRouter()
+  const { isLoaded } = useAuth()
   const isIn = mode === 'in'
+
+  // Back goes to the page the person came from (only our own pages), else Home
+  function goBack() {
+    let to = '/'
+    try {
+      const r = new URLSearchParams(window.location.search).get('redirect_url') || ''
+      if (r.startsWith('/') && !r.startsWith('//')) to = r
+    } catch {}
+    router.push(to)
+  }
   const delay = (ms: number) => ({ ['--d' as any]: ms + 'ms' })
 
   return (
     <div className="min-h-screen bg-[#ECEAE5] flex justify-center font-['Plus_Jakarta_Sans',sans-serif] text-[#1c1c19] antialiased">
       <style>{CSS}</style>
       <main className="w-full max-w-[430px] bg-[#fcf9f4] min-h-screen relative shadow-2xl border-x border-stone-200 overflow-hidden" style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-        <div className="flex flex-col w-full px-5 pb-10">
+        <button
+          type="button"
+          onClick={goBack}
+          aria-label="Go back"
+          className="wrau-pop wrau-back absolute left-4 z-20 w-10 h-10 rounded-full bg-white shadow-md border border-stone-200 flex items-center justify-center text-[#1c1c19]"
+          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)', ...delay(0) }}
+        >
+          <i className="fa-solid fa-arrow-left text-sm" />
+        </button>
+
+        <div className="flex flex-col w-full px-5 pb-10" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 0px)' }}>
 
           {/* Brand header */}
           <header className="flex flex-col items-center pt-5 pb-2 text-center">
@@ -110,12 +140,27 @@ export default function AuthShell({ mode }: { mode: 'in' | 'up' }) {
           </header>
 
           {/* Sign-in card (Clerk inside) */}
-          <section className="wrau-up wrau-card mt-4 w-full bg-white rounded-[2rem] p-6 shadow-xl shadow-[#1c1c19]/5 relative overflow-hidden" style={delay(300)}>
-            <div className="wrau-glow absolute -top-12 -right-12 w-32 h-32 bg-[#fbbf24]/25 rounded-full blur-2xl pointer-events-none" />
+          <section className="wrau-up wrau-card mt-4 w-full bg-white rounded-[2rem] p-6 shadow-xl shadow-[#1c1c19]/5 relative" style={delay(300)}>
+            <div className="absolute inset-0 rounded-[2rem] overflow-hidden pointer-events-none">
+              <div className="wrau-glow absolute -top-12 -right-12 w-32 h-32 bg-[#fbbf24]/25 rounded-full blur-2xl" />
+            </div>
             <div className="relative z-10">
-              {isIn
-                ? <SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" appearance={appearance} />
-                : <SignUp routing="path" path="/sign-up" signInUrl="/sign-in" appearance={appearance} />}
+              {isLoaded ? (
+                <div className="wrau-reveal">
+                  {isIn
+                    ? <SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" appearance={appearance} />
+                    : <SignUp routing="path" path="/sign-up" signInUrl="/sign-in" appearance={appearance} />}
+                </div>
+              ) : (
+                /* shows the same shapes while Clerk loads, so nothing jumps in */
+                <div className="flex flex-col gap-4" aria-hidden>
+                  <div className="wrau-sk h-12 rounded-full" />
+                  <div className="wrau-sk h-3 w-24 rounded-full self-center" />
+                  <div className="wrau-sk h-12 rounded-full" />
+                  <div className="wrau-sk h-12 rounded-full" />
+                  <div className="wrau-sk h-4 w-40 rounded-full self-center" />
+                </div>
+              )}
             </div>
           </section>
 
