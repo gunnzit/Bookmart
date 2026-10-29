@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { schools } from '@/lib/kit-prices'
 
-const SHADOW = 'shadow-[0_6px_20px_rgba(120,70,40,0.08)]'
+const SHADOW = 'shadow-[0_6px_20px_rgba(28,28,25,0.08)]'
 const ADMIN_WA = '919914735738'
 const WA_HELP = 'https://wa.me/' + ADMIN_WA + '?text=' + encodeURIComponent('Hi, I need help with my Pageplus order')
 const LOOSE = 'Books and stationery'
@@ -19,7 +19,7 @@ const STEPS = ['confirmed', 'assembling', 'ready', 'delivered']
 function statusInfo(status: string, mode: string) {
   const pickup = mode !== 'delivery'
   const map: Record<string, { label: string; desc: string; tone: string }> = {
-    confirmed: { label: 'Order confirmed', desc: 'We have received your order and payment.', tone: 'bg-[#FCE3D6] text-[#C4501A]' },
+    confirmed: { label: 'Order confirmed', desc: 'We have received your order and payment.', tone: 'bg-[#ffdf9f] text-[#795900]' },
     assembling: { label: 'Being assembled', desc: 'Your order is being put together at the store.', tone: 'bg-[#FFF1D1] text-[#9A6B00]' },
     ready: {
       label: pickup ? 'Ready for pickup' : 'Ready',
@@ -32,7 +32,7 @@ function statusInfo(status: string, mode: string) {
       tone: 'bg-[#2E8B57]/10 text-[#2E8B57]',
     },
     cancellation_requested: { label: 'Cancellation requested', desc: 'The store will review your request and process your refund.', tone: 'bg-[#FFF1D1] text-[#9A6B00]' },
-    cancelled: { label: 'Cancelled', desc: 'This order was cancelled. Any refund is handled by the store.', tone: 'bg-[#D64545]/10 text-[#D64545]' },
+    cancelled: { label: 'Cancelled', desc: 'This order was cancelled. Any refund is handled by the store.', tone: 'bg-[#ba1a1a]/10 text-[#ba1a1a]' },
   }
   return map[status] || map.confirmed
 }
@@ -117,20 +117,20 @@ export default function MyOrdersPage() {
     : tab === 'past' ? orders.filter(o => PAST.includes(o.status))
     : tab === 'chats' ? [] : orders
 
-  const pageCls = "min-h-screen text-[#1E1B19] antialiased font-['Plus_Jakarta_Sans',sans-serif]"
-  const pageStyle = { background: 'linear-gradient(180deg, #FDEADF 0%, #FFF7F2 100%)' }
-  const iconBtn = 'w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#5E5650] active:scale-95 transition-transform shrink-0 ' + SHADOW
-  const chip = (on: boolean) => 'shrink-0 px-4 py-2 rounded-full text-[13px] active:scale-95 transition-transform ' + (on ? 'bg-[#E8632B] text-white font-semibold shadow-[0_4px_14px_rgba(232,99,43,0.3)]' : 'bg-white text-[#1E1B19] font-medium ' + SHADOW)
+  const pageCls = "min-h-screen text-[#1c1c19] antialiased font-['Plus_Jakarta_Sans',sans-serif]"
+  const pageStyle = { background: '#fcf9f4' }
+  const iconBtn = 'w-10 h-10 rounded-full bg-[#f0ede9] flex items-center justify-center text-[#4f4633] active:scale-95 transition-transform shrink-0'
+  const chip = (on: boolean) => 'shrink-0 px-4 py-2 rounded-full text-[13px] active:scale-95 transition-transform ' + (on ? 'bg-[#fbbf24] text-[#6c4f00] font-semibold shadow-[0_4px_14px_rgba(251,191,36,0.3)]' : 'bg-white text-[#1c1c19] font-medium ' + SHADOW)
   const secondaryBtn = 'h-11 px-3 rounded-full bg-white text-[14px] font-semibold flex items-center justify-center gap-1.5 active:scale-95 transition-transform ' + SHADOW
-  const mainBtn = 'w-full h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform'
+  const mainBtn = 'w-full h-[52px] bg-[#fbbf24] text-[#6c4f00] text-[15px] font-bold shadow-[0_4px_14px_rgba(251,191,36,0.35)] rounded-full active:scale-[0.98] transition-transform'
 
   const helpCard = (
-    <section className={'bg-white rounded-[22px] p-[18px] flex flex-col gap-3 ' + SHADOW}>
+    <section className={'bg-white rounded-[2rem] p-[18px] flex flex-col gap-3 ' + SHADOW}>
       <div>
         <h3 className="text-[15px] font-semibold">Need help with an order?</h3>
-        <p className="text-[12px] text-[#5E5650] mt-0.5">The Bedi Book Store team is on WhatsApp.</p>
+        <p className="text-[12px] text-[#4f4633] mt-0.5">The Bedi Book Store team is on WhatsApp.</p>
       </div>
-      <p className="text-[12px] text-[#9A908A]">No cancellation or refund once your order has been picked up or delivered. After that, exchange is available within 24 hours.</p>
+      <p className="text-[12px] text-[#817661]">No cancellation or refund once your order has been picked up or delivered. After that, exchange is available within 24 hours.</p>
       <a href={WA_HELP} target="_blank" rel="noopener noreferrer" className={secondaryBtn}>
         <span className="material-symbols-outlined text-[18px] text-[#25D366]">chat</span>WhatsApp support
       </a>
@@ -140,7 +140,7 @@ export default function MyOrdersPage() {
   if (!isLoaded) {
     return (
       <div className={pageCls + ' flex items-center justify-center'} style={pageStyle}>
-        <span className="material-symbols-outlined text-[32px] text-[#E8632B] animate-spin">progress_activity</span>
+        <span className="material-symbols-outlined text-[32px] text-[#795900] animate-spin">progress_activity</span>
       </div>
     )
   }
@@ -148,9 +148,9 @@ export default function MyOrdersPage() {
   if (!isSignedIn) {
     return (
       <div className={pageCls + ' flex items-center justify-center p-5'} style={pageStyle}>
-        <div className={'bg-white rounded-[28px] p-7 max-w-sm w-full text-center ' + SHADOW}>
+        <div className={'bg-white rounded-[2rem] p-7 max-w-sm w-full text-center ' + SHADOW}>
           <h1 className="text-[20px] font-bold mb-1">Track your orders</h1>
-          <p className="text-[14px] text-[#5E5650] mb-6">Sign in to see your orders and where they are.</p>
+          <p className="text-[14px] text-[#4f4633] mb-6">Sign in to see your orders and where they are.</p>
           <SignInButton mode="modal">
             <button className={mainBtn}>Sign in</button>
           </SignInButton>
@@ -169,7 +169,7 @@ export default function MyOrdersPage() {
             <header className="flex items-center justify-between mb-5 h-12">
               <div>
                 <h1 className="text-[20px] font-bold tracking-tight">My orders</h1>
-                <p className="text-[12px] text-[#5E5650] mt-0.5">{activeCount === 0 ? 'Nothing on the way' : activeCount + (activeCount === 1 ? ' order on the way' : ' orders on the way')}</p>
+                <p className="text-[12px] text-[#4f4633] mt-0.5">{activeCount === 0 ? 'Nothing on the way' : activeCount + (activeCount === 1 ? ' order on the way' : ' orders on the way')}</p>
               </div>
               <a aria-label="Chat with the store on WhatsApp" href={WA_HELP} target="_blank" rel="noopener noreferrer" className={iconBtn}>
                 <span className="material-symbols-outlined text-[20px]">help_outline</span>
@@ -187,24 +187,24 @@ export default function MyOrdersPage() {
             <div className="flex flex-col gap-4 pt-4">
 
               {tab === 'chats' ? (
-                <div className={'bg-white rounded-[22px] p-6 text-center ' + SHADOW}>
+                <div className={'bg-white rounded-[2rem] p-6 text-center ' + SHADOW}>
                   <h2 className="text-[15px] font-semibold mb-1">Chats about books you are buying</h2>
-                  <p className="text-[13px] text-[#5E5650] mb-4">Marketplace books are arranged directly with the seller in chat.</p>
+                  <p className="text-[13px] text-[#4f4633] mb-4">Marketplace books are arranged directly with the seller in chat.</p>
                   <button onClick={() => router.push('/messages')} className={mainBtn}>Open messages</button>
                 </div>
               ) : loading ? (
                 <div className="flex flex-col gap-3">
-                  {[1, 2].map(i => <div key={i} className="h-48 rounded-[22px] bg-white/70 animate-pulse" />)}
+                  {[1, 2].map(i => <div key={i} className="h-48 rounded-[2rem] bg-white/70 animate-pulse" />)}
                 </div>
               ) : orders.length === 0 ? (
-                <div className={'bg-white rounded-[22px] p-6 text-center ' + SHADOW}>
+                <div className={'bg-white rounded-[2rem] p-6 text-center ' + SHADOW}>
                   <h2 className="text-[15px] font-semibold mb-1">No orders yet</h2>
-                  <p className="text-[13px] text-[#5E5650] mb-4">Order a school kit or some stationery and track it here.</p>
+                  <p className="text-[13px] text-[#4f4633] mb-4">Order a school kit or some stationery and track it here.</p>
                   <button onClick={() => router.push('/school-sets')} className={mainBtn}>Browse school kits</button>
                 </div>
               ) : shown.length === 0 ? (
-                <div className={'bg-white rounded-[22px] p-6 text-center ' + SHADOW}>
-                  <p className="text-[14px] text-[#5E5650]">No orders in this list.</p>
+                <div className={'bg-white rounded-[2rem] p-6 text-center ' + SHADOW}>
+                  <p className="text-[14px] text-[#4f4633]">No orders in this list.</p>
                 </div>
               ) : (
                 shown.map(order => {
@@ -222,44 +222,44 @@ export default function MyOrdersPage() {
                   const isLoose = order.school === LOOSE
 
                   return (
-                    <article key={order.id} className={'bg-white rounded-[22px] p-[18px] flex flex-col gap-3.5 ' + SHADOW}>
+                    <article key={order.id} className={'bg-white rounded-[2rem] p-[18px] flex flex-col gap-3.5 ' + SHADOW}>
 
                       {/* Top */}
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <h2 className="text-[15px] font-bold leading-snug">{isLoose ? LOOSE : order.school}</h2>
-                          <p className="text-[12px] text-[#9A908A] mt-0.5">Order {code} · {when}</p>
+                          <p className="text-[12px] text-[#817661] mt-0.5">Order {code} · {when}</p>
                         </div>
                         <span className={'px-2.5 py-1 rounded-full text-[12px] font-semibold shrink-0 ' + si.tone}>{si.label}</span>
                       </div>
 
                       {/* Summary */}
                       <button onClick={() => setExpandedId(open ? null : order.id)} className="flex items-center gap-4 text-left">
-                        <div className="w-16 h-20 rounded-[18px] bg-[#F8EDE6] flex items-center justify-center shrink-0">
-                          <span className="material-symbols-outlined text-[28px] text-[#C4501A]/60">{isLoose ? 'edit_note' : 'backpack'}</span>
+                        <div className="w-16 h-20 rounded-[1rem] bg-[#f0ede9] flex items-center justify-center shrink-0">
+                          <span className="material-symbols-outlined text-[28px] text-[#795900]/60">{isLoose ? 'edit_note' : 'backpack'}</span>
                         </div>
                         <div className="flex flex-col flex-1 min-w-0">
                           <span className="text-[15px] font-semibold truncate">{title}</span>
-                          <p className="text-[12px] text-[#5E5650] mt-0.5">
+                          <p className="text-[12px] text-[#4f4633] mt-0.5">
                             {items.length} {items.length === 1 ? 'item' : 'items'} · {order.deliveryMode === 'delivery' ? 'Home delivery' : 'Pickup, Sector 40-C'}
                           </p>
                           <div className="flex items-baseline gap-2 mt-1.5">
                             <span className="text-[16px] font-bold">{money(order.totalAmount ?? order.paidNow)}</span>
-                            <span className="text-[12px] text-[#9A908A]">Paid {money(order.paidNow)}</span>
+                            <span className="text-[12px] text-[#817661]">Paid {money(order.paidNow)}</span>
                           </div>
                         </div>
-                        <span className="material-symbols-outlined text-[#9A908A] text-[22px] shrink-0 transition-transform" style={{ transform: open ? 'rotate(180deg)' : 'none' }}>expand_more</span>
+                        <span className="material-symbols-outlined text-[#817661] text-[22px] shrink-0 transition-transform" style={{ transform: open ? 'rotate(180deg)' : 'none' }}>expand_more</span>
                       </button>
 
                       {order.payLater > 0 && !['cancelled', 'delivered'].includes(order.status) && (
-                        <div className="rounded-[16px] bg-[#FFF1EA] px-3.5 py-2.5 text-[13px] font-medium">
+                        <div className="rounded-[1rem] bg-[#f6f3ee] px-3.5 py-2.5 text-[13px] font-medium">
                           {money(order.payLater)} to pay at {order.deliveryMode === 'delivery' ? 'delivery' : 'pickup'}
                         </div>
                       )}
 
                       {/* Tracker */}
                       {showTracker && (
-                        <div className="rounded-[16px] bg-[#FFF1EA]/60 p-3.5 flex flex-col gap-3">
+                        <div className="rounded-[1rem] bg-[#f6f3ee]/60 p-3.5 flex flex-col gap-3">
                           <p className="text-[13px] font-semibold">{si.desc}</p>
                           <div className="flex items-start">
                             {STEPS.map((step, i) => {
@@ -267,11 +267,11 @@ export default function MyOrdersPage() {
                               const current = i === stepIdx
                               return (
                                 <div key={step} className="flex-1 flex flex-col items-center text-center relative">
-                                  {i > 0 && <div className={'absolute right-1/2 left-[-50%] top-3 h-0.5 ' + (i <= stepIdx ? 'bg-[#E8632B]' : 'bg-[#F0E2DA]')} />}
-                                  <div className={'w-6 h-6 rounded-full flex items-center justify-center z-10 ' + (done ? 'bg-[#E8632B] text-white' : 'bg-white text-[#9A908A]') + (current && !delivered ? ' ring-4 ring-[#E8632B]/20' : '')}>
+                                  {i > 0 && <div className={'absolute right-1/2 left-[-50%] top-3 h-0.5 ' + (i <= stepIdx ? 'bg-[#fbbf24]' : 'bg-[#e5e2dd]')} />}
+                                  <div className={'w-6 h-6 rounded-full flex items-center justify-center z-10 ' + (done ? 'bg-[#fbbf24] text-[#6c4f00]' : 'bg-white text-[#817661]') + (current && !delivered ? ' ring-4 ring-[#fbbf24]/20' : '')}>
                                     <span className="material-symbols-outlined text-[14px]">{done ? 'check' : 'more_horiz'}</span>
                                   </div>
-                                  <span className={'text-[11px] mt-1 ' + (current ? 'text-[#C4501A] font-semibold' : 'text-[#5E5650]')}>{stepLabel(step, order.deliveryMode)}</span>
+                                  <span className={'text-[11px] mt-1 ' + (current ? 'text-[#795900] font-semibold' : 'text-[#4f4633]')}>{stepLabel(step, order.deliveryMode)}</span>
                                 </div>
                               )
                             })}
@@ -279,13 +279,13 @@ export default function MyOrdersPage() {
                         </div>
                       )}
                       {!showTracker && (
-                        <div className={'rounded-[16px] px-3.5 py-2.5 text-[13px] font-semibold ' + si.tone}>{si.desc}</div>
+                        <div className={'rounded-[1rem] px-3.5 py-2.5 text-[13px] font-semibold ' + si.tone}>{si.desc}</div>
                       )}
 
                       {/* Expanded details */}
                       {open && (
                         <div className="flex flex-col gap-3">
-                          <div className="rounded-[16px] bg-[#FFF1EA]/60 p-3.5">
+                          <div className="rounded-[1rem] bg-[#f6f3ee]/60 p-3.5">
                             <p className="text-[13px] font-semibold mb-1">Items in this order</p>
                             <div className="max-h-64 overflow-y-auto">
                               {items.map((item, i) => {
@@ -293,8 +293,8 @@ export default function MyOrdersPage() {
                                 const name = cut > -1 ? item.slice(0, cut) : item
                                 const price = cut > -1 ? item.slice(cut + 2) : ''
                                 return (
-                                  <div key={i} className="flex items-center justify-between gap-3 py-1.5 border-b border-[#F0E2DA] last:border-0">
-                                    <span className="text-[13px] text-[#5E5650] flex-1">{name}</span>
+                                  <div key={i} className="flex items-center justify-between gap-3 py-1.5 border-b border-[#e5e2dd] last:border-0">
+                                    <span className="text-[13px] text-[#4f4633] flex-1">{name}</span>
                                     {price && <span className="text-[13px] font-semibold shrink-0">₹{price}</span>}
                                   </div>
                                 )
@@ -302,50 +302,50 @@ export default function MyOrdersPage() {
                             </div>
                           </div>
                           <div className="flex flex-col gap-1.5 text-[14px] px-1">
-                            <div className="flex justify-between"><span className="text-[#5E5650]">Total</span><span className="font-semibold">{money(order.totalAmount)}</span></div>
-                            <div className="flex justify-between"><span className="text-[#5E5650]">Paid now</span><span className="font-semibold">{money(order.paidNow)}</span></div>
+                            <div className="flex justify-between"><span className="text-[#4f4633]">Total</span><span className="font-semibold">{money(order.totalAmount)}</span></div>
+                            <div className="flex justify-between"><span className="text-[#4f4633]">Paid now</span><span className="font-semibold">{money(order.paidNow)}</span></div>
                             {order.payLater > 0 && (
-                              <div className="flex justify-between"><span className="text-[#5E5650]">Due at {order.deliveryMode === 'delivery' ? 'delivery' : 'pickup'}</span><span className="font-semibold">{money(order.payLater)}</span></div>
+                              <div className="flex justify-between"><span className="text-[#4f4633]">Due at {order.deliveryMode === 'delivery' ? 'delivery' : 'pickup'}</span><span className="font-semibold">{money(order.payLater)}</span></div>
                             )}
-                            <div className="flex justify-between"><span className="text-[#5E5650]">Payment</span><span className="font-semibold">{order.paymentMode === 'full' ? 'Paid in full' : '30% upfront'}</span></div>
+                            <div className="flex justify-between"><span className="text-[#4f4633]">Payment</span><span className="font-semibold">{order.paymentMode === 'full' ? 'Paid in full' : '30% upfront'}</span></div>
                           </div>
                         </div>
                       )}
 
                       {/* Cancellation / delivered notes */}
                       {requested && (
-                        <div className="rounded-[16px] bg-[#FFF1D1] text-[#9A6B00] p-3 text-[13px] font-medium text-center">
+                        <div className="rounded-[1rem] bg-[#FFF1D1] text-[#9A6B00] p-3 text-[13px] font-medium text-center">
                           Cancellation requested. Waiting for store approval. Your refund is processed once approved.
                         </div>
                       )}
                       {delivered && (
-                        <p className="text-[12px] text-[#9A908A] text-center">No cancellation or refund after pickup or delivery. Exchange is available within 24 hours.</p>
+                        <p className="text-[12px] text-[#817661] text-center">No cancellation or refund after pickup or delivery. Exchange is available within 24 hours.</p>
                       )}
 
                       {/* Actions */}
                       <div className="grid grid-cols-2 gap-2">
                         {canCancel ? (
-                          <button onClick={() => requestCancel(order)} disabled={cancelling === order.id} className={secondaryBtn + 'text-[#D64545] disabled:opacity-60'}>
+                          <button onClick={() => requestCancel(order)} disabled={cancelling === order.id} className={secondaryBtn + 'text-[#ba1a1a] disabled:opacity-60'}>
                             {cancelling === order.id ? 'Requesting…' : 'Cancel order'}
                           </button>
                         ) : (
                           <button onClick={() => reorder(order)} className={secondaryBtn}>
-                            <span className="material-symbols-outlined text-[18px] text-[#5E5650]">refresh</span>Reorder
+                            <span className="material-symbols-outlined text-[18px] text-[#4f4633]">refresh</span>Reorder
                           </button>
                         )}
                         <button onClick={() => window.open('https://wa.me/' + ADMIN_WA + '?text=' + encodeURIComponent('Hi, I have a query about my ' + title + ' order (ID: ' + String(order.id).slice(-8) + ')'), '_blank')} className={secondaryBtn}>
                           <span className="material-symbols-outlined text-[18px] text-[#25D366]">chat</span>Contact store
                         </button>
                       </div>
-                      {canCancel && <p className="text-[12px] text-[#9A908A] text-center -mt-1">You can cancel until the order is picked up or delivered. The store will review and process your refund.</p>}
+                      {canCancel && <p className="text-[12px] text-[#817661] text-center -mt-1">You can cancel until the order is picked up or delivered. The store will review and process your refund.</p>}
 
                       {delivered && (
-                        <div className="rounded-[16px] bg-[#FFF1EA] p-3 flex items-center justify-between gap-3">
+                        <div className="rounded-[1rem] bg-[#f6f3ee] p-3 flex items-center justify-between gap-3">
                           <div className="min-w-0">
                             <p className="text-[13px] font-semibold">Finished with these books?</p>
-                            <p className="text-[12px] text-[#5E5650]">Juniors are looking for them.</p>
+                            <p className="text-[12px] text-[#4f4633]">Juniors are looking for them.</p>
                           </div>
-                          <button onClick={() => router.push('/sell')} className="h-9 px-4 rounded-full bg-white text-[13px] font-semibold text-[#C4501A] shrink-0 active:scale-95 transition-transform shadow-[0_6px_20px_rgba(120,70,40,0.08)]">Sell them</button>
+                          <button onClick={() => router.push('/sell')} className="h-9 px-4 rounded-full bg-white text-[13px] font-semibold text-[#795900] shrink-0 active:scale-95 transition-transform shadow-[0_6px_20px_rgba(28,28,25,0.08)]">Sell them</button>
                         </div>
                       )}
                     </article>
