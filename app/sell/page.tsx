@@ -78,10 +78,10 @@ const LOCATIONS = [
   'Kharar, Mohali', 'Zirakpur', 'Derabassi', 'Dera Bassi',
 ]
 
-const CARD = 'bg-white rounded-[22px] p-4 shadow-[0_6px_20px_rgba(120,70,40,0.08)]'
-const INPUT = 'w-full bg-[#FFF1EA] rounded-[16px] px-3.5 py-3 text-[14px] text-[#1E1B19] placeholder:text-[#9A908A] outline-none focus:ring-2 focus:ring-[#FCE3D6]'
-const LABEL = 'block text-[12px] text-[#5E5650] mb-1.5'
-const SHADOW = 'shadow-[0_6px_20px_rgba(120,70,40,0.08)]'
+const CARD = 'bg-white rounded-[2rem] p-4 shadow-[0_6px_20px_rgba(28,28,25,0.08)]'
+const INPUT = 'w-full bg-[#f6f3ee] rounded-[1rem] px-3.5 py-3 text-[14px] text-[#1c1c19] placeholder:text-[#817661] outline-none focus:ring-2 focus:ring-[#ffdf9f]'
+const LABEL = 'block text-[12px] text-[#4f4633] mb-1.5'
+const SHADOW = 'shadow-[0_6px_20px_rgba(28,28,25,0.08)]'
 
 function Chip({ on, children, onClick }: { on: boolean; children: React.ReactNode; onClick: () => void }) {
   return (
@@ -89,7 +89,7 @@ function Chip({ on, children, onClick }: { on: boolean; children: React.ReactNod
       type="button"
       onClick={onClick}
       className={`shrink-0 px-4 py-2 rounded-full text-[13px] active:scale-95 transition-transform ${
-        on ? 'bg-[#E8632B] text-white font-semibold' : 'bg-[#FFF1EA] text-[#1E1B19] font-medium'
+        on ? 'bg-[#fbbf24] text-[#6c4f00] font-semibold' : 'bg-[#f6f3ee] text-[#1c1c19] font-medium'
       }`}
     >
       {children}
@@ -99,12 +99,9 @@ function Chip({ on, children, onClick }: { on: boolean; children: React.ReactNod
 
 function StepTitle({ n, children, right }: { n: number; children: React.ReactNode; right?: string }) {
   return (
-    <div className="flex items-center justify-between mb-3">
-      <div className="flex items-center gap-2">
-        <span className="w-6 h-6 rounded-full bg-[#F8EDE6] text-[#5E5650] text-[12px] font-bold flex items-center justify-center">{n}</span>
-        <h2 className="text-[17px] leading-[22px] font-bold text-[#1E1B19]">{children}</h2>
-      </div>
-      {right && <span className="text-[12px] text-[#5E5650]">{right}</span>}
+    <div className="flex items-center justify-between gap-3 mb-3">
+      <h2 className="text-[20px] leading-[26px] font-bold tracking-tight text-[#1c1c19]">{n}. {children}</h2>
+      {right && <span className="shrink-0 px-2.5 py-1 rounded-full bg-[#fbbf24] text-[#6c4f00] text-[11px] font-bold">{right}</span>}
     </div>
   )
 }
@@ -400,12 +397,12 @@ export default function SellPage() {
     setLoading(false)
   }
 
-  const shell = 'min-h-screen font-[family-name:Plus_Jakarta_Sans,sans-serif] text-[#1E1B19]'
-  const bg = { background: 'linear-gradient(180deg,#FDEADF 0%,#FFF7F2 100%)' }
+  const shell = 'min-h-screen bg-[#fcf9f4] font-[family-name:Plus_Jakarta_Sans,sans-serif] text-[#1c1c19]'
+  const bg = { background: 'linear-gradient(180deg,#fcf9f4 0%,#fcf9f4 100%)' }
 
   if (!phoneChecked) return (
     <div className={`${shell} flex items-center justify-center`} style={bg}>
-      <div className="w-6 h-6 rounded-full border-[3px] border-[#E8632B] border-t-transparent animate-spin" />
+      <div className="w-6 h-6 rounded-full border-[3px] border-[#fbbf24] border-t-transparent animate-spin" />
     </div>
   )
 
@@ -413,20 +410,20 @@ export default function SellPage() {
     <div className={shell} style={bg}>
       <header className="px-5 pt-4 flex items-center gap-3">
         <button onClick={() => router.push('/marketplace')} aria-label="Back"
-          className={`w-10 h-10 rounded-full bg-white ${SHADOW} flex items-center justify-center text-[18px] active:scale-95 transition-transform`}>←</button>
+          className="w-10 h-10 rounded-full bg-[#f0ede9] flex items-center justify-center active:scale-95 transition-transform"><span className="material-symbols-outlined text-[22px]">arrow_back</span></button>
         <h1 className="text-[20px] font-bold">{PHONE_OTP_REQUIRED ? 'Verify your WhatsApp' : 'Your WhatsApp number'}</h1>
       </header>
       <div className="max-w-md mx-auto px-5 mt-6">
         <div className={CARD}>
           {otpStep === 'number' ? (
             <>
-              <p className="text-[14px] text-[#5E5650] leading-[20px] mb-4">
+              <p className="text-[14px] text-[#4f4633] leading-[20px] mb-4">
                 {PHONE_OTP_REQUIRED
                   ? 'We will send a 6-digit code on WhatsApp to confirm this number. Buyers and our team use it to reach you about your books.'
                   : 'Buyers and our team use this number to reach you about your books. Add it once and you are set.'}
               </p>
               <div className="flex gap-2">
-                <div className="flex items-center bg-[#FFF1EA] rounded-[16px] px-3.5 text-[14px] text-[#5E5650] font-medium shrink-0">+91</div>
+                <div className="flex items-center bg-[#f6f3ee] rounded-[1rem] px-3.5 text-[14px] text-[#4f4633] font-medium shrink-0">+91</div>
                 <input
                   value={phone}
                   inputMode="numeric"
@@ -436,17 +433,17 @@ export default function SellPage() {
                 />
               </div>
               {phone.length > 0 && phone.length < 10 && (
-                <p className="text-[12px] text-[#D64545] mt-2">Enter a 10-digit number.</p>
+                <p className="text-[12px] text-[#ba1a1a] mt-2">Enter a 10-digit number.</p>
               )}
-              {otpMsg && <p className="text-[12px] text-[#D64545] mt-2">{otpMsg}</p>}
+              {otpMsg && <p className="text-[12px] text-[#ba1a1a] mt-2">{otpMsg}</p>}
               <button onClick={sendCode} disabled={otpBusy || phone.length < 10}
-                className="mt-5 w-full h-[52px] rounded-full bg-[#E8632B] text-white text-[17px] font-semibold disabled:opacity-40 active:scale-[0.98] transition-transform">
+                className="mt-5 w-full h-[52px] rounded-full bg-[#fbbf24] text-[#6c4f00] text-[15px] font-bold shadow-[0_4px_14px_rgba(251,191,36,0.35)] disabled:opacity-40 active:scale-[0.98] transition-transform">
                 {otpBusy ? (PHONE_OTP_REQUIRED ? 'Sending…' : 'Saving…') : (PHONE_OTP_REQUIRED ? 'Send code on WhatsApp' : 'Save and continue')}
               </button>
             </>
           ) : (
             <>
-              <p className="text-[14px] text-[#5E5650] leading-[20px] mb-4">
+              <p className="text-[14px] text-[#4f4633] leading-[20px] mb-4">
                 We sent a 6-digit code on WhatsApp to +91 {phone}. It is valid for 10 minutes.
               </p>
               <input
@@ -457,21 +454,21 @@ export default function SellPage() {
                 placeholder="------"
                 className={`${INPUT} text-center !text-[28px] tracking-[0.4em] font-bold`}
               />
-              {otpMsg && <p className="text-[12px] text-[#D64545] mt-2">{otpMsg}</p>}
+              {otpMsg && <p className="text-[12px] text-[#ba1a1a] mt-2">{otpMsg}</p>}
               <button onClick={verifyCode} disabled={otpBusy || code.length !== 6}
-                className="mt-5 w-full h-[52px] rounded-full bg-[#E8632B] text-white text-[17px] font-semibold disabled:opacity-40 active:scale-[0.98] transition-transform">
+                className="mt-5 w-full h-[52px] rounded-full bg-[#fbbf24] text-[#6c4f00] text-[15px] font-bold shadow-[0_4px_14px_rgba(251,191,36,0.35)] disabled:opacity-40 active:scale-[0.98] transition-transform">
                 {otpBusy ? 'Checking…' : 'Verify and continue'}
               </button>
               <div className="flex items-center justify-between mt-3">
-                <button onClick={() => { setOtpStep('number'); setOtpMsg(''); setCode('') }} className="py-2 text-[14px] text-[#5E5650]">Change number</button>
-                <button onClick={sendCode} disabled={resendIn > 0 || otpBusy} className="py-2 text-[14px] font-semibold text-[#C4501A] disabled:text-[#9A908A]">
+                <button onClick={() => { setOtpStep('number'); setOtpMsg(''); setCode('') }} className="py-2 text-[14px] text-[#4f4633]">Change number</button>
+                <button onClick={sendCode} disabled={resendIn > 0 || otpBusy} className="py-2 text-[14px] font-semibold text-[#795900] disabled:text-[#817661]">
                   {resendIn > 0 ? `Resend in ${resendIn}s` : 'Resend code'}
                 </button>
               </div>
-              <a href="https://wa.me/919914735738" className="block text-center text-[12px] text-[#5E5650] mt-2">Not getting the code? Chat with us</a>
+              <a href="https://wa.me/919914735738" className="block text-center text-[12px] text-[#4f4633] mt-2">Not getting the code? Chat with us</a>
             </>
           )}
-          <button onClick={() => router.push('/marketplace')} className="w-full mt-2 py-3 text-[14px] text-[#5E5650]">Not now</button>
+          <button onClick={() => router.push('/marketplace')} className="w-full mt-2 py-3 text-[14px] text-[#4f4633]">Not now</button>
         </div>
       </div>
     </div>
@@ -480,13 +477,13 @@ export default function SellPage() {
   if (done) return (
     <div className={`${shell} flex items-center justify-center px-5`} style={bg}>
       <div className={`${CARD} max-w-sm w-full text-center !p-8`}>
-        <div className="w-16 h-16 mx-auto rounded-full bg-[#FFF1EA] flex items-center justify-center text-[28px] mb-4">⏳</div>
+        <div className="w-16 h-16 mx-auto rounded-full bg-[#f6f3ee] flex items-center justify-center text-[28px] mb-4">⏳</div>
         <h2 className="text-[20px] font-bold mb-2">Listing submitted</h2>
-        <p className="text-[14px] text-[#5E5650] leading-[20px] mb-6">
+        <p className="text-[14px] text-[#4f4633] leading-[20px] mb-6">
           We are checking it now. It goes live once approved, usually within a few hours.
         </p>
         <button onClick={() => router.push('/marketplace')}
-          className="w-full h-[52px] rounded-full bg-[#E8632B] text-white text-[17px] font-semibold active:scale-[0.98] transition-transform">
+          className="w-full h-[52px] rounded-full bg-[#fbbf24] text-[#6c4f00] text-[15px] font-bold shadow-[0_4px_14px_rgba(251,191,36,0.35)] active:scale-[0.98] transition-transform">
           Back to marketplace
         </button>
         <button
@@ -504,17 +501,18 @@ export default function SellPage() {
 
   return (
     <div className={shell} style={bg}>
-      <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-[#FDEADF]/80">
-        <div className="h-16 px-5 flex items-center justify-between max-w-md mx-auto">
+      <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-[#fcf9f4]/85 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+        <div className="h-16 px-4 flex items-center gap-3 max-w-md mx-auto">
           <button onClick={() => router.back()} aria-label="Back"
-            className={`w-10 h-10 rounded-full bg-white ${SHADOW} flex items-center justify-center text-[18px] active:scale-95 transition-transform`}>←</button>
-          <h1 className="text-[20px] font-bold">Sell a book</h1>
-          <div className="w-10" />
+            className="w-10 h-10 rounded-full bg-[#f0ede9] flex items-center justify-center active:scale-95 transition-transform"><span className="material-symbols-outlined text-[22px]">arrow_back</span></button>
+          <div className="min-w-0">
+            <h1 className="text-[20px] leading-[24px] font-bold tracking-tight">Sell a book</h1>
+            <p className="text-[12px] text-[#4f4633]">Free to list. You keep the full price.</p>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-5 pt-20 pb-40 flex flex-col gap-7">
-        <p className="text-[14px] text-[#5E5650] -mb-2">Free to list. You keep the full price.</p>
+      <main className="max-w-md mx-auto px-4 pt-20 pb-40 flex flex-col gap-7">
 
         {/* 1 Photos */}
         <section>
@@ -525,11 +523,11 @@ export default function SellPage() {
                 const src = previews[i]
                 if (src) {
                   return (
-                    <div key={i} className="relative aspect-[3/4] rounded-[18px] overflow-hidden bg-[#F8EDE6]">
+                    <div key={i} className="relative aspect-[3/4] rounded-[1rem] overflow-hidden bg-[#f0ede9]">
                       <img src={src} alt={slot.name} className="w-full h-full object-cover" />
-                      <span className="absolute bottom-1.5 left-1.5 right-1.5 bg-[#1E1B19]/75 rounded-full px-2 py-0.5 text-center text-[11px] text-white font-medium">{slot.name}</span>
+                      <span className="absolute bottom-1.5 left-1.5 right-1.5 bg-[#1c1c19]/75 rounded-full px-2 py-0.5 text-center text-[11px] text-white font-medium">{slot.name}</span>
                       <button onClick={() => removeImage(i)} aria-label="Remove photo"
-                        className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-white/90 text-[#5E5650] text-[14px] flex items-center justify-center">×</button>
+                        className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-white/90 text-[#4f4633] text-[14px] flex items-center justify-center">×</button>
                     </div>
                   )
                 }
@@ -537,16 +535,16 @@ export default function SellPage() {
                 return (
                   <button key={i} type="button"
                     onClick={() => isNext && fileRef.current?.click()}
-                    className={`aspect-[3/4] rounded-[18px] bg-[#FFF1EA] flex flex-col items-center justify-center gap-1 text-center p-2 transition-transform ${isNext ? 'active:scale-95' : 'opacity-60'}`}>
-                    <span className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[16px] shadow-[0_2px_8px_rgba(120,70,40,0.06)]">+</span>
-                    <span className="text-[12px] font-medium text-[#1E1B19] leading-tight">{slot.name}</span>
-                    <span className="text-[12px] text-[#9A908A] leading-none">{slot.hint}</span>
+                    className={`aspect-[3/4] rounded-[1rem] bg-[#f6f3ee] flex flex-col items-center justify-center gap-1 text-center p-2 transition-transform ${isNext ? 'active:scale-95' : 'opacity-60'}`}>
+                    <span className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[16px] shadow-[0_2px_8px_rgba(28,28,25,0.06)]">+</span>
+                    <span className="text-[12px] font-medium text-[#1c1c19] leading-tight">{slot.name}</span>
+                    <span className="text-[12px] text-[#817661] leading-none">{slot.hint}</span>
                   </button>
                 )
               })}
             </div>
             <input ref={fileRef} type="file" accept="image/*" multiple onChange={handleImageSelect} className="hidden" />
-            <p className="text-[12px] text-[#5E5650] mt-3">
+            <p className="text-[12px] text-[#4f4633] mt-3">
               {images.length < 2
                 ? 'Add the front cover first, then a clear photo of the price tag.'
                 : 'Looks good. Clear photos sell faster.'}
@@ -603,31 +601,31 @@ export default function SellPage() {
               const on = !donate && form.condition === g.value
               return (
                 <button key={g.value} type="button" onClick={() => { setDonate(false); update('condition', g.value) }}
-                  className={`flex items-start gap-3 p-3 rounded-[16px] text-left active:scale-[0.99] transition-transform ${on ? 'bg-[#FCE3D6]' : 'bg-[#FFF1EA]'}`}>
-                  <span className={`w-5 h-5 mt-0.5 rounded-full shrink-0 flex items-center justify-center text-[12px] ${on ? 'bg-[#E8632B] text-white' : 'bg-white'}`}>{on ? '✓' : ''}</span>
+                  className={`flex items-start gap-3 p-3 rounded-[1rem] text-left active:scale-[0.99] transition-transform ${on ? 'bg-[#ffdf9f]' : 'bg-[#f6f3ee]'}`}>
+                  <span className={`w-5 h-5 mt-0.5 rounded-full shrink-0 flex items-center justify-center text-[12px] ${on ? 'bg-[#fbbf24] text-[#6c4f00]' : 'bg-white'}`}>{on ? '✓' : ''}</span>
                   <span className="flex-1">
                     <span className="flex items-center justify-between">
                       <span className="text-[15px] font-semibold">{g.label}</span>
-                      <span className={`text-[12px] font-medium ${on ? 'text-[#C4501A]' : 'text-[#9A908A]'}`}>{Math.round(g.pct * 100)}% of MRP</span>
+                      <span className={`text-[12px] font-medium ${on ? 'text-[#795900]' : 'text-[#817661]'}`}>{Math.round(g.pct * 100)}% of MRP</span>
                     </span>
-                    <span className="block text-[12px] text-[#5E5650] mt-0.5">{g.desc}</span>
+                    <span className="block text-[12px] text-[#4f4633] mt-0.5">{g.desc}</span>
                   </span>
                 </button>
               )
             })}
             <button type="button" onClick={() => { setError(''); setDonate(true) }}
-              className={`flex items-start gap-3 p-3 rounded-[16px] text-left active:scale-[0.99] transition-transform ${donate ? 'bg-[#FCE3D6]' : 'bg-[#FFF1EA]'}`}>
-              <span className={`w-5 h-5 mt-0.5 rounded-full shrink-0 flex items-center justify-center text-[12px] ${donate ? 'bg-[#E8632B] text-white' : 'bg-white'}`}>{donate ? '✓' : ''}</span>
+              className={`flex items-start gap-3 p-3 rounded-[1rem] text-left active:scale-[0.99] transition-transform ${donate ? 'bg-[#ffdf9f]' : 'bg-[#f6f3ee]'}`}>
+              <span className={`w-5 h-5 mt-0.5 rounded-full shrink-0 flex items-center justify-center text-[12px] ${donate ? 'bg-[#fbbf24] text-[#6c4f00]' : 'bg-white'}`}>{donate ? '✓' : ''}</span>
               <span className="flex-1">
                 <span className="flex items-center justify-between">
                   <span className="text-[15px] font-semibold">Donate / Free to community</span>
-                  <span className={`text-[12px] font-medium ${donate ? 'text-[#C4501A]' : 'text-[#9A908A]'}`}>Free</span>
+                  <span className={`text-[12px] font-medium ${donate ? 'text-[#795900]' : 'text-[#817661]'}`}>Free</span>
                 </span>
-                <span className="block text-[12px] text-[#5E5650] mt-0.5">Pass it forward to help local students and juniors</span>
+                <span className="block text-[12px] text-[#4f4633] mt-0.5">Pass it forward to help local students and juniors</span>
               </span>
             </button>
             {donate && (
-              <p className="text-[12px] text-[#5E5650] -mt-1">
+              <p className="text-[12px] text-[#4f4633] -mt-1">
                 Condition is saved as {grade.label}. Tap a condition above to change it, or leave it as is.
               </p>
             )}
@@ -645,10 +643,10 @@ export default function SellPage() {
           <StepTitle n={4}>{donate ? 'Price' : 'Fair resale price'}</StepTitle>
           {donate ? (
             <div className={`${CARD} flex items-start gap-3`}>
-              <span className="w-9 h-9 rounded-full bg-[#FFF1EA] flex items-center justify-center text-[18px] shrink-0">🎁</span>
+              <span className="w-9 h-9 rounded-full bg-[#f6f3ee] flex items-center justify-center text-[18px] shrink-0">🎁</span>
               <div>
                 <p className="text-[15px] font-semibold">Free to the community</p>
-                <p className="text-[12px] text-[#5E5650] mt-0.5">No price needed. Buyers will see this book as free, and you choose who to hand it to in chat.</p>
+                <p className="text-[12px] text-[#4f4633] mt-0.5">No price needed. Buyers will see this book as free, and you choose who to hand it to in chat.</p>
                 <button type="button" onClick={() => setDonate(false)}
                   className={`mt-3 px-3 py-1.5 rounded-full bg-white text-[12px] font-semibold ${SHADOW} active:scale-95 transition-transform`}>
                   I want to sell it instead
@@ -660,7 +658,7 @@ export default function SellPage() {
             <div>
               <label className={LABEL}>Original MRP</label>
               <div className="relative flex items-center">
-                <span className="absolute left-4 text-[15px] font-semibold text-[#5E5650]">₹</span>
+                <span className="absolute left-4 text-[15px] font-semibold text-[#4f4633]">₹</span>
                 <input type="number" inputMode="numeric" value={form.origPrice}
                   onChange={e => update('origPrice', e.target.value)}
                   placeholder="190" className={`${INPUT} !pl-9`} />
@@ -668,9 +666,9 @@ export default function SellPage() {
             </div>
 
             {suggested > 0 && (
-              <div className="bg-[#FFF1EA] rounded-[16px] p-3 flex items-center justify-between gap-3">
+              <div className="bg-[#f6f3ee] rounded-[1rem] p-3 flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[12px] text-[#5E5650]">Fair resale band ({Math.round(grade.pct * 100)}%)</p>
+                  <p className="text-[12px] text-[#4f4633]">Fair resale band ({Math.round(grade.pct * 100)}%)</p>
                   <p className="text-[15px] font-semibold">₹{bandLow} – ₹{bandHigh}</p>
                 </div>
                 <button type="button"
@@ -688,10 +686,10 @@ export default function SellPage() {
                 <input type="number" inputMode="numeric" value={form.price}
                   onChange={e => { setPriceTouched(true); update('price', e.target.value) }}
                   placeholder="0"
-                  className="w-full bg-[#FFF1EA] rounded-[16px] py-3 pl-11 pr-4 text-[28px] leading-[34px] font-bold text-[#1E1B19] outline-none focus:ring-2 focus:ring-[#FCE3D6]" />
+                  className="w-full bg-[#f6f3ee] rounded-[1rem] py-3 pl-11 pr-4 text-[28px] leading-[34px] font-bold text-[#1c1c19] outline-none focus:ring-2 focus:ring-[#ffdf9f]" />
               </div>
               {suggested > 0 && priceNum > 0 && (
-                <p className="text-[12px] mt-1.5 text-[#5E5650]">
+                <p className="text-[12px] mt-1.5 text-[#4f4633]">
                   {priceNum >= bandLow && priceNum <= bandHigh
                     ? 'In the fair range for this condition.'
                     : priceNum > bandHigh
@@ -702,7 +700,7 @@ export default function SellPage() {
             </div>
 
             <div className="flex items-center justify-between pt-1">
-              <span className="text-[12px] text-[#5E5650]">You receive</span>
+              <span className="text-[12px] text-[#4f4633]">You receive</span>
               <span className="text-[16px] font-bold">₹{priceNum || 0}</span>
             </div>
           </div>
@@ -723,22 +721,22 @@ export default function SellPage() {
                 {form.location && (
                   <button onClick={() => { setForm(prev => ({ ...prev, location: '' })); setLocationSearch(''); setShowLocationDropdown(true) }}
                     aria-label="Clear"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[18px] text-[#9A908A]">×</button>
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[18px] text-[#817661]">×</button>
                 )}
               </div>
               {showLocationDropdown && filteredLocations.length > 0 && (
-                <div className={`absolute top-[52px] left-0 right-0 bg-white rounded-[18px] ${SHADOW} z-40 overflow-hidden max-h-60 overflow-y-auto`}>
+                <div className={`absolute top-[52px] left-0 right-0 bg-white rounded-[1rem] ${SHADOW} z-40 overflow-hidden max-h-60 overflow-y-auto`}>
                   {filteredLocations.map(loc => (
                     <button key={loc} type="button" onClick={() => selectLocation(loc)}
-                      className="w-full text-left px-4 py-3 text-[14px] hover:bg-[#FFF1EA]">
+                      className="w-full text-left px-4 py-3 text-[14px] hover:bg-[#f6f3ee]">
                       <span className="font-semibold">{loc.split(',')[0]}</span>
-                      <span className="text-[#9A908A]">{loc.includes(',') ? ', ' + loc.split(',').slice(1).join(',').trim() : ''}</span>
+                      <span className="text-[#817661]">{loc.includes(',') ? ', ' + loc.split(',').slice(1).join(',').trim() : ''}</span>
                     </button>
                   ))}
                 </div>
               )}
             </div>
-            <p className="text-[12px] text-[#5E5650] mt-3">
+            <p className="text-[12px] text-[#4f4633] mt-3">
               You and the buyer agree on a time and a nearby spot in chat. The buyer pays you when they have checked the book.
             </p>
           </div>
@@ -746,12 +744,12 @@ export default function SellPage() {
       </main>
 
       {/* Publish bar */}
-      <div className="fixed bottom-0 inset-x-0 z-40 bg-[#FFF7F2]/95 backdrop-blur-md px-5 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(120,70,40,0.06)]">
+      <div className="fixed bottom-0 inset-x-0 z-40 bg-[#fcf9f4]/95 backdrop-blur-md px-5 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(28,28,25,0.06)]">
         <div className="max-w-md mx-auto">
-          {error && <p className="text-[12px] text-[#D64545] mb-2 text-center">{error}</p>}
-          {uploadProgress && <p className="text-[12px] text-[#5E5650] mb-2 text-center">{uploadProgress}</p>}
+          {error && <p className="text-[12px] text-[#ba1a1a] mb-2 text-center">{error}</p>}
+          {uploadProgress && <p className="text-[12px] text-[#4f4633] mb-2 text-center">{uploadProgress}</p>}
           <button onClick={submit} disabled={loading}
-            className="w-full h-[52px] rounded-full bg-[#E8632B] text-white text-[17px] font-semibold flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.98] transition-transform">
+            className="w-full h-[52px] rounded-full bg-[#fbbf24] text-[#6c4f00] text-[15px] font-bold shadow-[0_4px_14px_rgba(251,191,36,0.35)] flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.98] transition-transform">
             {loading ? 'Publishing…' : <>{donate ? 'Publish as free' : 'Publish listing'}{!donate && priceNum > 0 && <span className="opacity-70">• ₹{priceNum}</span>}</>}
           </button>
         </div>
