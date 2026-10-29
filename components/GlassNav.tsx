@@ -5,8 +5,8 @@ import LoadingScreen from '@/components/LoadingScreen'
 import { SETS_OPEN, BOOKS_OPEN } from '@/lib/features'
 
 // Loading screen timing
-const MIN_SHOW_MS = 700   // never shorter than this
-const SETTLE_MS = 350     // extra wait after the new page appears, so it is fully drawn
+const MIN_SHOW_MS = 450   // never shorter than this (long enough to read the words)
+const SETTLE_MS = 200     // extra wait after the new page appears, so it is fully drawn
 const MAX_SHOW_MS = 8000  // safety: never get stuck
 
 type Key = 'home' | 'sets' | 'books' | 'market'
@@ -18,6 +18,14 @@ const TABS: { key: Key; label: string; icon: string; href: string; soon?: boolea
   { key: 'sets', label: 'Sets', icon: 'fa-bag-shopping', href: '/school-sets', soon: !SETS_OPEN, soonText: 'Sets are coming soon' },
   { key: 'books', label: 'Shop', icon: 'fa-cart-shopping', href: '/books', soon: !BOOKS_OPEN, soonText: 'Shop is coming soon' },
 ]
+
+// What the loading screen says for each tab
+const LOAD_TEXT: Record<Key, string> = {
+  home: 'Opening Home',
+  market: 'Opening the Marketplace',
+  sets: 'Opening School Sets',
+  books: 'Opening the Shop',
+}
 
 // Pages that show the bar (Profile and My Orders still show it, with no tab lit)
 function showsBar(path: string) {
@@ -39,10 +47,14 @@ export default function GlassNav() {
   const fromPath = useRef(pathname)
   const startedAt = useRef(0)
 
-  const visible = showsBar(pathname)
   const [selected, setSelected] = useState<Key | ''>(() => derive(pathname))
   const [overlay, setOverlay] = useState<'off' | 'on' | 'out'>('off')
   const [soonMsg, setSoonMsg] = useState('')
+  const [label, setLabel] = useState('')
+
+  // The bar always stays on screen while the loading screen is showing
+  const loadingOn = overlay !== 'off'
+  const visible = showsBar(pathname) || loadingOn
 
   // Keep "selected" in step with the page
   useEffect(() => {
@@ -89,6 +101,7 @@ export default function GlassNav() {
     if (href === pathname) return // same page: nothing to load
     fromPath.current = pathname
     startedAt.current = Date.now()
+    setLabel(LOAD_TEXT[key])
     setOverlay('on')
     router.push(href)
   }
@@ -96,7 +109,7 @@ export default function GlassNav() {
   return (
     <>
       {/* Loading screen on every tab change (sits under the bar) */}
-      {overlay !== 'off' && <LoadingScreen out={overlay === 'out'} />}
+      {overlay !== 'off' && <LoadingScreen out={overlay === 'out'} label={label} />}
 
       {soonMsg && visible && (
         <div
@@ -113,7 +126,7 @@ export default function GlassNav() {
         <nav
           aria-label="Main"
           // Phones: all pages. Larger screens: Home only (other pages have their own header menu).
-          className={'fixed inset-x-0 flex justify-center pointer-events-none px-5 ' + (pathname === '/' ? '' : 'md:hidden')}
+          className={'fixed inset-x-0 flex justify-center pointer-events-none px-5 ' + (pathname === '/' || loadingOn ? '' : 'md:hidden')}
           style={{ zIndex: 300, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
         >
           <div
