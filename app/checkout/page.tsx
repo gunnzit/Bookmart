@@ -8,7 +8,7 @@ import { useDeliveryPlace, type Saved } from '@/components/LocationSheet'
 const SCHOOL = 'Shivalik Public School'
 const ADMIN_WA = '919914735738'
 const LOOSE = 'Books and stationery'
-const SHADOW = 'shadow-[0_6px_20px_rgba(120,70,40,0.08)]'
+const SHADOW = 'shadow-[0_6px_20px_rgba(28,28,25,0.08)]'
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 
 // Turn an item string ("Name ₹165", "Name [Buddy (196pg)] x2 ₹100") into something to show
@@ -38,13 +38,13 @@ function Thumb({ src, icon }: { src: string; icon: string }) {
     if (el && el.complete && el.naturalWidth > 0) setState('ok')
   }, [src])
   return (
-    <div className="relative w-16 h-20 rounded-[18px] overflow-hidden shrink-0 bg-[#F8EDE6] flex items-center justify-center">
+    <div className="relative w-16 h-20 rounded-[1rem] overflow-hidden shrink-0 bg-[#f0ede9] flex items-center justify-center">
       {state !== 'bad' && (
         <img ref={imgRef} key={src} src={src} alt="" className="absolute inset-0 w-full h-full object-cover"
           style={{ opacity: state === 'ok' ? 1 : 0, transition: 'opacity 250ms ease' }}
           onLoad={() => setState('ok')} onError={() => setState('bad')} />
       )}
-      {state !== 'ok' && <span className="material-symbols-outlined text-[26px] text-[#C4501A]/50">{icon}</span>}
+      {state !== 'ok' && <span className="material-symbols-outlined text-[26px] text-[#795900]/50">{icon}</span>}
     </div>
   )
 }
@@ -226,7 +226,7 @@ function CheckoutInner() {
           }
         },
         prefill: { name, email: user?.primaryEmailAddress?.emailAddress, contact: phone },
-        theme: { color: '#C4501A' },
+        theme: { color: '#795900' },
         modal: { ondismiss: () => setOrdering(false) },
       }
       const rzp = new (window as any).Razorpay(options)
@@ -235,27 +235,27 @@ function CheckoutInner() {
     setOrdering(false)
   }
 
-  const inputBase = 'w-full px-4 py-3 rounded-2xl bg-[#FFF1EA] text-[14px] text-[#1E1B19] placeholder:text-[#9A908A] border focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#E8632B]/20 '
-  const inputOk = 'border-transparent focus:border-[#E8632B]'
-  const inputBad = 'border-[#D64545]'
+  const inputBase = 'w-full px-4 py-3 rounded-2xl bg-[#f6f3ee] text-[14px] text-[#1c1c19] placeholder:text-[#817661] border focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#fbbf24]/20 '
+  const inputOk = 'border-transparent focus:border-[#fbbf24]'
+  const inputBad = 'border-[#ba1a1a]'
 
-  const page = 'min-h-screen text-[#1E1B19] antialiased font-[\'Plus_Jakarta_Sans\',sans-serif]'
-  const pageBg = { background: 'linear-gradient(180deg, #FDEADF 0%, #FFF7F2 100%)' }
-  const iconBtn = 'w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#1E1B19] active:scale-95 transition-transform shrink-0 ' + SHADOW
+  const page = 'min-h-screen text-[#1c1c19] antialiased font-[\'Plus_Jakarta_Sans\',sans-serif]'
+  const pageBg = { background: '#fcf9f4' }
+  const iconBtn = 'w-10 h-10 rounded-full bg-[#f0ede9] flex items-center justify-center text-[#1c1c19] active:scale-95 transition-transform shrink-0'
 
   // ── Order confirmed screen ───────────────────────────────────────────────
   if (ordered) {
     return (
       <div className={page + ' flex items-center justify-center p-5'} style={pageBg}>
-        <div className={'bg-white rounded-[28px] p-7 max-w-sm w-full text-center ' + SHADOW}>
+        <div className={'bg-white rounded-[2rem] p-7 max-w-sm w-full text-center ' + SHADOW}>
           <div className="w-14 h-14 rounded-full bg-[#2E8B57]/10 text-[#2E8B57] flex items-center justify-center mx-auto mb-4">
             <span className="material-symbols-outlined text-[32px]">check_circle</span>
           </div>
           <h2 className="text-[20px] font-bold mb-2">Order confirmed</h2>
-          <p className="text-[14px] text-[#5E5650] mb-6">
+          <p className="text-[14px] text-[#4f4633] mb-6">
             Your {orderWord} is confirmed. We have opened WhatsApp to send the details to the store.
           </p>
-          <button onClick={() => router.push('/my-orders')} className="w-full h-[52px] bg-[#E8632B] text-white text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform">Track order</button>
+          <button onClick={() => router.push('/my-orders')} className="w-full h-[52px] bg-[#fbbf24] text-[#6c4f00] text-[15px] font-bold shadow-[0_4px_14px_rgba(251,191,36,0.35)] rounded-full active:scale-[0.98] transition-transform">Track order</button>
           <button onClick={() => router.push(backPath)} className={'w-full h-11 mt-2.5 bg-white text-[14px] font-semibold rounded-full active:scale-[0.98] transition-transform ' + SHADOW}>Order another</button>
         </div>
       </div>
@@ -265,13 +265,13 @@ function CheckoutInner() {
   // ── Pay button (used in the phone bar and the desktop card) ─────────────
   const payButton = isSignedIn ? (
     <button onClick={startPayment} disabled={ordering}
-      className="w-full h-[52px] rounded-full bg-[#E8632B] text-white text-[17px] font-semibold flex items-center justify-center gap-2 shadow-[0_6px_20px_rgba(232,99,43,0.25)] active:scale-[0.99] transition-transform disabled:opacity-60 disabled:cursor-not-allowed">
+      className="w-full h-[52px] rounded-full bg-[#fbbf24] text-[#6c4f00] text-[15px] font-bold shadow-[0_4px_14px_rgba(251,191,36,0.35)] flex items-center justify-center gap-2 shadow-[0_6px_20px_rgba(251,191,36,0.25)] active:scale-[0.99] transition-transform disabled:opacity-60 disabled:cursor-not-allowed">
       <span>{ordering ? 'Opening payment…' : 'Pay securely'}</span>
       {!ordering && <span className="material-symbols-outlined text-[20px]">lock</span>}
     </button>
   ) : (
     <SignInButton mode="modal">
-      <button className="w-full h-[52px] rounded-full bg-[#E8632B] text-white text-[17px] font-semibold flex items-center justify-center gap-2 shadow-[0_6px_20px_rgba(232,99,43,0.25)] active:scale-[0.99] transition-transform">
+      <button className="w-full h-[52px] rounded-full bg-[#fbbf24] text-[#6c4f00] text-[15px] font-bold shadow-[0_4px_14px_rgba(251,191,36,0.35)] flex items-center justify-center gap-2 shadow-[0_6px_20px_rgba(251,191,36,0.25)] active:scale-[0.99] transition-transform">
         Sign in to pay
       </button>
     </SignInButton>
@@ -279,14 +279,14 @@ function CheckoutInner() {
 
   const itemCount = allItems.length
   const radio = (on: boolean) => on
-    ? <span className="w-5 h-5 rounded-full bg-[#E8632B] flex items-center justify-center shrink-0"><span className="w-2 h-2 rounded-full bg-white" /></span>
-    : <span className="w-5 h-5 rounded-full bg-[#F8EDE6] shrink-0" />
+    ? <span className="w-5 h-5 rounded-full bg-[#fbbf24] flex items-center justify-center shrink-0"><span className="w-2 h-2 rounded-full bg-white" /></span>
+    : <span className="w-5 h-5 rounded-full bg-[#f0ede9] shrink-0" />
 
   return (
     <div className={page} style={pageBg}>
 
       {/* Top bar */}
-      <header className="fixed top-0 inset-x-0 z-50 bg-[#FDEADF]/80 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+      <header className="fixed top-0 inset-x-0 z-50 bg-[#fcf9f4]/80 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <div className="h-16 px-5 flex items-center justify-between gap-4 max-w-md mx-auto md:max-w-5xl">
           <button aria-label="Go back" onClick={() => router.push(backPath)} className={iconBtn}>
             <span className="material-symbols-outlined text-[20px]">arrow_back</span>
@@ -306,7 +306,7 @@ function CheckoutInner() {
 
             {/* Delivery mode */}
             <section className="mb-7">
-              <div role="radiogroup" aria-label="Delivery option" className={'bg-white rounded-[22px] p-1 flex gap-1 ' + SHADOW}>
+              <div role="radiogroup" aria-label="Delivery option" className={'bg-white rounded-[2rem] p-1 flex gap-1 ' + SHADOW}>
                 {([
                   { k: 'delivery', title: 'Home delivery', sub: '₹' + DELIVERY_FEE + ' · within 24 hours' },
                   { k: 'pickup', title: 'Store pickup', sub: 'Free · Sector 40-C' },
@@ -314,12 +314,12 @@ function CheckoutInner() {
                   const on = deliveryMode === o.k
                   return (
                     <button key={o.k} role="radio" aria-checked={on} onClick={() => setDeliveryMode(o.k)}
-                      className={'flex-1 rounded-[18px] py-2 px-4 text-left active:scale-[0.99] transition-all ' + (on ? 'bg-[#FCE3D6]/60' : 'bg-transparent')}>
+                      className={'flex-1 rounded-[1rem] py-2 px-4 text-left active:scale-[0.99] transition-all ' + (on ? 'bg-[#ffdf9f]/60' : 'bg-transparent')}>
                       <div className="flex items-center gap-1 mb-0.5">
-                        <span className={'w-2 h-2 rounded-full shrink-0 ' + (on ? 'bg-[#E8632B]' : 'bg-[#F0E2DA]')} />
-                        <span className={'text-[15px] font-semibold ' + (on ? 'text-[#1E1B19]' : 'text-[#5E5650]')}>{o.title}</span>
+                        <span className={'w-2 h-2 rounded-full shrink-0 ' + (on ? 'bg-[#fbbf24]' : 'bg-[#e5e2dd]')} />
+                        <span className={'text-[15px] font-semibold ' + (on ? 'text-[#1c1c19]' : 'text-[#4f4633]')}>{o.title}</span>
                       </div>
-                      <p className={'text-[12px] ' + (on ? 'text-[#5E5650]' : 'text-[#9A908A]')}>{o.sub}</p>
+                      <p className={'text-[12px] ' + (on ? 'text-[#4f4633]' : 'text-[#817661]')}>{o.sub}</p>
                     </button>
                   )
                 })}
@@ -328,23 +328,23 @@ function CheckoutInner() {
 
             {/* Your details */}
             <section id="details-card" className="mb-7">
-              <div className={'bg-white rounded-[22px] p-5 flex flex-col gap-3 ' + SHADOW}>
+              <div className={'bg-white rounded-[2rem] p-5 flex flex-col gap-3 ' + SHADOW}>
                 <div className="flex items-center gap-1.5">
-                  <span className="material-symbols-outlined text-[18px] text-[#5E5650]">{deliveryMode === 'delivery' ? 'home_pin' : 'storefront'}</span>
+                  <span className="material-symbols-outlined text-[18px] text-[#4f4633]">{deliveryMode === 'delivery' ? 'home_pin' : 'storefront'}</span>
                   <h2 className="text-[15px] font-semibold">{deliveryMode === 'delivery' ? 'Delivery details' : 'Pickup details'}</h2>
                 </div>
 
                 <div>
                   <input value={name} onChange={e => setName(e.target.value)} placeholder="Your full name" type="text" className={inputBase + (touched && !nameOk ? inputBad : inputOk)} />
-                  {touched && !nameOk && <p className="text-[12px] text-[#D64545] mt-1">Please enter your name.</p>}
+                  {touched && !nameOk && <p className="text-[12px] text-[#ba1a1a] mt-1">Please enter your name.</p>}
                 </div>
 
                 <div>
                   <div className="flex gap-2">
-                    <div className="flex items-center px-4 rounded-2xl bg-[#FFF1EA] text-[14px] font-medium text-[#5E5650] shrink-0">+91</div>
+                    <div className="flex items-center px-4 rounded-2xl bg-[#f6f3ee] text-[14px] font-medium text-[#4f4633] shrink-0">+91</div>
                     <input value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="WhatsApp number" type="text" inputMode="numeric" className={inputBase + (touched && !phoneOk ? inputBad : inputOk)} />
                   </div>
-                  {((phone.length > 0 && phone.length < 10) || (touched && phone.length === 0)) && <p className="text-[12px] text-[#D64545] mt-1">Enter a 10-digit number.</p>}
+                  {((phone.length > 0 && phone.length < 10) || (touched && phone.length === 0)) && <p className="text-[12px] text-[#ba1a1a] mt-1">Enter a 10-digit number.</p>}
                 </div>
 
                 {deliveryMode === 'delivery' ? (
@@ -355,27 +355,27 @@ function CheckoutInner() {
                           const on = addrId === a.id
                           return (
                             <button key={a.id} onClick={() => { setAddrId(a.id); setAddress(fullAddress(a)) }}
-                              className={'w-full rounded-[16px] p-3 text-left flex items-center justify-between gap-3 active:scale-[0.99] transition-all ' + (on ? 'bg-[#FCE3D6]/60' : 'bg-[#FFF1EA]')}>
+                              className={'w-full rounded-[1rem] p-3 text-left flex items-center justify-between gap-3 active:scale-[0.99] transition-all ' + (on ? 'bg-[#ffdf9f]/60' : 'bg-[#f6f3ee]')}>
                               <div className="min-w-0">
                                 <p className="text-[14px] font-semibold">{a.label}</p>
-                                <p className="text-[12px] text-[#5E5650] leading-snug">{fullAddress(a)}</p>
+                                <p className="text-[12px] text-[#4f4633] leading-snug">{fullAddress(a)}</p>
                               </div>
                               {on
-                                ? <span className="w-5 h-5 rounded-full bg-[#E8632B] flex items-center justify-center shrink-0"><span className="w-2 h-2 rounded-full bg-white" /></span>
-                                : <span className="w-5 h-5 rounded-full bg-[#F8EDE6] shrink-0" />}
+                                ? <span className="w-5 h-5 rounded-full bg-[#fbbf24] flex items-center justify-center shrink-0"><span className="w-2 h-2 rounded-full bg-white" /></span>
+                                : <span className="w-5 h-5 rounded-full bg-[#f0ede9] shrink-0" />}
                             </button>
                           )
                         })}
-                        <button onClick={() => { setAddrId(null); setAddress('') }} className="text-[13px] font-semibold text-[#C4501A] text-left px-1 active:opacity-70">Use a different address</button>
+                        <button onClick={() => { setAddrId(null); setAddress('') }} className="text-[13px] font-semibold text-[#795900] text-left px-1 active:opacity-70">Use a different address</button>
                       </div>
                     )}
                     <textarea value={address} onChange={e => { setAddress(e.target.value); setAddrId(null) }} placeholder="House or flat no., street, sector, city" rows={3} className={inputBase + 'resize-none ' + (touched && !addressOk ? inputBad : inputOk)} />
-                    {touched && !addressOk && <p className="text-[12px] text-[#D64545] mt-1">Please enter your delivery address.</p>}
+                    {touched && !addressOk && <p className="text-[12px] text-[#ba1a1a] mt-1">Please enter your delivery address.</p>}
                   </div>
                 ) : (
-                  <div className="bg-[#FFF1EA] rounded-[16px] p-3">
+                  <div className="bg-[#f6f3ee] rounded-[1rem] p-3">
                     <p className="text-[14px] font-semibold">Bedi Book Store</p>
-                    <p className="text-[12px] text-[#5E5650] mt-0.5">Booth 48, Sector 40-C, Chandigarh · Mon to Sat, 9am to 7pm</p>
+                    <p className="text-[12px] text-[#4f4633] mt-0.5">Booth 48, Sector 40-C, Chandigarh · Mon to Sat, 9am to 7pm</p>
                   </div>
                 )}
               </div>
@@ -383,13 +383,13 @@ function CheckoutInner() {
 
             {/* Items in bag */}
             <section className="mb-7">
-              <div className={'bg-white rounded-[22px] p-5 ' + SHADOW}>
+              <div className={'bg-white rounded-[2rem] p-5 ' + SHADOW}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-baseline gap-1.5">
                     <h2 className="text-[20px] font-bold">Items in bag</h2>
-                    <span className="text-[12px] text-[#9A908A]">({itemCount} {itemCount === 1 ? 'item' : 'items'})</span>
+                    <span className="text-[12px] text-[#817661]">({itemCount} {itemCount === 1 ? 'item' : 'items'})</span>
                   </div>
-                  <button onClick={() => router.push(backPath)} className="text-[12px] font-semibold text-[#C4501A] active:opacity-70">Edit</button>
+                  <button onClick={() => router.push(backPath)} className="text-[12px] font-semibold text-[#795900] active:opacity-70">Edit</button>
                 </div>
 
                 {kits.map((kit: any, ki: number) => {
@@ -404,19 +404,19 @@ function CheckoutInner() {
                   })
                   return (
                     <div key={ki}>
-                      <p className="text-[12px] text-[#5E5650] mt-2 mb-1">{label}</p>
+                      <p className="text-[12px] text-[#4f4633] mt-2 mb-1">{label}</p>
                       {rows.map((r, i) => {
                         const it = parseItem(r.raw)
                         const sub = [it.sub, r.n > 1 ? 'Qty ' + r.n : ''].filter(Boolean).join(' · ')
                         return (
                           <div key={i}>
-                            {i > 0 && <div className="h-px bg-[#F0E2DA]" />}
+                            {i > 0 && <div className="h-px bg-[#e5e2dd]" />}
                             <div className="flex gap-4 py-3">
                               <Thumb src={it.cover} icon={it.icon} />
                               <div className="flex-1 min-w-0 flex justify-between items-start gap-1">
                                 <div className="min-w-0">
                                   <h3 className="text-[15px] font-semibold leading-snug line-clamp-2">{it.name}</h3>
-                                  {sub && <p className="text-[12px] text-[#5E5650] mt-0.5">{sub}</p>}
+                                  {sub && <p className="text-[12px] text-[#4f4633] mt-0.5">{sub}</p>}
                                 </div>
                                 {it.price > 0 && <span className="text-[16px] font-bold shrink-0">₹{(it.price * r.n).toLocaleString('en-IN')}</span>}
                               </div>
@@ -424,7 +424,7 @@ function CheckoutInner() {
                           </div>
                         )
                       })}
-                      {ki < kits.length - 1 && <div className="h-px bg-[#F0E2DA] my-1" />}
+                      {ki < kits.length - 1 && <div className="h-px bg-[#e5e2dd] my-1" />}
                     </div>
                   )
                 })}
@@ -433,7 +433,7 @@ function CheckoutInner() {
 
             {/* Payment option */}
             <section className="mb-7 lg:mb-0">
-              <div className={'bg-white rounded-[22px] p-5 flex flex-col gap-4 ' + SHADOW}>
+              <div className={'bg-white rounded-[2rem] p-5 flex flex-col gap-4 ' + SHADOW}>
                 <div className="flex items-center justify-between">
                   <h2 className="text-[20px] font-bold">Payment</h2>
                   <span className="text-[12px] text-[#2E8B57] flex items-center gap-1">
@@ -442,10 +442,10 @@ function CheckoutInner() {
                 </div>
                 <div role="radiogroup" aria-label="Payment option" className="flex flex-col gap-2">
                   <button role="radio" aria-checked={paymentMode === 'full'} onClick={() => setPaymentMode('full')}
-                    className={'w-full rounded-[18px] p-4 text-left flex items-center justify-between gap-3 transition-all ' + (paymentMode === 'full' ? 'bg-[#FFF1EA]' : 'bg-white')}>
+                    className={'w-full rounded-[1rem] p-4 text-left flex items-center justify-between gap-3 transition-all ' + (paymentMode === 'full' ? 'bg-[#f6f3ee]' : 'bg-white')}>
                     <div className="min-w-0">
                       <p className="text-[15px] font-semibold">Pay full amount</p>
-                      <p className={'text-[12px] ' + (paymentMode === 'full' ? 'text-[#5E5650]' : 'text-[#9A908A]')}>Nothing left to pay at {handoverWord}.</p>
+                      <p className={'text-[12px] ' + (paymentMode === 'full' ? 'text-[#4f4633]' : 'text-[#817661]')}>Nothing left to pay at {handoverWord}.</p>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <span className="text-[16px] font-bold">₹{total.toLocaleString('en-IN')}</span>
@@ -453,10 +453,10 @@ function CheckoutInner() {
                     </div>
                   </button>
                   <button role="radio" aria-checked={paymentMode === 'partial'} onClick={() => setPaymentMode('partial')}
-                    className={'w-full rounded-[18px] p-4 text-left flex items-center justify-between gap-3 transition-all ' + (paymentMode === 'partial' ? 'bg-[#FFF1EA]' : 'bg-white')}>
+                    className={'w-full rounded-[1rem] p-4 text-left flex items-center justify-between gap-3 transition-all ' + (paymentMode === 'partial' ? 'bg-[#f6f3ee]' : 'bg-white')}>
                     <div className="min-w-0">
                       <p className="text-[15px] font-semibold">Pay 30% now</p>
-                      <p className={'text-[12px] ' + (paymentMode === 'partial' ? 'text-[#5E5650]' : 'text-[#9A908A]')}>₹{payLater.toLocaleString('en-IN')} to pay at {handoverWord}.</p>
+                      <p className={'text-[12px] ' + (paymentMode === 'partial' ? 'text-[#4f4633]' : 'text-[#817661]')}>₹{payLater.toLocaleString('en-IN')} to pay at {handoverWord}.</p>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
                       <span className="text-[16px] font-bold">₹{upfront.toLocaleString('en-IN')}</span>
@@ -464,7 +464,7 @@ function CheckoutInner() {
                     </div>
                   </button>
                 </div>
-                <p className="text-[12px] text-[#9A908A]">UPI, cards and netbanking are on the next screen, through Razorpay.</p>
+                <p className="text-[12px] text-[#817661]">UPI, cards and netbanking are on the next screen, through Razorpay.</p>
               </div>
             </section>
           </div>
@@ -472,11 +472,11 @@ function CheckoutInner() {
           {/* RIGHT: bill, pay, notes */}
           <aside className="lg:col-span-5 lg:sticky lg:top-24 self-start">
             <section className="mb-7">
-              <div className={'bg-white rounded-[22px] p-5 flex flex-col gap-2 ' + SHADOW}>
+              <div className={'bg-white rounded-[2rem] p-5 flex flex-col gap-2 ' + SHADOW}>
                 <h2 className="text-[20px] font-bold mb-1">Bill details</h2>
-                <div className="flex justify-between items-center text-[14px] text-[#5E5650]">
+                <div className="flex justify-between items-center text-[14px] text-[#4f4633]">
                   <span>{isLoose ? 'Items' : hasLoose ? 'Bag' : isMultiKit ? kits.length + ' kits' : 'Kit'} ({itemCount} {itemCount === 1 ? 'item' : 'items'})</span>
-                  <span className="text-[#1E1B19]">₹{kitsSubtotal.toLocaleString('en-IN')}</span>
+                  <span className="text-[#1c1c19]">₹{kitsSubtotal.toLocaleString('en-IN')}</span>
                 </div>
                 {siblingDiscount > 0 && (
                   <div className="flex justify-between items-center text-[14px] text-[#2E8B57]">
@@ -484,18 +484,18 @@ function CheckoutInner() {
                     <span>−₹{siblingDiscount.toLocaleString('en-IN')}</span>
                   </div>
                 )}
-                <div className="flex justify-between items-center text-[14px] text-[#5E5650]">
+                <div className="flex justify-between items-center text-[14px] text-[#4f4633]">
                   <span>{deliveryMode === 'delivery' ? 'Home delivery' : 'Store pickup'}</span>
                   {deliveryFee > 0
-                    ? <span className="text-[#1E1B19]">₹{deliveryFee}</span>
+                    ? <span className="text-[#1c1c19]">₹{deliveryFee}</span>
                     : <span className="text-[#2E8B57] font-semibold">Free</span>}
                 </div>
-                <div className="h-px bg-[#F0E2DA] my-1" />
+                <div className="h-px bg-[#e5e2dd] my-1" />
                 <div className="flex justify-between items-center gap-3">
                   <div>
                     <span className="text-[20px] font-bold">{paymentMode === 'full' ? 'To pay' : 'To pay now'}</span>
-                    {siblingDiscount > 0 && <p className="text-[12px] font-semibold text-[#C4501A]">You saved ₹{siblingDiscount.toLocaleString('en-IN')} on this order</p>}
-                    {paymentMode === 'partial' && <p className="text-[12px] text-[#5E5650]">₹{payLater.toLocaleString('en-IN')} at {handoverWord}</p>}
+                    {siblingDiscount > 0 && <p className="text-[12px] font-semibold text-[#795900]">You saved ₹{siblingDiscount.toLocaleString('en-IN')} on this order</p>}
+                    {paymentMode === 'partial' && <p className="text-[12px] text-[#4f4633]">₹{payLater.toLocaleString('en-IN')} at {handoverWord}</p>}
                   </div>
                   <span className="text-[28px] leading-[34px] font-bold tracking-[-0.02em]">₹{payNow.toLocaleString('en-IN')}</span>
                 </div>
@@ -505,22 +505,22 @@ function CheckoutInner() {
               </div>
             </section>
 
-            <p className="text-[12px] text-[#9A908A] text-center px-2 mb-3">
+            <p className="text-[12px] text-[#817661] text-center px-2 mb-3">
               Once your order has been picked up or delivered, there is no cancellation or refund. Exchange is available within 24 hours.
             </p>
-            <div className="flex items-center justify-center gap-1 text-center text-[#5E5650]">
-              <span className="material-symbols-outlined text-[16px] text-[#9A908A]">storefront</span>
-              <p className="text-[12px]">Fulfilled with care by <span className="font-semibold text-[#1E1B19]">Bedi Book Store</span>, Sec 40-C</p>
+            <div className="flex items-center justify-center gap-1 text-center text-[#4f4633]">
+              <span className="material-symbols-outlined text-[16px] text-[#817661]">storefront</span>
+              <p className="text-[12px]">Fulfilled with care by <span className="font-semibold text-[#1c1c19]">Bedi Book Store</span>, Sec 40-C</p>
             </div>
           </aside>
         </div>
       </main>
 
       {/* Bottom pay bar (phone and tablet) */}
-      <footer className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white/90 backdrop-blur-xl shadow-[0_-6px_20px_rgba(120,70,40,0.08)]" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      <footer className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-white/90 backdrop-blur-xl shadow-[0_-6px_20px_rgba(28,28,25,0.08)]" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="px-5 py-4 flex flex-col gap-2 max-w-md mx-auto">
           <div className="flex items-center justify-between px-1">
-            <span className="text-[14px] text-[#5E5650]">{paymentMode === 'full' ? 'Total payable' : 'Pay now (30%)'}</span>
+            <span className="text-[14px] text-[#4f4633]">{paymentMode === 'full' ? 'Total payable' : 'Pay now (30%)'}</span>
             <span className="text-[16px] font-bold">₹{payNow.toLocaleString('en-IN')}</span>
           </div>
           {payButton}
@@ -532,7 +532,7 @@ function CheckoutInner() {
 
 export default function CheckoutPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-[14px] text-[#5E5650] font-['Plus_Jakarta_Sans',sans-serif]" style={{ background: 'linear-gradient(180deg, #FDEADF 0%, #FFF7F2 100%)' }}>Loading checkout…</div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center text-[14px] text-[#4f4633] font-['Plus_Jakarta_Sans',sans-serif]" style={{ background: '#fcf9f4' }}>Loading checkout…</div>}>
       <CheckoutInner />
     </Suspense>
   )
