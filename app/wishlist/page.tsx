@@ -104,7 +104,7 @@ export default function WishlistPage() {
   return (
     <div className={pageCls} style={pageStyle}>
       {/* Top bar */}
-      <header className="fixed top-0 inset-x-0 z-50 bg-[#fcf9f4]/85 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+      <header className="lg:hidden fixed top-0 inset-x-0 z-50 bg-[#fcf9f4]/85 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <div className="h-16 px-5 flex items-center justify-between gap-3 max-w-md md:max-w-3xl mx-auto">
           <div className="flex items-center gap-2 min-w-0">
             <button aria-label="Back" onClick={() => (window.history.length > 1 ? router.back() : router.push('/marketplace'))}
@@ -121,7 +121,8 @@ export default function WishlistPage() {
         </div>
       </header>
 
-      <main className="w-full max-w-md md:max-w-3xl mx-auto pb-16" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 72px)' }}>
+      <main className="w-full max-w-md md:max-w-3xl mx-auto pb-16 lg:max-w-[1200px] lg:px-1 lg:pt-8! lg:pb-20" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 72px)' }}>
+        <h1 className="hidden lg:block px-5 pb-4 text-[26px] font-black tracking-tight">Wishlist</h1>
 
         {isLoaded && !isSignedIn ? (
           <div className="px-5 mt-6">
@@ -175,7 +176,7 @@ export default function WishlistPage() {
             {shown.length === 0 ? (
               <p className="text-center text-[14px] text-[#4f4633] py-10 px-5">No {filter === 'available' ? 'available' : 'sold'} books in your wishlist.</p>
             ) : (
-              <div className="px-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="px-5 grid grid-cols-1 md:grid-cols-2 gap-4 lg:grid-cols-4">
                 {shown.map(item => {
                   const l = item.listing
                   const isGone = gone(l)
@@ -188,8 +189,8 @@ export default function WishlistPage() {
                   const isRemoving = removing === l.id
                   return (
                     <article key={item.id} onClick={() => router.push('/listing/' + l.id)}
-                      className={'p-4 rounded-[2rem] flex gap-4 items-center cursor-pointer ' + (isGone ? 'bg-white/75 shadow-[0_6px_20px_rgba(28,28,25,0.05)]' : 'bg-white ' + SHADOW)}>
-                      <div className="relative w-24 h-32 rounded-[1rem] overflow-hidden bg-[#f0ede9] shrink-0 flex items-center justify-center text-[36px]">
+                      className={'p-4 rounded-[2rem] flex gap-4 items-center cursor-pointer lg:flex-col lg:items-stretch lg:p-3 lg:rounded-2xl lg:border lg:border-stone-200 ' + (isGone ? 'bg-white/75 shadow-[0_6px_20px_rgba(28,28,25,0.05)]' : 'bg-white ' + SHADOW)}>
+                      <div className="relative w-24 h-32 rounded-[1rem] overflow-hidden bg-[#f0ede9] shrink-0 flex items-center justify-center text-[36px] lg:w-full lg:h-auto lg:aspect-[3/4] lg:rounded-xl">
                         {l.images?.[0]
                           ? <img src={l.images[0]} alt={l.title} className={'w-full h-full object-cover ' + (isGone ? 'opacity-60 grayscale-[30%]' : '')} />
                           : <span>{l.emoji || '📚'}</span>}
@@ -200,7 +201,7 @@ export default function WishlistPage() {
                         </button>
                       </div>
 
-                      <div className="flex-1 min-w-0 flex flex-col justify-between h-32 py-0.5">
+                      <div className="flex-1 min-w-0 flex flex-col justify-between h-32 py-0.5 lg:h-auto lg:gap-3 lg:w-full">
                         <div>
                           <h2 className={'text-[15px] font-semibold leading-tight line-clamp-2 ' + (isGone ? 'text-[#4f4633]' : '')}>{l.title}</h2>
                           {sub && <p className="text-[12px] text-[#817661] truncate mt-0.5">{sub}</p>}

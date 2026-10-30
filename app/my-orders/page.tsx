@@ -161,7 +161,7 @@ export default function MyOrdersPage() {
 
   return (
     <div className={pageCls} style={pageStyle}>
-      <main className="w-full max-w-md md:max-w-5xl mx-auto px-5 pb-[130px] lg:pb-16" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
+      <main className="w-full max-w-md md:max-w-5xl mx-auto px-5 pb-[130px] lg:pb-16 lg:max-w-[1200px] lg:px-6 lg:pt-8!" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
         <div className="lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
 
           <div className="lg:col-span-8">
