@@ -56,7 +56,7 @@ const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(
 
 function Tick({ on }: { on: boolean }) {
   return (
-    <span className={'w-6 h-6 rounded-full shrink-0 flex items-center justify-center transition-colors ' + (on ? 'bg-[#E8632B] text-white' : 'border-2 border-[#E0D2CA] bg-white')}>
+    <span className={'w-6 h-6 rounded-full shrink-0 flex items-center justify-center transition-colors ' + (on ? 'bg-[#E8632B] text-white lg:bg-[#F7CF65] lg:text-stone-900' : 'border-2 border-[#E0D2CA] bg-white')}>
       {on && <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'wght' 700" }}>check</span>}
     </span>
   )
@@ -433,7 +433,7 @@ export default function SchoolSetsPage() {
 
   const iconBtn = 'relative w-10 h-10 rounded-full bg-white flex items-center justify-center text-[#1E1B19] active:scale-90 transition-transform ' + SHADOW
   const sheetInput = 'w-full px-4 py-3 rounded-2xl bg-[#FFF1EA] text-[14px] text-[#1E1B19] placeholder:text-[#9A908A] border border-transparent focus:outline-none focus:bg-white focus:border-[#E8632B] focus:ring-2 focus:ring-[#E8632B]/20'
-  const pill = (on: boolean) => 'px-3.5 py-1.5 rounded-full text-[13px] whitespace-nowrap transition-colors active:scale-95 ' + (on ? 'bg-[#E8632B] text-white font-semibold' : 'bg-[#FFF1EA] text-[#1E1B19] font-medium')
+  const pill = (on: boolean) => 'px-3.5 py-1.5 rounded-full text-[13px] whitespace-nowrap transition-colors active:scale-95 ' + (on ? 'bg-[#E8632B] text-white font-semibold lg:bg-[#F7CF65] lg:text-stone-900' : 'bg-[#FFF1EA] text-[#1E1B19] font-medium')
 
   // The main checkout button inside the bag
   const bagCheckout = isSignedIn ? (
@@ -478,7 +478,7 @@ export default function SchoolSetsPage() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-3">
+        <div className={'flex flex-col gap-3' + (s === 'notebooks' ? '' : ' lg:grid lg:grid-cols-2 lg:gap-4 lg:items-start')}>
           {visible.map(({ it, i }) => {
             const oos = isOOS(it.name)
             const on = !!checked[s]?.[i] && !oos
@@ -603,12 +603,15 @@ export default function SchoolSetsPage() {
         <div className="flex justify-between"><span className="text-[#5E5650]">Items selected</span><span className="font-semibold">{selectedCount} of {totalListed}</span></div>
         {youSave > 0 && <div className="flex justify-between"><span className="text-[#5E5650]">Bought separately</span><span className="text-[#9A908A] line-through">₹{market.toLocaleString('en-IN')}</span></div>}
         {youSave > 0 && <div className="flex justify-between"><span className="text-[#C4501A] font-semibold">You save</span><span className="text-[#C4501A] font-bold">₹{youSave.toLocaleString('en-IN')}</span></div>}
+        <div className="flex justify-between"><span className="text-[#5E5650]">Subtotal</span><span className="font-semibold">₹{kitSubtotal.toLocaleString('en-IN')}</span></div>
+        <div className="flex justify-between"><span className="text-[#5E5650]">Delivery</span><span className="font-semibold">Pickup free · Home ₹{DELIVERY_FEE}</span></div>
         <div className="flex justify-between items-baseline border-t border-[#F0E2DA] pt-3 mt-1">
-          <span className="font-semibold">This kit</span>
+          <span className="font-semibold">Total</span>
           <span className="text-[22px] font-bold">₹{kitSubtotal.toLocaleString('en-IN')}</span>
         </div>
+        {kitSubtotal > 0 && <p className="text-[12px] text-[#9A908A] -mt-1 text-right">₹{(kitSubtotal + DELIVERY_FEE).toLocaleString('en-IN')} with home delivery</p>}
       </div>
-      <button onClick={handleAddToBag} disabled={!canAdd} className="w-full h-[52px] mt-4 bg-[#E8632B] text-white text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
+      <button onClick={handleAddToBag} disabled={!canAdd} className="w-full h-[52px] mt-4 bg-[#F7CF65] text-stone-900 text-[17px] font-semibold rounded-full active:scale-[0.98] transition-transform disabled:opacity-50 disabled:cursor-not-allowed">
         Add to bag
       </button>
       <button onClick={() => setBagOpen(true)} className={'w-full h-11 mt-2.5 bg-white text-[14px] font-semibold rounded-full active:scale-[0.98] transition-transform ' + SHADOW}>
@@ -620,7 +623,7 @@ export default function SchoolSetsPage() {
 
   return (
     <div
-      className="min-h-screen text-[#1E1B19] antialiased font-['Plus_Jakarta_Sans',sans-serif]"
+      className="min-h-screen text-[#1E1B19] antialiased font-['Plus_Jakarta_Sans',sans-serif] lg:bg-[#fcf9f4]!"
       style={{ background: 'linear-gradient(180deg, #FDEADF 0%, #FFF7F2 100%)' }}
     >
       <LocationSheet open={sheetOpen} onClose={() => setSheetOpen(false)} place={place} onSelect={setPlace} />
@@ -841,17 +844,17 @@ export default function SchoolSetsPage() {
       )}
 
       <main
-        className="w-full max-w-md md:max-w-5xl mx-auto px-5 pb-[170px] lg:pb-16"
+        className="w-full max-w-md md:max-w-5xl lg:max-w-[1200px] mx-auto px-5 lg:px-6 pb-[170px] lg:pb-16 lg:pt-8!"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
       >
         {/* App bar */}
         <header className="mb-4">
           <div className="flex items-center justify-between">
-            <a href="/" className="text-[26px] font-extrabold tracking-tight leading-none active:scale-95 transition-transform">
+            <a href="/" className="lg:hidden text-[26px] font-extrabold tracking-tight leading-none active:scale-95 transition-transform">
               Page<span className="text-[#E8632B]">plus</span>
             </a>
-            <div className="flex items-center gap-2.5">
-              <nav className="hidden md:flex items-center gap-1 mr-2">
+            <div className="flex items-center gap-2.5 lg:ml-auto">
+              <nav className="hidden md:flex lg:hidden items-center gap-1 mr-2">
                 <a href="/" className="px-3 py-2 rounded-full text-[14px] font-medium text-[#5E5650] hover:text-[#1E1B19]">Home</a>
                 <a href="/marketplace" className="px-3 py-2 rounded-full text-[14px] font-medium text-[#5E5650] hover:text-[#1E1B19]">Market</a>
                 <a href="/books" className="px-3 py-2 rounded-full text-[14px] font-medium text-[#5E5650] hover:text-[#1E1B19]">Books</a>
@@ -899,8 +902,8 @@ export default function SchoolSetsPage() {
           )}
         </div>
 
-        <div className="lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
-          <div className="lg:col-span-8">
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:gap-8 lg:items-start">
+          <div className="lg:min-w-0">
 
             {/* Title */}
             <div className="mb-4">
@@ -910,23 +913,23 @@ export default function SchoolSetsPage() {
 
             {/* School + class */}
             <div className="flex flex-col gap-2.5 mb-5">
-              <div className="flex items-center gap-2 overflow-x-auto -mx-5 px-5" style={{ scrollbarWidth: 'none' }}>
+              <div className="flex items-center gap-2 overflow-x-auto -mx-5 px-5 lg:flex-wrap lg:overflow-visible lg:mx-0 lg:px-0" style={{ scrollbarWidth: 'none' }}>
                 {schoolNames.map(n => {
                   const on = n === selectedSchool
                   return (
                     <button key={n} onClick={() => pickSchool(n)}
-                      className={'px-4 py-2 rounded-full text-[13px] whitespace-nowrap shrink-0 active:scale-95 transition-transform ' + (on ? 'bg-[#E8632B] text-white font-semibold ' : 'bg-white text-[#1E1B19] font-medium ') + SHADOW}>
+                      className={'px-4 py-2 rounded-full text-[13px] whitespace-nowrap shrink-0 active:scale-95 transition-transform ' + (on ? 'bg-[#E8632B] text-white font-semibold lg:bg-[#F7CF65] lg:text-stone-900 ' : 'bg-white text-[#1E1B19] font-medium ') + SHADOW}>
                       {SHORT_NAME[n] || n}
                     </button>
                   )
                 })}
               </div>
-              <div className="flex items-center gap-2 overflow-x-auto -mx-5 px-5 pb-1" style={{ scrollbarWidth: 'none' }}>
+              <div className="flex items-center gap-2 overflow-x-auto -mx-5 px-5 pb-1 lg:flex-wrap lg:overflow-visible lg:mx-0 lg:px-0" style={{ scrollbarWidth: 'none' }}>
                 {availableClasses.map(c => {
                   const on = c === selectedClass
                   return (
                     <button key={c} onClick={() => setSelectedClass(c)}
-                      className={'px-3.5 py-1.5 rounded-full text-[12px] whitespace-nowrap shrink-0 transition-colors ' + (on ? 'bg-[#E8632B] text-white font-semibold ' : 'bg-white text-[#1E1B19] font-medium ') + SHADOW}>
+                      className={'px-3.5 py-1.5 rounded-full text-[12px] whitespace-nowrap shrink-0 transition-colors ' + (on ? 'bg-[#E8632B] text-white font-semibold lg:bg-[#F7CF65] lg:text-stone-900 ' : 'bg-white text-[#1E1B19] font-medium ') + SHADOW}>
                       Class {c}
                     </button>
                   )
@@ -975,7 +978,7 @@ export default function SchoolSetsPage() {
           </div>
 
           {/* Desktop summary */}
-          <aside className="hidden lg:block lg:col-span-4 lg:sticky lg:top-6 self-start">{summaryCard}</aside>
+          <aside className="hidden lg:block lg:sticky lg:top-24 self-start">{summaryCard}</aside>
         </div>
       </main>
 

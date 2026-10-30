@@ -358,7 +358,7 @@ export default function ListingPage() {
   const fill = { fontVariationSettings: "'FILL' 1" }
 
   const topBar = (title: string, onBack: () => void, right?: ReactNode) => (
-    <header className="fixed top-0 inset-x-0 z-50 bg-[#fcf9f4]/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+    <header className="lg:hidden fixed top-0 inset-x-0 z-50 bg-[#fcf9f4]/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.04)]" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
       <div className="w-full max-w-md md:max-w-5xl mx-auto h-16 px-3 flex items-center justify-between">
         <div className="flex items-center gap-1 min-w-0">
           <button aria-label="Back" onClick={onBack} className={iconBtn + ' !text-[#1c1c19]'}><span className="material-symbols-outlined text-[24px]">arrow_back</span></button>
@@ -415,6 +415,12 @@ export default function ListingPage() {
     </button>
   )
 
+  const shareButton = (
+    <button aria-label="Share" onClick={shareBook} className="w-12 h-12 rounded-full bg-[#f0ede9] flex items-center justify-center active:scale-90 transition-transform shrink-0">
+      <span className="material-symbols-outlined text-[22px]">share</span>
+    </button>
+  )
+
   const chatButton = (cls: string) => (
     <button onClick={openChat} disabled={!!chatBusy} className={primaryBtn + ' ' + cls}>
       <span className={'material-symbols-outlined text-[20px] ' + (chatBusy ? 'animate-spin' : '')} style={chatBusy ? undefined : fill}>{chatBusy ? 'progress_activity' : 'chat_bubble'}</span>
@@ -427,8 +433,9 @@ export default function ListingPage() {
     return (
       <div className={pageCls}>
         {topBar('Edit listing', () => setEditing(false))}
-        <main className="w-full max-w-md mx-auto px-4 pb-12" style={topPad}>
+        <main className="w-full max-w-md mx-auto px-4 pb-12 lg:max-w-xl lg:pt-8!" style={topPad}>
           <div className={card + ' flex flex-col gap-4'}>
+            <h1 className="hidden lg:block text-[24px] font-extrabold tracking-tight">Edit listing</h1>
             {(['title', 'subtitle', 'location'] as const).map(f => (
               <div key={f}>
                 <label className="text-[12px] font-semibold text-[#4f4633] block mb-1.5">{f === 'subtitle' ? 'Note for buyers' : cap(f)}</label>
@@ -531,7 +538,7 @@ export default function ListingPage() {
         {!isOwner && <button aria-label="Report this listing" onClick={reportListing} className={iconBtn}><span className="material-symbols-outlined text-[22px]">flag</span></button>}
       </>)}
 
-      <main className={'w-full max-w-md md:max-w-5xl mx-auto px-4 ' + (canChat ? 'pb-32 lg:pb-16' : 'pb-16')} style={topPad}>
+      <main className={'w-full max-w-md md:max-w-5xl lg:max-w-[1200px] mx-auto px-4 lg:px-6 lg:pt-8! ' + (canChat ? 'pb-32 lg:pb-16' : 'pb-16')} style={topPad}>
 
         {/* Owner banner */}
         {isOwner && (
@@ -560,7 +567,7 @@ export default function ListingPage() {
 
           {/* LEFT: photos */}
           <div className="lg:col-span-6 lg:sticky lg:top-24">
-            <div className={'relative bg-[#f6f3ee] rounded-[2rem] overflow-hidden aspect-[4/3] ' + SHADOW}>
+            <div className={'relative bg-[#f6f3ee] rounded-[2rem] overflow-hidden aspect-[4/3] lg:aspect-square ' + SHADOW}>
               {hasImages ? (
                 <div ref={galleryRef} onScroll={onGalleryScroll} className="flex w-full h-full overflow-x-auto snap-x snap-mandatory" style={{ scrollbarWidth: 'none' }}>
                   {images.map((src, i) => (
@@ -608,6 +615,18 @@ export default function ListingPage() {
                 </>
               )}
             </div>
+
+            {/* Thumbnails (desktop) */}
+            {images.length > 1 && (
+              <div className="hidden lg:flex gap-3 mt-4 flex-wrap">
+                {images.map((src, i) => (
+                  <button key={i} type="button" aria-label={'Photo ' + (i + 1)} onClick={() => goToImage(i)}
+                    className={'w-20 h-20 rounded-2xl bg-white overflow-hidden border-2 p-1 transition-colors ' + (i === activeImg ? 'border-[#F7CF65]' : 'border-stone-200 hover:border-stone-300')}>
+                    <img src={src} alt="" className="w-full h-full object-cover rounded-xl" />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* RIGHT: details */}
@@ -632,7 +651,8 @@ export default function ListingPage() {
                 <span>Listed {timeAgo(listing.createdAt)}{listing.location ? ' in ' + String(listing.location).split(',')[0] : ''}</span>
               </div>
               {!live && !isOwner && <p className="mt-2 text-[12px] text-[#817661]">Waiting for approval</p>}
-              {canChat && <div className="hidden lg:flex items-center gap-3 mt-5">{heartButton('w-12 h-12 bg-[#f0ede9]')}{chatButton('flex-1')}</div>}
+              {canChat && <div className="hidden lg:flex items-center gap-3 mt-5">{heartButton('w-12 h-12 bg-[#f0ede9]')}{shareButton}{chatButton('flex-1')}</div>}
+              {!canChat && <div className="hidden lg:flex items-center gap-3 mt-5">{shareButton}</div>}
             </section>
 
             {/* Owner tools */}
@@ -725,77 +745,80 @@ export default function ListingPage() {
                 </a>
               )}
             </section>
-
-            {/* Meetup */}
-            {listing.location && (
-              <section className={card + ' flex items-start gap-3'}>
-                <div className="w-10 h-10 rounded-full bg-[#ffdbce] flex items-center justify-center shrink-0">
-                  <span className="material-symbols-outlined text-[22px] text-[#a73a00]">location_on</span>
-                </div>
-                <div className="min-w-0">
-                  <h3 className="text-[14px] font-bold">Meetup area</h3>
-                  <p className="text-[15px] text-[#4f4633] mt-0.5">{listing.location}</p>
-                  <span className="mt-2 inline-flex bg-[#ebe8e3] text-[11px] font-semibold px-2.5 py-1 rounded-full items-center gap-1">
-                    <span className="material-symbols-outlined text-[14px] text-[#795900]">directions_walk</span>Meet in person
-                  </span>
-                </div>
-              </section>
-            )}
-
-            {/* Condition and notes */}
-            <section>
-              <h3 className="text-[20px] leading-[26px] font-bold mb-2.5">Condition & Notes</h3>
-              <div className={card + ' flex flex-col gap-3'}>
-                <div className="grid grid-cols-3 gap-1 p-1 bg-[#f0ede9] rounded-full">
-                  {CONDITIONS.map(c => {
-                    const on = listing.condition === c
-                    return (
-                      <div key={c} className={'py-2 text-center rounded-full text-[12px] flex items-center justify-center gap-1 ' + (on ? 'bg-[#fbbf24] text-[#6c4f00] font-bold' : 'text-[#817661] font-medium')}>
-                        {on && <span className="material-symbols-outlined text-[14px]" style={fill}>check_circle</span>}{c}
-                      </div>
-                    )
-                  })}
-                </div>
-                <div className="flex items-start gap-3">
-                  <span className="w-7 h-7 rounded-full bg-[#f0ede9] flex items-center justify-center shrink-0 text-[#4f4633]"><span className="material-symbols-outlined text-[16px]">book</span></span>
-                  <div>
-                    <h4 className="text-[12px] font-bold">What it means</h4>
-                    <p className="text-[13px] text-[#4f4633]">{CONDITION_DESC[listing.condition] || 'See the photos for the condition.'}</p>
-                  </div>
-                </div>
-                {note && (
-                  <div className="flex items-start gap-3">
-                    <span className="w-7 h-7 rounded-full bg-[#f0ede9] flex items-center justify-center shrink-0 text-[#4f4633]"><span className="material-symbols-outlined text-[16px]">edit_note</span></span>
-                    <div>
-                      <h4 className="text-[12px] font-bold">Seller&apos;s note</h4>
-                      <p className="text-[13px] text-[#4f4633] leading-relaxed">{note}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </section>
-
-            {/* Good to know */}
-            <section>
-              <h3 className="text-[20px] leading-[26px] font-bold mb-2.5">Good to know</h3>
-              <div className="bg-[#f6f3ee] rounded-[2rem] p-4 flex flex-col gap-2.5">
-                {[
-                  { icon: 'forum', s: 'Chat in the app and agree a time and a public place. Your number is not shared in chats.' },
-                  { icon: 'task_alt', s: 'Look at the book in person, then pay the seller directly. No advance needed.' },
-                  { icon: 'verified_user', s: 'Meet in a public place and never share an OTP or bank details.' },
-                ].map(x => (
-                  <div key={x.icon} className="flex items-start gap-2.5">
-                    <span className="material-symbols-outlined text-[18px] text-[#795900] shrink-0 mt-0.5">{x.icon}</span>
-                    <p className="text-[13px]">{x.s}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
           </div>
         </div>
 
+        {/* Below the photos: meetup, notes, tips (full width on desktop) */}
+        <div className="flex flex-col gap-4 mt-4 lg:grid lg:grid-cols-3 lg:gap-6 lg:items-start lg:mt-8">
+          {/* Meetup */}
+          {listing.location && (
+            <section className={card + ' flex items-start gap-3 lg:order-2'}>
+              <div className="w-10 h-10 rounded-full bg-[#ffdbce] flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-[22px] text-[#a73a00]">location_on</span>
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-[14px] font-bold">Meetup area</h3>
+                <p className="text-[15px] text-[#4f4633] mt-0.5">{listing.location}</p>
+                <span className="mt-2 inline-flex bg-[#ebe8e3] text-[11px] font-semibold px-2.5 py-1 rounded-full items-center gap-1">
+                  <span className="material-symbols-outlined text-[14px] text-[#795900]">directions_walk</span>Meet in person
+                </span>
+              </div>
+            </section>
+          )}
+
+          {/* Condition and notes */}
+          <section className="lg:order-1">
+            <h3 className="text-[20px] leading-[26px] font-bold mb-2.5">Condition & Notes</h3>
+            <div className={card + ' flex flex-col gap-3'}>
+              <div className="grid grid-cols-3 gap-1 p-1 bg-[#f0ede9] rounded-full">
+                {CONDITIONS.map(c => {
+                  const on = listing.condition === c
+                  return (
+                    <div key={c} className={'py-2 text-center rounded-full text-[12px] flex items-center justify-center gap-1 ' + (on ? 'bg-[#fbbf24] text-[#6c4f00] font-bold' : 'text-[#817661] font-medium')}>
+                      {on && <span className="material-symbols-outlined text-[14px]" style={fill}>check_circle</span>}{c}
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="w-7 h-7 rounded-full bg-[#f0ede9] flex items-center justify-center shrink-0 text-[#4f4633]"><span className="material-symbols-outlined text-[16px]">book</span></span>
+                <div>
+                  <h4 className="text-[12px] font-bold">What it means</h4>
+                  <p className="text-[13px] text-[#4f4633]">{CONDITION_DESC[listing.condition] || 'See the photos for the condition.'}</p>
+                </div>
+              </div>
+              {note && (
+                <div className="flex items-start gap-3">
+                  <span className="w-7 h-7 rounded-full bg-[#f0ede9] flex items-center justify-center shrink-0 text-[#4f4633]"><span className="material-symbols-outlined text-[16px]">edit_note</span></span>
+                  <div>
+                    <h4 className="text-[12px] font-bold">Seller&apos;s note</h4>
+                    <p className="text-[13px] text-[#4f4633] leading-relaxed">{note}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Good to know */}
+          <section className="lg:order-3">
+            <h3 className="text-[20px] leading-[26px] font-bold mb-2.5">Good to know</h3>
+            <div className="bg-[#f6f3ee] rounded-[2rem] p-4 flex flex-col gap-2.5">
+              {[
+                { icon: 'forum', s: 'Chat in the app and agree a time and a public place. Your number is not shared in chats.' },
+                { icon: 'task_alt', s: 'Look at the book in person, then pay the seller directly. No advance needed.' },
+                { icon: 'verified_user', s: 'Meet in a public place and never share an OTP or bank details.' },
+              ].map(x => (
+                <div key={x.icon} className="flex items-start gap-2.5">
+                  <span className="material-symbols-outlined text-[18px] text-[#795900] shrink-0 mt-0.5">{x.icon}</span>
+                  <p className="text-[13px]">{x.s}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+
         {/* Reviews */}
-        <section className="mt-4">
+        <section className="mt-4 lg:mt-8">
           <div className="flex items-center justify-between mb-2.5">
             <h3 className="text-[20px] leading-[26px] font-bold">Reviews of {sellerName}</h3>
             {reviewTotal > 0 && <span className="flex items-center gap-1.5"><Stars rating={reviewAvg} size={14} /><span className="text-[13px] text-[#817661]">{reviewAvg} from {reviewTotal}</span></span>}
@@ -838,7 +861,7 @@ export default function ListingPage() {
             )}
 
             {reviews.length > 0 ? (
-              <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col gap-2.5 lg:grid lg:grid-cols-2 lg:gap-3">
                 {reviews.map((r: any) => (
                   <div key={r.id} className="bg-[#f6f3ee] rounded-[1rem] p-3.5">
                     <div className="flex items-center justify-between gap-2 mb-1">
@@ -866,20 +889,20 @@ export default function ListingPage() {
 
         {/* More like this */}
         {related.length > 0 && (
-          <section className="mt-5 -mx-4">
-            <div className="px-4 flex items-center justify-between mb-2.5">
+          <section className="mt-5 -mx-4 lg:mx-0 lg:mt-10">
+            <div className="px-4 lg:px-0 flex items-center justify-between mb-2.5">
               <h3 className="text-[20px] leading-[26px] font-bold">More like this</h3>
               <button onClick={() => router.push('/marketplace')} className="text-[12px] font-bold text-[#795900] active:scale-95">See all</button>
             </div>
-            <div className="flex gap-3 overflow-x-auto px-4 pb-2" style={{ scrollbarWidth: 'none' }}>
+            <div className="flex gap-3 overflow-x-auto px-4 pb-2 lg:grid lg:grid-cols-4 lg:gap-4 lg:overflow-visible lg:px-0" style={{ scrollbarWidth: 'none' }}>
               {related.map(l => (
-                <div key={l.id} onClick={() => router.push('/listing/' + l.id)} className={'w-40 shrink-0 bg-white rounded-[1rem] p-2.5 cursor-pointer flex flex-col justify-between active:scale-[0.98] transition-transform ' + SHADOW}>
+                <div key={l.id} onClick={() => router.push('/listing/' + l.id)} className={'w-40 shrink-0 bg-white rounded-[1rem] p-2.5 cursor-pointer flex flex-col justify-between active:scale-[0.98] transition-transform lg:w-auto lg:rounded-2xl lg:p-3 lg:border lg:border-stone-200 lg:hover:shadow-md ' + SHADOW}>
                   <div>
-                    <div className="w-full h-32 rounded-[1rem] bg-[#f6f3ee] overflow-hidden flex items-center justify-center text-[36px] mb-2">
-                      {l.images?.[0] ? <img src={l.images[0]} alt={l.title} className="h-full w-auto object-contain" /> : <span>{l.emoji || '📚'}</span>}
+                    <div className="w-full h-32 rounded-[1rem] bg-[#f6f3ee] overflow-hidden flex items-center justify-center text-[36px] mb-2 lg:h-auto lg:aspect-[3/4] lg:rounded-xl">
+                      {l.images?.[0] ? <img src={l.images[0]} alt={l.title} className="h-full w-auto object-contain lg:w-full lg:object-cover" /> : <span>{l.emoji || '📚'}</span>}
                     </div>
                     {l.condition && <span className="bg-[#f0ede9] text-[10px] font-semibold px-1.5 py-0.5 rounded-full inline-block mb-1">{l.condition}</span>}
-                    <h4 className="text-[12px] font-bold line-clamp-1">{l.title}</h4>
+                    <h4 className="text-[12px] font-bold line-clamp-1 lg:text-[14px] lg:line-clamp-2 lg:min-h-[2.6em]">{l.title}</h4>
                   </div>
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-[14px] font-bold">{priceText(l.price)}</span>
