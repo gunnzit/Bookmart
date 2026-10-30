@@ -539,7 +539,7 @@ export default function HomePage() {
                   const off = Number(l.origPrice) > Number(l.price) ? Math.round((1 - Number(l.price) / Number(l.origPrice)) * 100) : 0
                   const sub = l.author || l.subtitle || l.condition || ''
                   return (
-                    <div key={l.id} data-pop onClick={() => router.push('/listing/' + l.id)} className="wr-pre wr-card wr-snap-item w-28 flex-shrink-0 bg-white p-2 rounded-2xl border border-stone-200 shadow-2xs relative flex flex-col justify-between cursor-pointer">
+                    <div key={l.id} data-pop onClick={() => router.push('/listing/' + l.id)} className="wr-pre wr-card wr-snap-item w-36 flex-shrink-0 bg-white p-2 rounded-2xl border border-stone-200 shadow-2xs relative flex flex-col justify-between cursor-pointer">
                       <div className={'relative rounded-xl p-1 mb-1.5 aspect-[3/4] flex items-center justify-center overflow-hidden border ' + t.bg + ' ' + t.bd}>
                         {l.images?.[0]
                           ? <img src={l.images[0]} alt={l.title} className="absolute inset-0 w-full h-full object-cover" />
@@ -548,7 +548,7 @@ export default function HomePage() {
                         {heart(l, 'absolute top-1 right-1 w-5 h-5 bg-white/80 rounded-full flex items-center justify-center text-stone-400 hover:text-red-500 z-10', 'text-[11px]')}
                       </div>
                       <div>
-                        <h3 className="text-[13px] font-bold text-stone-900 truncate">{l.title}</h3>
+                        <h3 className="text-[13px] font-bold text-stone-900 leading-snug line-clamp-2 min-h-[2.6em]">{l.title}</h3>
                         {sub && <p className="text-[11px] text-stone-500 truncate">{sub}</p>}
                         <div className="flex items-baseline space-x-1 mt-1">
                           <span className="text-[13px] font-black text-[#EA580C]">{priceText(l.price)}</span>
@@ -569,13 +569,13 @@ export default function HomePage() {
               {seeAll('/marketplace')}
             </div>
             {!loaded ? (
-              <div className="grid grid-cols-2 gap-2.5">
-                {[0, 1, 2, 3].map(k => (
+              <div className="grid grid-cols-1 gap-3">
+                {[0, 1, 2].map(k => (
                   <div key={k} className="bg-white p-2.5 rounded-2xl border border-stone-200 shadow-2xs">
                     <div className="flex space-x-2">
-                      <div className="w-14 h-[72px] rounded-lg wr-skel" />
-                      <div className="flex-1 space-y-2 pt-1">
-                        <div className="h-3 rounded wr-skel" />
+                      <div className="w-24 h-32 rounded-lg wr-skel" />
+                      <div className="flex-1 space-y-2.5 pt-1">
+                        <div className="h-4 rounded wr-skel" />
                         <div className="h-2.5 w-2/3 rounded wr-skel" />
                         <div className="h-2.5 w-1/2 rounded wr-skel" />
                       </div>
@@ -593,7 +593,7 @@ export default function HomePage() {
                 <button type="button" onClick={goSell} className="bg-[#FFF4D2] hover:bg-amber-200 text-stone-900 text-[12px] font-bold px-4 py-1.5 rounded-lg border border-amber-300 transition">Sell a book</button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 gap-3">
                 {gridList.map((l, i) => {
                   const t = STUDENT_TINTS[i % STUDENT_TINTS.length]
                   const pct = Number(l.origPrice) > Number(l.price) && Number(l.price) > 0 ? Math.round((Number(l.price) / Number(l.origPrice)) * 100) : 0
@@ -602,19 +602,19 @@ export default function HomePage() {
                   return (
                     <div key={l.id} data-pop onClick={() => router.push('/listing/' + l.id)} className="wr-pre wr-card bg-white p-2.5 rounded-2xl border border-stone-200 shadow-2xs flex flex-col justify-between cursor-pointer">
                       <div className="flex space-x-2">
-                        <div className={'relative w-14 h-[72px] rounded-lg flex-shrink-0 flex items-center justify-center p-1 overflow-hidden border ' + t.bg + ' ' + t.bd}>
+                        <div className={'relative w-24 h-32 rounded-lg flex-shrink-0 flex items-center justify-center p-1 overflow-hidden border ' + t.bg + ' ' + t.bd}>
                           {l.images?.[0]
                             ? <img src={l.images[0]} alt={l.title} className="absolute inset-0 w-full h-full object-cover" />
-                            : <div className={'text-center text-[9px] font-black mt-4 line-clamp-3 ' + t.tx}>{l.title}</div>}
+                            : <div className={'text-center text-[11px] font-black line-clamp-4 ' + t.tx}>{l.title}</div>}
                           {pct > 0 && <span className={'absolute top-0.5 left-0.5 text-white text-[8px] font-bold px-1 rounded z-10 whitespace-nowrap leading-tight ' + t.tag}>{pct}% of MRP</span>}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between">
-                            <h3 className="text-[12px] font-bold text-stone-900 leading-tight truncate">{l.title}</h3>
+                            <h3 className="text-[14px] font-bold text-stone-900 leading-snug line-clamp-2">{l.title}</h3>
                             {heart(l, 'ml-1 shrink-0', 'text-[11px] ' + (saved.has(l.id) ? '' : 'text-stone-300'))}
                           </div>
-                          {author && <p className="text-[10px] text-stone-500 truncate">{author}</p>}
-                          {who && <p className="text-[10px] text-stone-500 truncate"><i className="fa-solid fa-user text-[8px] mr-1" />{who}</p>}
+                          {author && <p className="text-[12px] text-stone-500 truncate">{author}</p>}
+                          {who && <p className="text-[12px] text-stone-500 truncate"><i className="fa-solid fa-user text-[8px] mr-1" />{who}</p>}
                           {l.condition && <span className={'inline-block mt-1 text-[9px] font-bold px-1.5 py-0.5 rounded border ' + condCls(String(l.condition))}>{l.condition}</span>}
                         </div>
                       </div>
