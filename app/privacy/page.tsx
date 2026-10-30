@@ -45,7 +45,7 @@ export default function PrivacyPage() {
           <li>Update or correct your information via your profile.</li>
           <li>Remove your listings at any time.</li>
         </ul>
-        <p>To exercise these rights, contact us at <a href="mailto:support@buddybooks.in">support@buddybooks.in</a>.</p>
+        <p>To exercise these rights, contact us at <a href="mailto:buddybookx@gmail.com">buddybookx@gmail.com</a>.</p>
 
         <h2>6. Cookies</h2>
         <p>wrap&amp;read uses cookies for authentication (via Clerk) and to remember your preferences. You can disable cookies in your browser settings, but this may affect functionality.</p>

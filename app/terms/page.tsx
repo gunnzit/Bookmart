@@ -48,7 +48,7 @@ export default function TermsPage() {
         <ul>
           <li><strong>Featured listings:</strong> Non-refundable once activated.</li>
           <li><strong>School kit bundles:</strong> Full refund if cancelled before dispatch. No refund after delivery unless items are incorrect or damaged — contact us within 48 hours of delivery.</li>
-          <li>To request a refund, contact <a href="mailto:support@buddybooks.in">support@buddybooks.in</a> or WhatsApp <a href="https://wa.me/919914735738">+91 99147 35738</a>.</li>
+          <li>To request a refund, contact <a href="mailto:buddybookx@gmail.com">buddybookx@gmail.com</a> or WhatsApp <a href="https://wa.me/919914735738">+91 99147 35738</a>.</li>
         </ul>
 
         <h2>8. Prohibited Conduct</h2>
@@ -75,7 +75,7 @@ export default function TermsPage() {
         <p>These Terms are governed by the laws of India. Any disputes shall be subject to the jurisdiction of courts in Chandigarh, Punjab.</p>
 
         <h2>13. Contact</h2>
-        <p>For any questions about these Terms, contact us at <a href="mailto:support@buddybooks.in">support@buddybooks.in</a> or visit Bedi Book Store, Sector 40-C, Chandigarh.</p>
+        <p>For any questions about these Terms, contact us at <a href="mailto:buddybookx@gmail.com">buddybookx@gmail.com</a> or visit Bedi Book Store, Sector 40-C, Chandigarh.</p>
       </div>
       <div className="mt-6 text-center text-[12px] text-[#817661]">
         wrap&amp;read · Bedi Book Store · Sector 40-C, Chandigarh
