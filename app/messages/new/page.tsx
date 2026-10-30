@@ -45,7 +45,7 @@ function StartChat() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-5 text-[#1c1c19] antialiased font-['Plus_Jakarta_Sans',sans-serif]" style={{ background: '#fcf9f4' }}>
-      <div className={'bg-white rounded-[2rem] p-7 max-w-sm w-full text-center ' + SHADOW}>
+      <div className={'bg-white rounded-[2rem] p-7 max-w-sm w-full text-center lg:max-w-md lg:p-10 ' + SHADOW}>
         {!error && <p className="text-[14px] text-[#4f4633]">Opening your chat…</p>}
         {error === 'signin' && (
           <>

@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useUser, SignInButton } from '@clerk/nextjs'
 import SoldSheet from '@/components/SoldSheet'
 import VerifiedBadge from '@/components/VerifiedBadge'
+import { DesktopConversationPane } from '@/components/ConversationList'
 
 type Msg = { id: string; senderId: string; body: string; createdAt: string; pending?: boolean; failed?: boolean }
 
@@ -247,6 +248,9 @@ export default function ChatPage() {
 
   return (
     <div className={pageCls + ' flex flex-col min-h-screen'} style={pageStyle}>
+      <div className="contents lg:flex lg:flex-1 lg:gap-6 lg:max-w-[1200px] lg:mx-auto lg:w-full lg:px-6 lg:pt-6">
+      <DesktopConversationPane activeId={id} />
+      <div className="contents lg:flex lg:flex-col lg:flex-1 lg:min-w-0">
 
       {/* Mark as sold: this chat's buyer is already selected */}
       {soldSheet && (
@@ -299,9 +303,9 @@ export default function ChatPage() {
       )}
 
       {/* Top bar */}
-      <header className="fixed top-0 inset-x-0 z-50 bg-[#fcf9f4]/85 backdrop-blur-xl shadow-[0_6px_20px_rgba(28,28,25,0.06)]" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
-        <div className="h-16 px-5 flex items-center justify-between gap-4 max-w-xl mx-auto">
-          <button aria-label="Back to messages" onClick={() => router.push('/messages')} className={'w-10 h-10 rounded-full bg-[#f0ede9] flex items-center justify-center active:scale-95 transition-transform shrink-0'}>
+      <header className="fixed top-0 inset-x-0 z-50 lg:sticky lg:top-[68px] lg:inset-x-auto lg:rounded-3xl lg:border lg:border-stone-200 bg-[#fcf9f4]/85 backdrop-blur-xl shadow-[0_6px_20px_rgba(28,28,25,0.06)]" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+        <div className="h-16 px-5 flex items-center justify-between gap-4 max-w-xl mx-auto lg:max-w-none">
+          <button aria-label="Back to messages" onClick={() => router.push('/messages')} className={'w-10 h-10 rounded-full bg-[#f0ede9] flex items-center justify-center active:scale-95 transition-transform shrink-0 lg:hidden'}>
             <span className="material-symbols-outlined text-[20px]">arrow_back</span>
           </button>
           <div className="flex-1 min-w-0 flex flex-col items-center text-center">
@@ -326,11 +330,11 @@ export default function ChatPage() {
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col w-full" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 64px)' }}>
-        <div className="flex flex-col w-full max-w-xl mx-auto pb-44">
+      <main className="flex-1 flex flex-col w-full lg:pt-0! lg:mt-3" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 64px)' }}>
+        <div className="flex flex-col w-full max-w-xl mx-auto pb-44 lg:max-w-none lg:pb-6">
 
           {/* Pinned book card */}
-          <div className="sticky z-30 px-5 pt-1 pb-2 bg-gradient-to-b from-[#fcf9f4] via-[#fcf9f4]/95 to-transparent backdrop-blur-sm" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 64px)' }}>
+          <div className="sticky z-30 px-5 pt-1 pb-2 lg:top-[140px]!bg-gradient-to-b from-[#fcf9f4] via-[#fcf9f4]/95 to-transparent backdrop-blur-sm" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 64px)' }}>
             <div className={'bg-white rounded-[2rem] p-2 flex flex-col gap-1 ' + SHADOW}>
               <div className="flex items-center gap-2">
                 <div className="relative w-12 h-14 rounded-[10px] overflow-hidden bg-[#f0ede9] shrink-0 flex items-center justify-center">
@@ -482,8 +486,8 @@ export default function ChatPage() {
         </div>
 
         {/* Quick replies and message box */}
-        <div className="fixed bottom-0 inset-x-0 z-40 bg-gradient-to-t from-[#fcf9f4] via-[#fcf9f4]/95 to-transparent pt-2" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-          <div className="max-w-xl mx-auto">
+        <div className="fixed bottom-0 inset-x-0 z-40 lg:sticky lg:inset-x-auto lg:mt-auto bg-gradient-to-t from-[#fcf9f4] via-[#fcf9f4]/95 to-transparent pt-2" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+          <div className="max-w-xl mx-auto lg:max-w-none">
             {showQuick && (
               <div role="toolbar" aria-label="Suggested replies" className="px-5 mb-2 overflow-x-auto flex items-center gap-2" style={{ scrollbarWidth: 'none' }}>
                 {quick.map(q => (
@@ -515,6 +519,8 @@ export default function ChatPage() {
           </div>
         </div>
       </main>
+      </div>
+      </div>
     </div>
   )
 }
