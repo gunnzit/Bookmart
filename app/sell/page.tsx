@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { createClient } from '@supabase/supabase-js'
 import { PHONE_OTP_REQUIRED } from '@/lib/features'
+import DesktopNav from '@/components/DesktopNav'
+import DesktopFooter from '@/components/DesktopFooter'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -507,7 +509,8 @@ export default function SellPage() {
 
   return (
     <div className={shell} style={bg}>
-      <header className="fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-[#fcf9f4]/85 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
+      <DesktopNav />
+      <header className="lg:hidden fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-[#fcf9f4]/85 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
         <div className="h-16 px-4 flex items-center gap-3 max-w-md mx-auto">
           <button onClick={() => router.back()} aria-label="Back"
             className="w-10 h-10 rounded-full bg-[#f0ede9] flex items-center justify-center active:scale-95 transition-transform"><span className="material-symbols-outlined text-[22px]">arrow_back</span></button>
@@ -518,7 +521,16 @@ export default function SellPage() {
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-4 pt-20 pb-40 flex flex-col gap-7">
+      <main className="max-w-md mx-auto px-4 pt-20 pb-40 flex flex-col gap-7 lg:max-w-[1200px] lg:px-6 lg:pt-8 lg:pb-8 lg:grid lg:grid-cols-[400px_1fr] lg:gap-x-12 lg:items-start">
+
+        {/* Desktop page title */}
+        <div className="hidden lg:block lg:col-span-2">
+          <h1 className="text-[40px] leading-[46px] font-black tracking-tight">Sell a book</h1>
+          <p className="text-[15px] text-[#4f4633] mt-1">Free to list. You keep the full price.</p>
+        </div>
+
+        {/* Left column on desktop: photos and the live preview (on phones these wrappers add no layout) */}
+        <div className="contents lg:flex lg:flex-col lg:gap-7 lg:sticky lg:top-24">
 
         {/* 1 Photos */}
         <section>
@@ -557,6 +569,37 @@ export default function SellPage() {
             </p>
           </div>
         </section>
+
+        {/* Live preview (desktop only) */}
+        <section className="hidden lg:block">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <h2 className="text-[20px] leading-[26px] font-bold tracking-tight">Live preview</h2>
+            <span className="shrink-0 px-2.5 py-1 rounded-full bg-[#fbbf24] text-[#6c4f00] text-[11px] font-bold">How buyers see it</span>
+          </div>
+          <div className={CARD}>
+            <div className="relative aspect-[3/4] rounded-[1rem] bg-[#f6f3ee] overflow-hidden flex items-center justify-center text-6xl">
+              {previews[0]
+                ? <img src={previews[0]} alt="Front cover preview" className="w-full h-full object-cover" />
+                : <span>{emojis[form.category]}</span>}
+              <span className="absolute top-2 left-2 bg-white/90 rounded-full px-2.5 py-0.5 text-[11px] font-semibold">{donate ? 'Free' : grade.label}</span>
+              {!donate && mrp > priceNum && priceNum > 0 && (
+                <span className="absolute bottom-2 right-2 bg-[#795900] text-white rounded px-1.5 py-0.5 text-[11px] font-bold">{Math.round((1 - priceNum / mrp) * 100)}% off MRP</span>
+              )}
+            </div>
+            <p className="text-[12px] font-bold text-[#795900] mt-3">{catLabel[form.category]}{form.grade ? ' · ' + form.grade : ''}{form.board ? ' · ' + form.board : ''}</p>
+            <h3 className={'text-[17px] leading-[22px] font-bold mt-1 ' + (form.title.trim() ? '' : 'text-[#817661]')}>{form.title.trim() || 'Your book title'}</h3>
+            <div className="flex items-baseline gap-2 mt-2">
+              <span className="text-[24px] font-black">{donate ? 'Free' : '₹' + (priceNum || 0)}</span>
+              {!donate && mrp > priceNum && <span className="text-[13px] text-[#817661] line-through">₹{mrp}</span>}
+            </div>
+            <p className="text-[12px] text-[#4f4633] mt-1">{form.location.trim() || 'Meetup area'}</p>
+          </div>
+        </section>
+
+        </div>
+
+        {/* Right column on desktop: the form (same fields, same order) */}
+        <div className="contents lg:flex lg:flex-col lg:gap-7">
 
         {/* 2 Details */}
         <section>
@@ -747,11 +790,12 @@ export default function SellPage() {
             </p>
           </div>
         </section>
+        </div>
       </main>
 
-      {/* Publish bar */}
-      <div className="fixed bottom-0 inset-x-0 z-40 bg-[#fcf9f4]/95 backdrop-blur-md px-5 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(28,28,25,0.06)]">
-        <div className="max-w-md mx-auto">
+      {/* Publish bar (on desktop it sits at the end of the form, under the right column, and does not stick) */}
+      <div className="fixed bottom-0 inset-x-0 z-40 bg-[#fcf9f4]/95 backdrop-blur-md px-5 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(28,28,25,0.06)] lg:static lg:bg-transparent lg:backdrop-blur-none lg:shadow-none lg:max-w-[1200px] lg:mx-auto lg:px-6 lg:pt-0 lg:pb-0">
+        <div className="max-w-md mx-auto lg:max-w-none lg:mx-0 lg:ml-[448px]">
           {error && <p className="text-[12px] text-[#ba1a1a] mb-2 text-center">{error}</p>}
           {uploadProgress && <p className="text-[12px] text-[#4f4633] mb-2 text-center">{uploadProgress}</p>}
           <button onClick={submit} disabled={loading}
@@ -760,6 +804,7 @@ export default function SellPage() {
           </button>
         </div>
       </div>
+      <DesktopFooter />
     </div>
   )
 }
