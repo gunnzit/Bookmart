@@ -1,26 +1,35 @@
 'use client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import Logo from '@/components/Logo'
 
 // Top bar for desktop screens (lg and up). Phones keep their own headers and the bottom pill.
-// Pass query + onQuery when the page owns the search text (Marketplace); otherwise Enter opens the Marketplace search.
+// Mounted once in app/layout.tsx (inside Suspense). Hidden on admin and sign-in/up pages.
+// On /marketplace typing writes ?q= into the address and the page filters; elsewhere Enter opens /marketplace?q=.
+const HIDE_ON = ['/admin', '/sign-in', '/sign-up']
 const LINKS = [
   { href: '/', label: 'Home', match: (p: string) => p === '/' },
   { href: '/marketplace', label: 'Market', match: (p: string) => p.startsWith('/marketplace') || p.startsWith('/listing') },
   { href: '/sell', label: 'Sell', match: (p: string) => p.startsWith('/sell') },
 ]
 
-export default function DesktopNav({ query, onQuery }: { query?: string; onQuery?: (v: string) => void }) {
+export default function DesktopNav() {
   const router = useRouter()
   const pathname = usePathname() || '/'
   const { isSignedIn } = useUser()
+  const sp = useSearchParams()
+  const onMarket = pathname.startsWith('/marketplace')
+  const urlQ = sp.get('q') ?? ''
   const [own, setOwn] = useState('')
   const [unread, setUnread] = useState(0)
-  const controlled = typeof onQuery === 'function'
-  const value = controlled ? (query ?? '') : own
+  const value = onMarket ? urlQ : own
+
+  function onType(v: string) {
+    if (!onMarket) { setOwn(v); return }
+    window.history.replaceState(null, '', v ? '/marketplace?q=' + encodeURIComponent(v) : '/marketplace')
+  }
 
   function goSignIn() {
     router.push('/sign-in?redirect_url=' + encodeURIComponent(window.location.pathname + window.location.search))
@@ -46,12 +55,14 @@ export default function DesktopNav({ query, onQuery }: { query?: string; onQuery
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (controlled) return
+    if (onMarket) return
     const q = own.trim()
     router.push(q ? '/marketplace?q=' + encodeURIComponent(q) : '/marketplace')
   }
 
   const iconBtn = 'relative w-10 h-10 rounded-full flex items-center justify-center text-[#1c1c19] hover:bg-[#f0ede9] transition-colors'
+
+  if (HIDE_ON.some(h => pathname === h || pathname.startsWith(h + '/'))) return null
 
   return (
     <header className="hidden lg:block sticky top-0 z-[200] bg-[#fcf9f4]/90 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.05)] font-['Plus_Jakarta_Sans',sans-serif]">
@@ -74,7 +85,7 @@ export default function DesktopNav({ query, onQuery }: { query?: string; onQuery
           <i className="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-[#817661] text-[13px]" />
           <input
             value={value}
-            onChange={e => (controlled ? onQuery!(e.target.value) : setOwn(e.target.value))}
+            onChange={e => onType(e.target.value)}
             aria-label="Search books, authors, schools"
             placeholder="Search books, authors, schools"
             className="w-full h-11 bg-white pl-10 pr-4 rounded-full text-[14px] font-medium placeholder:text-[#817661] border border-stone-200 outline-none focus:ring-2 focus:ring-[#F7CF65]"

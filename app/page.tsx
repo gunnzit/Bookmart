@@ -6,7 +6,6 @@ import { schools, isRegister } from '@/lib/kit-prices'
 import LocationSheet, { useDeliveryPlace } from '@/components/LocationSheet'
 import { SETS_OPEN } from '@/lib/features'
 import Logo from '@/components/Logo'
-import DesktopNav from '@/components/DesktopNav'
 import DesktopFooter from '@/components/DesktopFooter'
 
 // ── Contact (change here only) ────────────────────────────────────────────
@@ -795,7 +794,6 @@ export default function HomePage() {
 
       {/* ── Desktop layout (lg and up). Phones never see this. ───────── */}
       <div className="hidden lg:block w-full">
-        <DesktopNav />
         <main className="max-w-[1200px] mx-auto px-6 pt-8">
 
           {/* Hero */}

@@ -4,7 +4,6 @@ import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { createClient } from '@supabase/supabase-js'
 import { PHONE_OTP_REQUIRED } from '@/lib/features'
-import DesktopNav from '@/components/DesktopNav'
 import DesktopFooter from '@/components/DesktopFooter'
 
 const supabase = createClient(
@@ -509,7 +508,6 @@ export default function SellPage() {
 
   return (
     <div className={shell} style={bg}>
-      <DesktopNav />
       <header className="lg:hidden fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-[#fcf9f4]/85 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
         <div className="h-16 px-4 flex items-center gap-3 max-w-md mx-auto">
           <button onClick={() => router.back()} aria-label="Back"

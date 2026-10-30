@@ -3,7 +3,9 @@ import Script from 'next/script'
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { Analytics } from '@vercel/analytics/react'
+import { Suspense } from 'react'
 import GlassNav from '@/components/GlassNav'
+import DesktopNav from '@/components/DesktopNav'
 
 const APP_URL = 'https://pageplus.in'
 
@@ -188,6 +190,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           />
         </head>
         <body>
+          {/* Desktop top bar (lg+ only, sticky in the page flow); hides itself on admin and sign-in/up */}
+          <Suspense fallback={null}><DesktopNav /></Suspense>
           {children}
           <GlassNav />
           <Analytics />

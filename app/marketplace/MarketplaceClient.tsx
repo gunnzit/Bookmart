@@ -1,10 +1,9 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import LocationSheet, { useDeliveryPlace } from '@/components/LocationSheet'
 import Logo from '@/components/Logo'
-import DesktopNav from '@/components/DesktopNav'
 import DesktopFooter from '@/components/DesktopFooter'
 
 // Category chips under the header. "free" is a special one (price 0)
@@ -124,6 +123,9 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
   const [reqs, setReqs] = useState<any[]>([])
   const [tab, setTab] = useState<'browse' | 'requests'>('browse')
   const [search, setSearch] = useState('')
+  // The desktop top bar writes the search text into the address (?q=); follow it
+  const urlQ = useSearchParams().get('q') ?? ''
+  useEffect(() => { setSearch(urlQ) }, [urlQ])
   const [cat, setCat] = useState('All')
   const [area, setArea] = useState('All areas')
   const [sortBy, setSortBy] = useState('Newest')
@@ -801,7 +803,6 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
 
       {/* ── Desktop layout (lg and up). Phones never see this. ───────── */}
       <div className="hidden lg:block w-full">
-        <DesktopNav query={search} onQuery={setSearch} />
         <main className="max-w-[1200px] mx-auto px-6 pt-8 grid grid-cols-[260px_1fr] gap-8 items-start">
 
           {/* Filters */}

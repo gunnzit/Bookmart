@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { Suspense } from 'react'
 import { prisma } from '@/lib/chat'
 import MarketplaceClient from './MarketplaceClient'
 
@@ -25,5 +26,5 @@ export default async function MarketplacePage() {
   } catch {
     initial = []
   }
-  return <MarketplaceClient initial={initial} />
+  return <Suspense fallback={null}><MarketplaceClient initial={initial} /></Suspense>
 }
