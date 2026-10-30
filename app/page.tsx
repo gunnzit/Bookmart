@@ -6,6 +6,8 @@ import { schools, isRegister } from '@/lib/kit-prices'
 import LocationSheet, { useDeliveryPlace } from '@/components/LocationSheet'
 import { SETS_OPEN } from '@/lib/features'
 import Logo from '@/components/Logo'
+import DesktopNav from '@/components/DesktopNav'
+import DesktopFooter from '@/components/DesktopFooter'
 
 // ── Contact (change here only) ────────────────────────────────────────────
 const WHATSAPP_NUMBER = '918872235738'
@@ -158,6 +160,7 @@ export default function HomePage() {
   const [reqs, setReqs] = useState<any[]>([])
   const [loaded, setLoaded] = useState(false)
   const [popId, setPopId] = useState('')
+  const [dcat, setDcat] = useState('all') // desktop category pills
 
   useEffect(() => {
     fetch('/api/listings')
@@ -244,6 +247,11 @@ export default function HomePage() {
   const others = listings.filter(l => !l.featured)
   const gridList = (others.length >= 2 ? others : listings).slice(0, 4)
   const free = listings.filter(l => Number(l.price) === 0).slice(0, 6)
+  // Desktop grid: 5 columns x 2 rows, featured books first, filtered by the category pills
+  const deskList = [...listings]
+    .filter(l => dcat === 'all' || l.category === dcat)
+    .sort((a, b) => Number(!!b.featured) - Number(!!a.featured))
+    .slice(0, 10)
 
   const setLine = [
     summary.books + ' books',
@@ -338,11 +346,11 @@ export default function HomePage() {
   const iconBtn = 'relative w-9 h-9 bg-white/80 rounded-full flex items-center justify-center text-stone-900 shadow-sm cursor-pointer hover:bg-white transition border border-amber-300/40'
 
   return (
-    <div className="min-h-screen bg-[#ECEAE5] flex justify-center text-stone-900 antialiased font-['Plus_Jakarta_Sans',sans-serif]">
+    <div className="min-h-screen bg-[#ECEAE5] flex justify-center lg:block lg:bg-[#fcf9f4] text-stone-900 antialiased font-['Plus_Jakarta_Sans',sans-serif]">
       <style>{WR_CSS}</style>
       <LocationSheet open={sheetOpen} onClose={() => setSheetOpen(false)} place={place} onSelect={setPlace} />
 
-      <div className="w-full max-w-[430px] bg-[#FAF8F5] min-h-screen flex flex-col relative shadow-2xl border-x border-stone-200 pb-28">
+      <div className="w-full max-w-[430px] bg-[#FAF8F5] min-h-screen flex flex-col relative shadow-2xl border-x border-stone-200 pb-28 lg:hidden">
 
         {/* ── Top header ───────────────────────────────────────────── */}
         <header className="bg-[#F7CF65] px-4 pb-5 rounded-b-[2.2rem] shadow-sm relative z-10" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
@@ -785,9 +793,233 @@ export default function HomePage() {
         </main>
       </div>
 
+      {/* ── Desktop layout (lg and up). Phones never see this. ───────── */}
+      <div className="hidden lg:block w-full">
+        <DesktopNav />
+        <main className="max-w-[1200px] mx-auto px-6 pt-8">
+
+          {/* Hero */}
+          <section className="rounded-[2rem] bg-gradient-to-br from-[#F7CF65] via-[#F9D571] to-[#F5BF3B] p-10 grid grid-cols-[1.15fr_1fr] gap-10 items-center shadow-sm">
+            <div>
+              <h1 className="text-[52px] leading-[1.05] font-black tracking-tight text-stone-900">Sell a book.<br />Give it a second life.</h1>
+              <p className="text-[17px] text-stone-800 font-medium leading-snug mt-4 max-w-[480px]">Find school books near you in Chandigarh, Mohali and Panchkula, and list your own in under 60 seconds.</p>
+              <div className="flex items-center gap-3 mt-7">
+                <button type="button" onClick={goSell} className="wr-btn inline-flex items-center gap-2 bg-stone-900 hover:bg-black text-white text-[14px] font-bold px-6 py-3 rounded-full shadow transition">
+                  <span>Start selling</span>
+                  <i className="fa-solid fa-arrow-right text-[12px]" />
+                </button>
+                <button type="button" onClick={() => router.push('/marketplace')} className="bg-white hover:bg-stone-50 text-stone-900 text-[14px] font-bold px-6 py-3 rounded-full shadow-sm transition">Browse market</button>
+              </div>
+              <div className="flex items-center gap-6 mt-8 pt-5 border-t border-stone-900/10 text-[13px] font-semibold text-stone-800">
+                <span className="flex items-center gap-2"><i className="fa-solid fa-store text-[13px]" />Bedi Book Store, Sector 40-C</span>
+                <span className="flex items-center gap-2"><i className="fa-regular fa-comment text-[13px]" />Chat before you meet</span>
+              </div>
+            </div>
+
+            {SETS_OPEN ? (
+              <div className="bg-white rounded-[2rem] p-6 shadow-lg">
+                <span className="inline-block bg-[#FBD65B] border border-amber-400/80 px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider uppercase text-stone-900 mb-2">School Sets</span>
+                <h2 className="text-[20px] font-black text-stone-900 leading-tight">Complete school sets delivered to your door</h2>
+                <p className="text-[12px] text-stone-600 font-semibold mt-1">Books + Notebooks + Stationery</p>
+                <div className="grid grid-cols-2 gap-3 mt-4">
+                  <div>
+                    <label className="block text-[11px] font-bold text-stone-500 mb-1">Select your school</label>
+                    <select value={school} onChange={e => pickSchool(e.target.value)} className="w-full bg-[#FAF9F5] border border-stone-200 rounded-xl text-[13px] font-bold text-stone-800 py-2 px-3 focus:outline-none focus:ring-1 focus:ring-stone-800 truncate">
+                      {schoolNames.map(n => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-bold text-stone-500 mb-1">Select class</label>
+                    <select value={cls} onChange={e => setCls(Number(e.target.value))} className="w-full bg-[#FAF9F5] border border-stone-200 rounded-xl text-[13px] font-bold text-stone-800 py-2 px-3 focus:outline-none focus:ring-1 focus:ring-stone-800">
+                      {classes.map(c => <option key={c} value={c}>Class {c}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div className="bg-[#FFF4D2] border border-amber-300 rounded-xl p-3 mt-3 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <h4 className="text-[14px] font-bold text-stone-900 truncate">Class {cls} Complete Set</h4>
+                    <p className="text-[11px] text-stone-600 font-medium truncate">{setLine}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="block text-[10px] text-stone-500 font-medium leading-none">Estimated Total</span>
+                    <span className="block text-[18px] font-black text-stone-900 mt-1">₹{summary.total.toLocaleString('en-IN')}</span>
+                  </div>
+                </div>
+                <button type="button" onClick={() => router.push('/school-sets?school=' + encodeURIComponent(school) + '&class=' + cls)} className="wr-btn wr-btn2 mt-4 w-full bg-[#F7CF65] hover:bg-amber-400 text-stone-900 text-[14px] font-bold py-3 rounded-full flex items-center justify-center gap-2 transition">
+                  <span>View set</span>
+                  <i className="fa-solid fa-arrow-right text-[11px]" />
+                </button>
+              </div>
+            ) : (
+              <div className="bg-white rounded-[2rem] p-6 shadow-lg">
+                <div className="flex items-center gap-4">
+                  <div className="w-24 h-20 bg-stone-800 rounded-xl relative overflow-hidden flex flex-col justify-end p-1.5 border border-stone-300 shrink-0">
+                    {storeOk
+                      ? <img src={STORE_PHOTO} alt="Bedi Book Store" className="absolute inset-0 w-full h-full object-cover" onError={() => setStoreOk(false)} />
+                      : <span className="relative z-10 text-[10px] font-black text-amber-300 leading-tight">Bedi Book Store</span>}
+                  </div>
+                  <div className="min-w-0">
+                    <span className="text-[10px] text-stone-500 uppercase tracking-wider font-bold">Visit our store</span>
+                    <h2 className="text-[20px] font-black text-stone-900 leading-tight">Bedi Book Store</h2>
+                    <p className="text-[12px] text-stone-600 flex items-center mt-1"><i className="fa-solid fa-location-dot text-[10px] mr-1.5 text-stone-400" />Booth 48, Sector 40-C, Chandigarh</p>
+                  </div>
+                </div>
+                <p className="text-[13px] text-stone-600 mt-4">Complete school sets, books and stationery.</p>
+                <div className="bg-[#FFF9EA] border border-amber-200 rounded-xl p-3 mt-4">
+                  <h3 className="text-[13px] font-black text-stone-900">School sets and customised kits · Coming soon</h3>
+                  <p className="text-[12px] text-stone-600 mt-0.5">Curated book sets for DPS Sector 40-C and Shivalik Public School.</p>
+                </div>
+                <a href={WA_HELP_LINK} target="_blank" rel="noopener noreferrer" className="wr-btn wr-btn2 mt-4 w-full bg-[#25D366] hover:bg-emerald-600 text-white text-[14px] font-bold py-3 rounded-full flex items-center justify-center gap-2 transition">
+                  <i className="fa-brands fa-whatsapp text-[16px]" />
+                  <span>Chat on WhatsApp</span>
+                </a>
+              </div>
+            )}
+          </section>
+
+          {/* Category pills */}
+          <nav aria-label="Categories" className="flex items-center gap-2.5 mt-8 flex-wrap">
+            {[{ key: 'all', label: 'All categories' }, ...HOME_CATS].map(c => (
+              <button key={c.key} type="button" onClick={() => setDcat(c.key)}
+                className={'px-5 py-2.5 rounded-full text-[13px] transition-colors ' + (dcat === c.key ? 'bg-[#F7CF65] text-stone-900 font-bold shadow-sm' : 'bg-white text-stone-800 font-semibold border border-stone-200 hover:bg-stone-50')}>
+                {c.label}
+              </button>
+            ))}
+          </nav>
+
+          {/* Books at Bedi Book Store */}
+          <section className="mt-10">
+            <div className="flex items-end justify-between mb-5">
+              <div>
+                <h2 className="text-[28px] font-black tracking-tight text-stone-900">Books at Bedi Book Store</h2>
+                <p className="text-[14px] text-stone-600 font-medium mt-0.5">Pre-loved books from our community, ready for pickup.</p>
+              </div>
+              {seeAll('/marketplace', 'See all')}
+            </div>
+            {!loaded ? (
+              <div className="grid grid-cols-5 gap-4" aria-busy="true">
+                {[0, 1, 2, 3, 4].map(k => (
+                  <div key={k} className="bg-white rounded-2xl p-3 border border-stone-200 shadow-2xs">
+                    <div className="aspect-[3/4] rounded-xl wr-skel" />
+                    <div className="h-4 rounded wr-skel mt-3" />
+                    <div className="h-3 w-2/3 rounded wr-skel mt-2" />
+                    <div className="h-5 w-16 rounded wr-skel mt-3" />
+                  </div>
+                ))}
+              </div>
+            ) : deskList.length === 0 ? (
+              <div className="bg-white p-8 rounded-2xl border border-stone-200 shadow-2xs text-center">
+                <p className="text-[14px] text-stone-600 mb-4">{listings.length === 0 ? 'No books listed yet. Be the first to sell yours.' : 'No books in this category yet.'}</p>
+                <button type="button" onClick={goSell} className="bg-[#FFF4D2] hover:bg-amber-200 text-stone-900 text-[13px] font-bold px-5 py-2 rounded-lg border border-amber-300 transition">Sell a book</button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-5 gap-4">
+                {deskList.map((l, i) => {
+                  const t = STUDENT_TINTS[i % STUDENT_TINTS.length]
+                  const off = Number(l.origPrice) > Number(l.price) && Number(l.price) > 0 ? Math.round((1 - Number(l.price) / Number(l.origPrice)) * 100) : 0
+                  const sub = l.author || l.subtitle || ''
+                  return (
+                    <div key={l.id} onClick={() => router.push('/listing/' + l.id)} className="wr-card bg-white p-3 rounded-2xl border border-stone-200 shadow-2xs flex flex-col justify-between cursor-pointer">
+                      <div>
+                        <div className={'relative rounded-xl aspect-[3/4] flex items-center justify-center overflow-hidden border ' + t.bg + ' ' + t.bd}>
+                          {l.images?.[0]
+                            ? <img src={l.images[0]} alt={l.title} className="absolute inset-0 w-full h-full object-cover" />
+                            : <div className={'text-center p-2 text-[13px] font-black line-clamp-4 ' + t.tx}>{l.title}</div>}
+                          {off > 0 && <span className="absolute bottom-2 right-2 bg-[#EA580C] text-white text-[10px] font-black px-1.5 py-0.5 rounded z-10">{off}% off</span>}
+                          {l.condition && <span className={'absolute top-2 left-2 text-[10px] font-bold px-1.5 py-0.5 rounded border bg-white/90 z-10 ' + condCls(String(l.condition))}>{l.condition}</span>}
+                          {heart(l, 'absolute top-2 right-2 w-7 h-7 bg-white/90 rounded-full flex items-center justify-center text-stone-400 hover:text-red-500 z-10', 'text-[12px]')}
+                        </div>
+                        <h3 className="text-[14px] font-bold text-stone-900 leading-snug line-clamp-2 min-h-[2.6em] mt-3">{l.title}</h3>
+                        {sub && <p className="text-[12px] text-stone-500 truncate">{sub}</p>}
+                      </div>
+                      <div className="mt-2">
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-[17px] font-black text-stone-900">{priceText(l.price)}</span>
+                          {Number(l.origPrice) > Number(l.price) && <span className="text-[11px] text-stone-400 line-through">₹{l.origPrice}</span>}
+                        </div>
+                        {l.location && <p className="text-[11px] text-stone-500 truncate mt-1"><i className="fa-solid fa-location-dot text-[9px] mr-1" />{l.location}</p>}
+                        <button type="button" disabled={!!chatBusy} onClick={e => openChat(l, e)} className="mt-3 w-full bg-[#FFF4D2] hover:bg-amber-200 text-stone-900 text-[12px] font-bold py-2 rounded-full flex items-center justify-center gap-1.5 border border-amber-300 transition disabled:opacity-60">
+                          <i className={(chatBusy === l.id ? 'fa-solid fa-spinner fa-spin' : 'fa-regular fa-comment') + ' text-[11px]'} />
+                          <span>Chat</span>
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </section>
+
+          {/* Books wanted */}
+          {reqs.length > 0 && (
+            <section className="mt-14">
+              <div className="flex items-end justify-between mb-5">
+                <div>
+                  <h2 className="text-[28px] font-black tracking-tight text-stone-900">People are looking for</h2>
+                  <p className="text-[14px] text-stone-600 font-medium mt-0.5">Have one of these books? Sell it directly.</p>
+                </div>
+                <div className="flex items-center gap-5">
+                  {seeAll('/requests')}
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-5">
+                {reqs.map((r, i) => {
+                  const t = REQ_TINTS[i % REQ_TINTS.length]
+                  const subject = String(r.title || '').split(/\s+/)[0]
+                  const who = r.mine ? r.location : [first(r.name), r.location].filter(Boolean).join(' • ')
+                  const when = ago(r.createdAt)
+                  return (
+                    <div key={r.id} className="wr-card bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs flex flex-col justify-between">
+                      <div className="flex items-start gap-4">
+                        <div className={'relative w-14 h-20 rounded flex-shrink-0 flex items-center justify-center text-[10px] font-bold border ' + t.bg + ' ' + t.bd + ' ' + t.tx}>
+                          {r.mine && <span className="absolute -top-1.5 -left-1.5 bg-[#EA580C] text-white text-[9px] font-black px-1.5 rounded-full">You</span>}
+                          <span className="truncate px-1">{subject}</span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-[16px] font-bold text-stone-900 leading-snug line-clamp-2">{r.title}</h3>
+                          {r.maxPrice ? <p className="text-[13px] text-stone-600 font-semibold mt-1">Up to ₹{r.maxPrice}</p> : null}
+                          {who && <p className="text-[12px] text-stone-500 truncate mt-1"><i className="fa-solid fa-location-dot text-[10px] mr-1" />{who}</p>}
+                        </div>
+                      </div>
+                      <div className="mt-4 flex items-center justify-between">
+                        <span className="text-[11px] text-stone-400 font-medium">{when}</span>
+                        {r.mine
+                          ? <span className="inline-block bg-amber-100 text-amber-800 text-[12px] font-bold px-3 py-1.5 rounded-full">Awaiting offers</span>
+                          : <button type="button" onClick={goSell} className="wr-btn wr-btn2 bg-[#F7CF65] hover:bg-amber-400 text-stone-900 text-[13px] font-bold px-5 py-2 rounded-full transition">I have this</button>}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* How it works */}
+          <section className="mt-14">
+            <h2 className="text-[28px] font-black tracking-tight text-stone-900 mb-5">How it works</h2>
+            <div className="grid grid-cols-3 gap-5">
+              {[
+                { n: 1, icon: 'fa-magnifying-glass', t: 'Find what you need', d: 'Search books, school sets or stationery.' },
+                { n: 2, icon: 'fa-cart-shopping', t: 'Buy or get it free', d: 'Chat with the seller and get the best deals.' },
+                { n: 3, icon: 'fa-book-bookmark', t: 'Sell your books', d: 'List your old books in minutes and help other students.' },
+              ].map(st => (
+                <div key={st.n} className="bg-[#FFF9EA] border border-amber-200 rounded-2xl p-5 flex items-start gap-4">
+                  <span className="w-11 h-11 rounded-full bg-[#F7CF65] text-stone-900 flex items-center justify-center shrink-0"><i className={'fa-solid ' + st.icon + ' text-[16px]'} /></span>
+                  <div>
+                    <h3 className="text-[15px] font-bold text-stone-900">{st.n}. {st.t}</h3>
+                    <p className="text-[13px] text-stone-600 mt-0.5 leading-snug">{st.d}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </main>
+        <DesktopFooter />
+      </div>
+
       {/* Floating kit-bag bar (only when a kit has been added) */}
       {SETS_OPEN && cart.length > 0 && (
-        <div className="fixed inset-x-0 max-w-[430px] mx-auto px-4 z-40 pointer-events-none" style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 64px)' }}>
+        <div className="fixed inset-x-0 max-w-[430px] mx-auto px-4 z-40 pointer-events-none lg:hidden" style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 64px)' }}>
           <div className="wr-slideup bg-[#FFF9E5] border border-amber-300/90 shadow-xl rounded-full px-3 py-1.5 flex items-center justify-between pointer-events-auto">
             <div className="flex items-center space-x-2 pl-1">
               <div className="relative w-6 h-6 flex items-center justify-center">
