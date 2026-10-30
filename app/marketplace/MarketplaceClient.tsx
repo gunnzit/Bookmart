@@ -800,6 +800,7 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
             </div>
           </section>
         </main>
+        <MobileFooter className="-mb-28" />
       </div>
 
       {/* ── Desktop layout (lg and up). Phones never see this. ───────── */}
@@ -1059,7 +1060,6 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
             )}
           </div>
         </main>
-        <MobileFooter className="-mb-28" />
         <DesktopFooter />
       </div>
 

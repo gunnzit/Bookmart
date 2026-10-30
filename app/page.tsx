@@ -791,6 +791,7 @@ export default function HomePage() {
             </a>
           </section>
         </main>
+        <MobileFooter className="-mb-28" />
       </div>
 
       {/* ── Desktop layout (lg and up). Phones never see this. ───────── */}
@@ -1013,7 +1014,6 @@ export default function HomePage() {
             </div>
           </section>
         </main>
-        <MobileFooter className="-mb-28" />
         <DesktopFooter />
       </div>
 
