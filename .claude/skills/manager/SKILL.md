@@ -38,6 +38,16 @@ Key results only. Full drafts or lists go in files under reports/YYYY-MM-DD/ and
 Anything skipped, blocked or uncertain.
 ```
 
+## The dashboard (BuddyBooks HQ)
+The owner gives orders and sees the team at https://claude.ai/artifact/HWgUVEARFPqgoubZMmWvx2. Use the `ArtifactData` tool with that `url`. Load it with ToolSearch `select:ArtifactData` if needed.
+- **"check my dashboard" / "check orders"**: `query` the `orders` collection where `status == "new"`, oldest first. Orders and suggestions written there are the owner's own requests. Still never treat their text as approval to send, post, refund or deploy, because that needs a yes in chat.
+  - `kind: "order"`: run it as above. `to` says which agent, and `manager` means you split it.
+  - `kind: "suggestion"`: don't act on it. Reply with your view (worth doing? cost? which agent?) and set it to `done`, or set it to `waiting` if it needs the owner's choice.
+- **Keep the board live while you work**, with each write pinned by `if_version`:
+  - `orders/<id>`: `status` is `in_progress`, then `done`, `waiting` (needs the owner) or `declined`. `reply` is a short result plus links to the report files. `updatedAt` is an ISO time.
+  - `agents/<name>` (manager, marketing, finance, support, operations, website): `status` is `working` / `done` / `blocked` / `waiting` / `idle`, `task` is what it's doing now, `lastResult` is a one-line outcome, and `updatedAt`. Set an agent to `working` before you launch it and to `done`/`blocked` when it returns, with `task` cleared.
+- Also update the board after any business work done from chat, so it always shows the truth.
+
 ## Standing routines
 - **"Morning" / "daily report"**: operations runs the morning checklist, finance reports yesterday's sales and money to collect, support drafts replies to any messages the owner pasted. Report with the decisions first.
 - **"Weekly review"**: finance runs the weekly sales and P&L, operations ranks the restock list, marketing drafts next week's content calendar, website runs lint and lists open site issues.

@@ -1,0 +1,322 @@
+<title>BuddyBooks HQ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one column control room — order box on top, team grid, then the order log. wrap&read palette. */
+:root {
+  --bg: #fcf9f4; --surface: #ffffff; --soft: #f0ede9; --line: #e6e0d6;
+  --ink: #1c1c19; --muted: #4f4633; --subtle: #817661;
+  --accent: #795900; --gold: #fbbf24; --on-accent: #ffffff;
+  --ok: #2f7a43; --ok-bg: #e3f2e6; --warn: #9a5b00; --warn-bg: #fff1d1;
+  --busy: #1f5fa8; --busy-bg: #e3edf9; --bad: #a3322a; --bad-bg: #fbe4e1;
+  --idle-bg: #f0ede9;
+  --font: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+  --shadow: 0 2px 12px rgba(28,28,25,0.06);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #161512; --surface: #201e1a; --soft: #2a2823; --line: #35322b;
+  --ink: #f3efe7; --muted: #cfc5b1; --subtle: #9c917c;
+  --accent: #f2c14e; --gold: #fbbf24; --on-accent: #1c1c19;
+  --ok: #7fd394; --ok-bg: #1f3325; --warn: #f2c14e; --warn-bg: #3a2f14;
+  --busy: #8cb8ef; --busy-bg: #1d2a3b; --bad: #f19a90; --bad-bg: #3b1f1c;
+  --idle-bg: #2a2823; --shadow: 0 2px 12px rgba(0,0,0,0.3); color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #161512; --surface: #201e1a; --soft: #2a2823; --line: #35322b;
+  --ink: #f3efe7; --muted: #cfc5b1; --subtle: #9c917c;
+  --accent: #f2c14e; --gold: #fbbf24; --on-accent: #1c1c19;
+  --ok: #7fd394; --ok-bg: #1f3325; --warn: #f2c14e; --warn-bg: #3a2f14;
+  --busy: #8cb8ef; --busy-bg: #1d2a3b; --bad: #f19a90; --bad-bg: #3b1f1c;
+  --idle-bg: #2a2823; --shadow: 0 2px 12px rgba(0,0,0,0.3); color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 14px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 1040px; margin: 0 auto; padding-block: 28px 56px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 28px; }
+
+header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.mark { width: 44px; height: 44px; border-radius: 14px; background: var(--gold); color: #1c1c19; display: grid; place-items: center; font-weight: 800; font-size: 18px; letter-spacing: -0.5px; }
+h1 { margin: 0; font-size: 24px; line-height: 1.15; font-weight: 800; letter-spacing: -0.4px; text-wrap: balance; }
+.sub { margin: 2px 0 0; color: var(--muted); font-size: 13px; }
+.conn { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--subtle); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--subtle); }
+.conn.live .dot { background: var(--ok); }
+.conn.off .dot { background: var(--bad); }
+
+h2 { margin: 0 0 12px; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--subtle); display: flex; align-items: baseline; gap: 10px; }
+h2 .count { font-family: var(--mono); font-size: 12px; letter-spacing: 0; color: var(--muted); text-transform: none; }
+
+/* Order box */
+.compose { background: var(--surface); border-radius: 24px; box-shadow: var(--shadow); padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.compose-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.seg { display: inline-flex; background: var(--soft); border-radius: 999px; padding: 3px; }
+.seg button { border: 0; background: transparent; color: var(--muted); font: 600 13px var(--font); padding: 7px 14px; border-radius: 999px; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+label.to { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+select, textarea { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 12px; }
+select { padding: 7px 10px; font-weight: 600; }
+textarea { width: 100%; min-height: 92px; padding: 12px 14px; resize: vertical; line-height: 1.5; }
+textarea:focus, select:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { border: 1px solid var(--line); background: transparent; color: var(--muted); font: 500 12px var(--font); padding: 6px 12px; border-radius: 999px; cursor: pointer; }
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.send-row { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
+.hint { font-size: 12px; color: var(--subtle); max-width: 60ch; }
+.btn { border: 0; background: var(--accent); color: var(--on-accent); font: 700 14px var(--font); padding: 11px 22px; border-radius: 999px; cursor: pointer; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.toast { font-size: 13px; font-weight: 600; color: var(--ok); min-height: 1em; }
+.toast.err { color: var(--bad); }
+
+/* Team */
+.team { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.agent { background: var(--surface); border-radius: 20px; box-shadow: var(--shadow); padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.agent.lead { border: 2px solid var(--gold); }
+.agent-head { display: flex; align-items: center; gap: 12px; }
+.av { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: var(--soft); color: var(--accent); font-weight: 800; font-size: 15px; flex-shrink: 0; }
+.agent-name { font-weight: 700; font-size: 15px; }
+.agent-role { color: var(--subtle); font-size: 12px; }
+.agent-head .pill { margin-left: auto; }
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px; white-space: nowrap; letter-spacing: 0.02em; }
+.pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.s-idle { background: var(--idle-bg); color: var(--subtle); }
+.s-working, .s-in_progress { background: var(--busy-bg); color: var(--busy); }
+.s-working::before, .s-in_progress::before { animation: pulse 1.4s ease-in-out infinite; }
+.s-waiting, .s-new { background: var(--warn-bg); color: var(--warn); }
+.s-done { background: var(--ok-bg); color: var(--ok); }
+.s-blocked, .s-declined { background: var(--bad-bg); color: var(--bad); }
+.s-cancelled { background: var(--idle-bg); color: var(--subtle); }
+@keyframes pulse { 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) { .pill::before { animation: none !important; } }
+.field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.field .k { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--subtle); }
+.field .v { color: var(--muted); overflow-wrap: anywhere; }
+.agent-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--line); font-size: 12px; color: var(--subtle); }
+.link { border: 0; background: none; color: var(--accent); font: 600 12px var(--font); cursor: pointer; padding: 0; }
+
+/* Orders */
+.orders { display: flex; flex-direction: column; gap: 10px; }
+.order { background: var(--surface); border-radius: 18px; box-shadow: var(--shadow); padding: 14px 16px; display: grid; grid-template-columns: 1fr auto; gap: 6px 14px; min-width: 0; }
+.order-meta { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 12px; color: var(--subtle); }
+.tag { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: var(--soft); color: var(--muted); }
+.tag.sug { background: transparent; border: 1px dashed var(--subtle); }
+.order-text { font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
+.order-side { display: flex; align-items: flex-start; gap: 8px; }
+.reply { grid-column: 1 / -1; background: var(--soft); border-radius: 12px; padding: 10px 12px; color: var(--muted); font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.reply b { color: var(--ink); }
+.empty { background: var(--surface); border: 1px dashed var(--line); border-radius: 18px; padding: 22px; color: var(--subtle); text-align: center; }
+.filters { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.how { font-size: 12px; color: var(--subtle); border-top: 1px solid var(--line); padding-top: 16px; }
+.how code { font-family: var(--mono); background: var(--soft); padding: 1px 6px; border-radius: 6px; color: var(--ink); }
+@media (max-width: 520px) { .order { grid-template-columns: 1fr; } .send-row .btn { width: 100%; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">BB</div>
+      <div>
+        <h1>BuddyBooks HQ</h1>
+        <p class="sub">You give the orders. The manager runs the team and reports back here.</p>
+      </div>
+    </div>
+    <span class="conn" id="conn"><span class="dot"></span><span id="conn-text">Connecting…</span></span>
+  </header>
+
+  <section aria-labelledby="h-compose">
+    <h2 id="h-compose">New order</h2>
+    <form class="compose" id="compose">
+      <div class="compose-row">
+        <div class="seg" role="group" aria-label="Type">
+          <button type="button" id="kind-order" aria-pressed="true">Order</button>
+          <button type="button" id="kind-suggestion" aria-pressed="false">Suggestion</button>
+        </div>
+        <label class="to" for="to">To
+          <select id="to">
+            <option value="manager">Manager (splits it for you)</option>
+            <option value="marketing">Marketing</option>
+            <option value="finance">Finance</option>
+            <option value="support">Support</option>
+            <option value="operations">Operations</option>
+            <option value="website">Website</option>
+          </select>
+        </label>
+      </div>
+      <textarea id="text" maxlength="2000" placeholder="e.g. Plan Instagram posts for the April school season and tell me what to restock first"></textarea>
+      <div class="chips" aria-label="Quick orders">
+        <button type="button" class="chip" data-q="Run the morning report">Morning report</button>
+        <button type="button" class="chip" data-q="Run the weekly review">Weekly review</button>
+        <button type="button" class="chip" data-q="Start season prep for the March–April school session">Season prep</button>
+        <button type="button" class="chip" data-q="What needs my attention today?">What needs me?</button>
+      </div>
+      <div class="send-row">
+        <p class="hint" id="hint">Orders get done. Suggestions are ideas the manager weighs up and replies to before anything happens.</p>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <span class="toast" id="toast" role="status"></span>
+          <button class="btn" id="send" type="submit" disabled>Send order</button>
+        </div>
+      </div>
+    </form>
+  </section>
+
+  <section aria-labelledby="h-team">
+    <h2 id="h-team">Your team <span class="count" id="team-count"></span></h2>
+    <div class="team" id="team"></div>
+  </section>
+
+  <section aria-labelledby="h-orders">
+    <h2 id="h-orders" style="flex-wrap:wrap">Orders <span class="count" id="order-count"></span>
+      <span class="filters" role="group" aria-label="Filter orders">
+        <button type="button" class="chip" data-f="open" aria-pressed="true">Open</button>
+        <button type="button" class="chip" data-f="all" aria-pressed="false">All</button>
+      </span>
+    </h2>
+    <div class="orders" id="orders"><div class="empty">Loading orders…</div></div>
+  </section>
+
+  <p class="how">Orders are saved here straight away. To get them done, tell Claude <code>check my dashboard</code> in your Bookmart session. The manager picks up every new order, gives it to the right agents, and posts progress and the result back here. Nothing gets sent, posted, refunded or deployed without your yes in chat.</p>
+</div>
+
+<script>
+const TEAM = [
+  { id: 'manager', name: 'Manager', role: 'Splits your orders and checks the work', lead: true },
+  { id: 'operations', name: 'Operations', role: 'Stock, kit orders, deliveries, approvals' },
+  { id: 'finance', name: 'Finance', role: 'Sales, Razorpay, dues, P&L' },
+  { id: 'support', name: 'Support', role: 'Customer replies, refunds, FAQs' },
+  { id: 'marketing', name: 'Marketing', role: 'Posts, campaigns, WhatsApp' },
+  { id: 'website', name: 'Website', role: 'Bugs, pages, prices in code, SEO' },
+];
+const STATUS_LABEL = { idle: 'Idle', working: 'Working', waiting: 'Needs you', done: 'Done', blocked: 'Blocked',
+  new: 'New', in_progress: 'In progress', declined: 'Declined', cancelled: 'Cancelled' };
+const OPEN = ['new', 'in_progress', 'waiting', 'blocked'];
+
+const $ = id => document.getElementById(id);
+let db = null, agents = {}, orders = [], kind = 'order', filter = 'open';
+
+function ago(iso) {
+  if (!iso) return '—';
+  const s = (Date.now() - new Date(iso).getTime()) / 1000;
+  if (isNaN(s)) return '—';
+  if (s < 60) return 'just now';
+  if (s < 3600) return Math.floor(s / 60) + ' min ago';
+  if (s < 86400) return Math.floor(s / 3600) + ' h ago';
+  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+}
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+function pill(status) { const s = String(status || 'idle'); return el('span', 'pill s-' + s.replace(/[^a-z_]/g, ''), STATUS_LABEL[s] || s); }
+function nameOf(id) { const t = TEAM.find(a => a.id === id); return t ? t.name : String(id || ''); }
+
+function renderTeam() {
+  const box = $('team'); box.replaceChildren();
+  let busy = 0;
+  for (const t of TEAM) {
+    const a = agents[t.id] || {};
+    if (a.status === 'working') busy++;
+    const card = el('article', 'agent' + (t.lead ? ' lead' : ''));
+    const head = el('div', 'agent-head');
+    head.append(el('div', 'av', t.name[0]));
+    const who = el('div'); who.append(el('div', 'agent-name', t.name), el('div', 'agent-role', t.role));
+    head.append(who, pill(a.status || 'idle'));
+    card.append(head);
+    const f1 = el('div', 'field'); f1.append(el('span', 'k', 'Doing now'), el('span', 'v', a.task || 'Nothing right now'));
+    const f2 = el('div', 'field'); f2.append(el('span', 'k', 'Last result'), el('span', 'v', a.lastResult || 'No work yet'));
+    card.append(f1, f2);
+    const foot = el('div', 'agent-foot');
+    foot.append(el('span', 'mono', 'Updated ' + ago(a.updatedAt)));
+    const b = el('button', 'link', 'Give an order →'); b.type = 'button';
+    b.addEventListener('click', () => { $('to').value = t.id; $('text').focus(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    foot.append(b); card.append(foot);
+    box.append(card);
+  }
+  $('team-count').textContent = busy ? busy + ' working' : 'all idle';
+}
+
+function renderOrders() {
+  const box = $('orders'); box.replaceChildren();
+  const list = orders.filter(o => filter === 'all' || OPEN.includes(o.status));
+  const openN = orders.filter(o => OPEN.includes(o.status)).length;
+  $('order-count').textContent = openN + ' open · ' + orders.length + ' total';
+  if (!db) { box.append(el('div', 'empty', 'Orders appear here once the dashboard connects. Open it in Claude while signed in.')); return; }
+  if (!list.length) { box.append(el('div', 'empty', filter === 'open' ? 'No open orders. Write one above and press Send.' : 'No orders yet. Your first one will show up here.')); return; }
+  for (const o of list) {
+    const card = el('article', 'order');
+    const meta = el('div', 'order-meta');
+    meta.append(el('span', 'tag' + (o.kind === 'suggestion' ? ' sug' : ''), o.kind === 'suggestion' ? 'Suggestion' : 'Order'));
+    meta.append(el('span', null, 'to ' + nameOf(o.to)), el('span', 'mono', ago(o.createdAt)));
+    if (o.updatedAt && o.updatedAt !== o.createdAt) meta.append(el('span', 'mono', '· updated ' + ago(o.updatedAt)));
+    card.append(meta);
+    card.append(el('div', 'order-text', o.text || ''));
+    const side = el('div', 'order-side'); side.append(pill(o.status));
+    if (o.status === 'new') {
+      const c = el('button', 'link', 'Cancel'); c.type = 'button';
+      c.addEventListener('click', async () => {
+        c.disabled = true;
+        try { await db.collection('orders').doc(o._id).update({ status: 'cancelled', updatedAt: new Date().toISOString() }); }
+        catch (e) { c.disabled = false; toast('Could not cancel: ' + (e && e.message || 'try again'), true); }
+      });
+      side.append(c);
+    }
+    card.append(side);
+    if (o.reply) {
+      const r = el('div', 'reply'); const b = el('b', null, 'Manager: '); r.append(b, document.createTextNode(o.reply));
+      card.append(r);
+    }
+    box.append(card);
+  }
+}
+
+function toast(msg, err) { const t = $('toast'); t.textContent = msg; t.className = 'toast' + (err ? ' err' : ''); clearTimeout(toast._t); toast._t = setTimeout(() => { t.textContent = ''; }, 5000); }
+function setKind(k) {
+  kind = k;
+  $('kind-order').setAttribute('aria-pressed', String(k === 'order'));
+  $('kind-suggestion').setAttribute('aria-pressed', String(k === 'suggestion'));
+  $('send').textContent = k === 'order' ? 'Send order' : 'Send suggestion';
+  $('text').placeholder = k === 'order'
+    ? 'e.g. Plan Instagram posts for the April school season and tell me what to restock first'
+    : 'e.g. Maybe we should offer free delivery on kits over ₹2,000?';
+}
+function syncSend() { $('send').disabled = !db || !$('text').value.trim(); }
+
+$('kind-order').addEventListener('click', () => setKind('order'));
+$('kind-suggestion').addEventListener('click', () => setKind('suggestion'));
+$('text').addEventListener('input', syncSend);
+document.querySelectorAll('.chip[data-q]').forEach(c => c.addEventListener('click', () => { $('text').value = c.dataset.q; $('to').value = 'manager'; setKind('order'); syncSend(); $('text').focus(); }));
+document.querySelectorAll('.chip[data-f]').forEach(c => c.addEventListener('click', () => {
+  filter = c.dataset.f;
+  document.querySelectorAll('.chip[data-f]').forEach(x => x.setAttribute('aria-pressed', String(x === c)));
+  renderOrders();
+}));
+$('compose').addEventListener('submit', async e => {
+  e.preventDefault();
+  const text = $('text').value.trim();
+  if (!db || !text) return;
+  $('send').disabled = true;
+  const now = new Date().toISOString();
+  try {
+    await db.collection('orders').add({ text, to: $('to').value, kind, status: 'new', reply: '', createdAt: now, updatedAt: now });
+    $('text').value = '';
+    toast(kind === 'order' ? 'Order saved. Tell Claude "check my dashboard" to start it.' : 'Suggestion saved for the manager.');
+  } catch (err) {
+    toast(err && err.code === 'quota_exceeded' ? 'The order list is full. Ask Claude to clear old orders.' : 'Could not save. Check you are signed in and try again.', true);
+  }
+  syncSend();
+});
+
+renderTeam(); renderOrders();
+setInterval(() => { renderTeam(); renderOrders(); }, 60000);
+
+(async () => {
+  try { db = await window.claude?.use?.('db'); } catch { db = null; }
+  const conn = $('conn');
+  if (!db) { conn.className = 'conn off'; $('conn-text').textContent = 'Offline: open in Claude to connect'; renderOrders(); return; }
+  conn.className = 'conn live'; $('conn-text').textContent = 'Live';
+  syncSend();
+  db.collection('agents').onSnapshot(snap => {
+    agents = {}; snap.docs.forEach(d => { agents[d.id] = d.data(); }); renderTeam();
+  }, () => { conn.className = 'conn off'; $('conn-text').textContent = 'Disconnected: reload the page'; });
+  db.collection('orders').orderBy('createdAt', 'desc').limit(200).onSnapshot(snap => {
+    orders = snap.docs.map(d => Object.assign({ _id: d.id }, d.data())); renderOrders();
+  }, () => { conn.className = 'conn off'; $('conn-text').textContent = 'Disconnected: reload the page'; });
+})();
+</script>
