@@ -196,7 +196,7 @@ export default function HomePage() {
     fetch('/api/book-requests', { cache: 'no-store' })
       .then(r => r.json())
       .then(d => {
-        if (Array.isArray(d?.requests)) setReqs(d.requests.filter((r: any) => r.status === 'open').slice(0, 3))
+        if (Array.isArray(d?.requests)) setReqs(d.requests.filter((r: any) => { const t = String(r.title ?? '').trim(); return r.status === 'open' && t.length >= 3 && /\p{L}/u.test(t) }).slice(0, 3))
       })
       .catch(() => {})
   }, [isSignedIn])
@@ -563,9 +563,10 @@ export default function HomePage() {
           )}
 
           {/* Books from students near you */}
+          {/* TODO: go back to a students wording once other sellers join */}
           <section>
             <div className="flex items-center justify-between mb-2.5">
-              <h2 className="text-base font-black text-stone-900">Books from students near you</h2>
+              <h2 className="text-base font-black text-stone-900">Books at Bedi Book Store</h2>
               {seeAll('/marketplace')}
             </div>
             {!loaded ? (
