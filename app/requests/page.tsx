@@ -180,7 +180,7 @@ export default function RequestsPage() {
       )}
 
       {/* Top bar */}
-      <header className="fixed top-0 inset-x-0 z-50 bg-[#fcf9f4]/80 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+      <header className="lg:hidden fixed top-0 inset-x-0 z-50 bg-[#fcf9f4]/80 backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
         <div className="h-16 px-5 flex items-center justify-between max-w-md md:max-w-2xl mx-auto">
           <button aria-label="Go back" onClick={() => (window.history.length > 1 ? router.back() : router.push('/marketplace'))}
             className={'w-10 h-10 rounded-full bg-[#f0ede9] flex items-center justify-center text-[#1c1c19] active:scale-95 transition-transform'}>
@@ -198,11 +198,17 @@ export default function RequestsPage() {
         </div>
       </header>
 
-      <main className="flex flex-col relative w-full px-5 pb-16 max-w-md md:max-w-2xl mx-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 80px)' }}>
-        <div className="flex flex-col w-full gap-7">
+      <main className="flex flex-col relative w-full px-5 pb-16 max-w-md md:max-w-2xl mx-auto lg:max-w-[1200px] lg:px-6 lg:pt-8! lg:pb-20" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 80px)' }}>
+        <div className="hidden lg:flex items-center justify-between mb-6">
+          <h1 className="text-[26px] font-black tracking-tight">Book Requests</h1>
+          <button aria-label="Share" onClick={share} className="w-10 h-10 rounded-full bg-white border border-stone-200 shadow-sm flex items-center justify-center text-[#1c1c19] hover:bg-stone-50">
+            <span className="material-symbols-outlined text-[20px]">share</span>
+          </button>
+        </div>
+        <div className="flex flex-col w-full gap-7 lg:gap-10">
 
           {/* Intro */}
-          <div className="flex items-center justify-between gap-3 px-1">
+          <div className="flex items-center justify-between gap-3 px-1 lg:max-w-2xl lg:w-full lg:mx-auto">
             <p className="text-[14px] leading-5 text-[#4f4633]">Tell sellers what you need. We’ll let you know when it’s listed.</p>
             <div className={'flex items-center gap-1.5 bg-[#f6f3ee] px-3 py-1.5 rounded-full shrink-0 ' + SHADOW}>
               <span className="w-2 h-2 rounded-full bg-[#2E8B57]" />
@@ -211,7 +217,7 @@ export default function RequestsPage() {
           </div>
 
           {/* Request form */}
-          <section className={'bg-white rounded-[2rem] p-5 flex flex-col gap-5 ' + SHADOW}>
+          <section className={'bg-white rounded-[2rem] p-5 flex flex-col gap-5 lg:max-w-2xl lg:w-full lg:mx-auto lg:p-8 ' + SHADOW}>
             <div className="flex items-start justify-between">
               <div>
                 <h2 className="text-[20px] leading-[26px] font-bold text-[#1c1c19] tracking-tight">Request a book</h2>
@@ -323,7 +329,7 @@ export default function RequestsPage() {
             )}
 
             {loading ? (
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4 lg:grid lg:grid-cols-3 lg:gap-4 lg:items-stretch">
                 {[0, 1].map(i => <div key={i} className="h-[200px] rounded-[2rem] bg-white/70 animate-pulse" />)}
               </div>
             ) : loadError ? (
@@ -336,12 +342,12 @@ export default function RequestsPage() {
                 <p className="text-[14px] text-[#4f4633]">{tab === 'mine' ? 'You have not posted a request yet.' : 'No open requests yet. Post the first one above.'}</p>
               </div>
             ) : (
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-4 lg:grid lg:grid-cols-3 lg:gap-4 lg:items-stretch">
                 {shown.map(r => {
                   const sub = [r.author, categoryLabel(r.category)].filter(Boolean).join(' · ')
                   const found = r.status === 'found'
                   return (
-                    <article key={r.id} className={'bg-white rounded-[2rem] p-4 flex flex-col gap-3.5 transition-all ' + SHADOW + (found ? ' opacity-75' : '')}>
+                    <article key={r.id} className={'bg-white rounded-[2rem] p-4 flex flex-col gap-3.5 transition-all lg:justify-between lg:rounded-2xl lg:border lg:border-stone-200 ' + SHADOW + (found ? ' opacity-75' : '')}>
                       {/* Header row */}
                       <div className="flex items-center justify-between gap-2">
                         {r.mine ? (
@@ -419,7 +425,7 @@ export default function RequestsPage() {
           </section>
 
           {/* How alerts work */}
-          <section className="bg-[#f6f3ee] rounded-[2rem] p-4 flex items-start gap-3.5">
+          <section className="bg-[#f6f3ee] rounded-[2rem] p-4 flex items-start gap-3.5 lg:max-w-2xl lg:w-full lg:mx-auto">
             <div className="w-9 h-9 shrink-0 rounded-full bg-white flex items-center justify-center text-[#795900] shadow-sm mt-0.5">
               <span className="material-symbols-outlined text-[20px]">notifications_active</span>
             </div>
