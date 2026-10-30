@@ -4,6 +4,8 @@ import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import LocationSheet, { useDeliveryPlace } from '@/components/LocationSheet'
 import Logo from '@/components/Logo'
+import DesktopNav from '@/components/DesktopNav'
+import DesktopFooter from '@/components/DesktopFooter'
 
 // Category chips under the header. "free" is a special one (price 0)
 const CATS: { key: string; label: string }[] = [
@@ -350,7 +352,7 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
   )
 
   return (
-    <div className="min-h-screen bg-[#ECEAE5] flex justify-center text-stone-900 antialiased font-['Plus_Jakarta_Sans',sans-serif]">
+    <div className="min-h-screen bg-[#ECEAE5] flex justify-center lg:block lg:bg-[#fcf9f4] text-stone-900 antialiased font-['Plus_Jakarta_Sans',sans-serif]">
       <style>{WR_CSS}</style>
       <LocationSheet open={placeOpen} onClose={() => setPlaceOpen(false)} place={place} onSelect={setPlace} />
 
@@ -404,7 +406,7 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
         </div>
       )}
 
-      <div className="w-full max-w-[430px] bg-[#FAF8F5] min-h-screen flex flex-col relative shadow-2xl border-x border-stone-200 pb-28">
+      <div className="w-full max-w-[430px] bg-[#FAF8F5] min-h-screen flex flex-col relative shadow-2xl border-x border-stone-200 pb-28 lg:hidden">
 
         {/* ── Top header (scrolls away with the page) ─────────────── */}
         <header className="bg-[#F7CF65] px-4 pb-4 rounded-b-[2rem] shadow-sm relative z-10" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
@@ -797,8 +799,269 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
         </main>
       </div>
 
+      {/* ── Desktop layout (lg and up). Phones never see this. ───────── */}
+      <div className="hidden lg:block w-full">
+        <DesktopNav query={search} onQuery={setSearch} />
+        <main className="max-w-[1200px] mx-auto px-6 pt-8 grid grid-cols-[260px_1fr] gap-8 items-start">
+
+          {/* Filters */}
+          <aside aria-label="Filters" className="sticky top-[92px] bg-white rounded-3xl border border-stone-200 shadow-sm p-5 flex flex-col gap-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-[17px] font-black flex items-center gap-2"><i className="fa-solid fa-sliders text-[14px]" />Filters</h2>
+              <button type="button" onClick={clearAll} disabled={!anyFilter} className="text-[12px] font-bold text-amber-800 disabled:text-stone-300">Clear</button>
+            </div>
+            <div>
+              <p className="text-[11px] font-extrabold uppercase tracking-wider text-stone-500 mb-2">Category</p>
+              <div className="flex flex-col gap-1">
+                {CATS.map(c => (
+                  <button key={c.key} type="button" onClick={() => { setCat(c.key); setTab('browse') }}
+                    className={'w-full text-left px-3 py-2 rounded-xl text-[13px] flex items-center justify-between transition-colors ' + (cat === c.key ? 'bg-[#F7CF65] text-stone-900 font-bold' : 'text-stone-700 font-medium hover:bg-stone-100')}>
+                    <span>{c.label}</span>
+                    {cat === c.key && <i className="fa-solid fa-check text-[11px]" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="border-t border-stone-100 pt-4">
+              <p className="text-[11px] font-extrabold uppercase tracking-wider text-stone-500 mb-2">Meetup area</p>
+              <div className="flex flex-col gap-1">
+                {AREAS.map(a => (
+                  <button key={a} type="button" onClick={() => setArea(a)}
+                    className={'w-full text-left px-3 py-2 rounded-xl text-[13px] flex items-center justify-between transition-colors ' + (area === a ? 'bg-[#F7CF65] text-stone-900 font-bold' : 'text-stone-700 font-medium hover:bg-stone-100')}>
+                    <span>{a}</span>
+                    {area === a && <i className="fa-solid fa-check text-[11px]" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="border-t border-stone-100 pt-4">
+              <p className="text-[11px] font-extrabold uppercase tracking-wider text-stone-500 mb-2">Condition</p>
+              <div className="flex flex-wrap gap-2">
+                {CONDS.map(c => (
+                  <button key={c} type="button" onClick={() => setCond(cond === c ? null : c)}
+                    className={'px-3.5 py-1.5 rounded-full text-[12px] transition-colors border ' + (cond === c ? 'bg-[#F7CF65] border-[#F7CF65] text-stone-900 font-bold' : 'bg-white border-stone-200 text-stone-700 font-semibold hover:bg-stone-50')}>
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="border-t border-stone-100 pt-4">
+              <p className="text-[11px] font-extrabold uppercase tracking-wider text-stone-500 mb-2">Price</p>
+              <button type="button" onClick={() => setUnder150(v => !v)}
+                className={'px-3.5 py-1.5 rounded-full text-[12px] transition-colors border ' + (under150 ? 'bg-[#F7CF65] border-[#F7CF65] text-stone-900 font-bold' : 'bg-white border-stone-200 text-stone-700 font-semibold hover:bg-stone-50')}>
+                Under ₹150
+              </button>
+            </div>
+            <div className="border-t border-stone-100 pt-4">
+              <label htmlFor="desk-sort" className="block text-[11px] font-extrabold uppercase tracking-wider text-stone-500 mb-2">Sort by</label>
+              <select id="desk-sort" value={sortBy} onChange={e => setSortBy(e.target.value)} className="w-full bg-[#FAF9F5] border border-stone-200 rounded-xl text-[13px] font-semibold text-stone-800 py-2 px-3 focus:outline-none focus:ring-1 focus:ring-stone-800">
+                {SORTS.map(s => <option key={s} value={s}>{s}</option>)}
+              </select>
+            </div>
+          </aside>
+
+          {/* Results */}
+          <div className="min-w-0 flex flex-col gap-6">
+            <div className="bg-white rounded-3xl border border-stone-200 shadow-sm p-3 flex items-center justify-between gap-4">
+              <div className="flex p-1 bg-stone-100 rounded-full border border-stone-200">
+                <button type="button" onClick={() => setTab('browse')} className={'px-5 py-2 rounded-full text-[13px] transition-all ' + (tab === 'browse' ? 'bg-[#F7CF65] text-stone-900 font-bold shadow-sm' : 'text-stone-500 font-medium hover:text-stone-800')}>Books for sale</button>
+                <button type="button" onClick={() => setTab('requests')} className={'px-5 py-2 rounded-full text-[13px] transition-all ' + (tab === 'requests' ? 'bg-[#F7CF65] text-stone-900 font-bold shadow-sm' : 'text-stone-500 font-medium hover:text-stone-800')}>Student requests ({reqs.length})</button>
+              </div>
+              <div className="flex items-center gap-4 pr-2">
+                <span className="text-[13px] font-bold text-stone-800">{anyFilter ? filtered.length + ' found' : activeCount + ' available'}</span>
+                <button type="button" onClick={() => setPlaceOpen(true)} className="flex items-center gap-2 bg-stone-100 hover:bg-stone-200 transition-colors rounded-full px-4 py-2 text-[12px] font-bold text-stone-800">
+                  <i className="fa-solid fa-location-dot text-[12px]" />
+                  {placeText}
+                  <i className="fa-solid fa-chevron-down text-[10px] text-stone-500" />
+                </button>
+              </div>
+            </div>
+
+            {tab === 'browse' ? (
+              <>
+                <div>
+                  <h1 className="text-[26px] font-black tracking-tight text-stone-900">Books from students near you</h1>
+                  <p className="text-[14px] text-stone-600 font-medium mt-0.5">Checked listings, pickups in Chandigarh, Mohali and Panchkula</p>
+                </div>
+
+                {error ? (
+                  <div className="bg-white rounded-2xl p-10 text-center border border-stone-200 shadow-sm">
+                    <p className="text-[14px] text-stone-600 mb-4">{error}</p>
+                    <button type="button" onClick={() => window.location.reload()} className="px-6 py-2.5 bg-[#FBBF24] text-stone-900 text-[13px] font-bold rounded-full">Try again</button>
+                  </div>
+                ) : !loaded ? (
+                  <div className="grid grid-cols-4 gap-4" aria-busy="true" aria-label="Loading books">
+                    {[0, 1, 2, 3, 4, 5, 6, 7].map(k => (
+                      <div key={k} className="flex flex-col bg-white rounded-2xl p-3 shadow-sm border border-stone-200">
+                        <div className="w-full aspect-[3/4] rounded-xl wr-skel mb-2" />
+                        <div className="h-3.5 w-12 rounded wr-skel" />
+                        <div className="h-3.5 rounded wr-skel mt-2" />
+                        <div className="h-3.5 w-2/3 rounded wr-skel mt-1.5" />
+                        <div className="h-5 w-16 rounded wr-skel mt-2" />
+                        <div className="h-9 w-full rounded-full wr-skel mt-3" />
+                      </div>
+                    ))}
+                  </div>
+                ) : filtered.length === 0 ? (
+                  <div className="bg-white rounded-2xl p-10 text-center border border-stone-200 shadow-sm">
+                    <h2 className="text-[17px] font-black mb-1">Nothing found</h2>
+                    <p className="text-[14px] text-stone-600 mb-5">Try a different search or filter, or ask for the book you need.</p>
+                    <div className="flex gap-2 justify-center flex-wrap">
+                      {anyFilter && <button type="button" onClick={clearAll} className="px-6 py-2.5 bg-[#FBBF24] text-stone-900 text-[13px] font-bold rounded-full">Clear filters</button>}
+                      <button type="button" onClick={() => router.push('/requests')} className="px-6 py-2.5 bg-stone-900 text-white text-[13px] font-bold rounded-full">Request this book</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-4 gap-4">
+                    {filtered.map((l: any) => {
+                      const sold = !!l.sold
+                      const isFree = Number(l.price) === 0
+                      const off = offPct(l)
+                      const seller = l.seller?.name ? first(l.seller.name) : ''
+                      const place2 = (l.location || '').split(',')[0]
+                      const metaLine = [seller, place2].filter(Boolean).join(' • ')
+                      const mine = !!user?.id && user.id === l.sellerId
+                      return (
+                        <div key={l.id} onClick={() => router.push('/listing/' + l.id)} className="wr-card flex flex-col bg-white rounded-2xl p-3 shadow-sm border border-stone-200 relative justify-between cursor-pointer">
+                          <div>
+                            <div className="flex items-center justify-between mb-1.5 min-h-6">
+                              {sold ? <span className="px-1.5 py-0.5 rounded-md bg-stone-500 text-white font-bold text-[10px] uppercase tracking-wide">Sold</span>
+                                : isFree ? <span className="px-1.5 py-0.5 rounded-md bg-[#a73a00] text-white font-bold text-[10px] uppercase tracking-wide">Free</span>
+                                : off > 0 ? <span className="px-1.5 py-0.5 rounded-md bg-[#795900] text-white font-bold text-[10px] uppercase tracking-wide">{off}% off MRP</span>
+                                : l.featured ? <span className="px-1.5 py-0.5 rounded-md bg-stone-900 text-white font-bold text-[10px] uppercase tracking-wide">Featured</span>
+                                : <span />}
+                              {heart(l)}
+                            </div>
+                            <div className="relative w-full aspect-[3/4] rounded-xl bg-stone-50 overflow-hidden flex items-center justify-center mb-2 text-5xl">
+                              {l.images?.[0]
+                                ? <img src={l.images[0]} alt={l.title} className={'w-full h-full object-cover ' + (sold ? 'opacity-50' : '')} />
+                                : <span>{l.emoji || '📚'}</span>}
+                            </div>
+                            <div className="flex flex-col gap-0.5 min-w-0">
+                              {l.condition && <span className={'w-fit px-1.5 py-0.5 rounded font-bold text-[10px] border ' + condCls(l.condition)}>{condLabel(l.condition)}</span>}
+                              <h3 className={'font-bold text-[14px] leading-snug line-clamp-2 min-h-[2.6em] mt-0.5 ' + (sold ? 'text-stone-400' : 'text-stone-900')}>
+                                <a href={'/listing/' + l.id} onClick={e => e.stopPropagation()}>{l.title}</a>
+                              </h3>
+                              {metaLine && <div className="text-stone-500 text-[12px] truncate">{metaLine}</div>}
+                              <div className="flex items-baseline gap-1.5 mt-0.5">
+                                {isFree ? (
+                                  <>
+                                    <span className="text-[16px] font-black text-[#EA580C]">₹0</span>
+                                    <span className="text-[11px] text-[#EA580C] font-bold">Community Gift</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className={'text-[18px] font-black ' + (sold ? 'text-stone-400' : 'text-stone-900')}>₹{l.price}</span>
+                                    {Number(l.origPrice) > Number(l.price) && <span className="text-[11px] text-stone-400 line-through">₹{l.origPrice}</span>}
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <button type="button" disabled={sold || (!!chatBusy && !mine)} onClick={e => openChat(l, e)}
+                            className={'wr-btn mt-3 w-full py-2.5 rounded-full font-bold text-[13px] flex items-center justify-center gap-1 transition-colors disabled:opacity-50 ' + (isFree ? 'bg-orange-100 hover:bg-orange-200 text-[#a73a00]' : 'bg-[#fbbf24] hover:bg-amber-400 text-stone-900')}>
+                            {chatBusy === l.id
+                              ? <i className="fa-solid fa-spinner fa-spin text-[11px]" />
+                              : <i className={(isFree ? 'fa-solid fa-gift' : 'fa-regular fa-comment') + ' text-[11px]'} />}
+                            <span>{sold ? 'Sold' : mine ? 'Your listing' : isFree ? 'Claim' : 'Chat'}</span>
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* People are looking for */}
+                {reqs.length > 0 && (
+                  <div className="border-t border-stone-200 pt-8 mt-2">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h2 className="text-[22px] font-black tracking-tight text-stone-900">People are looking for</h2>
+                        <p className="text-[13px] text-stone-600 font-medium mt-0.5">Have an extra copy? Sell it directly.</p>
+                      </div>
+                      {seeAll('/requests')}
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      {reqs.slice(0, 3).map((r, i) => {
+                        const t = REQ_TINTS[i % REQ_TINTS.length]
+                        const who = r.mine ? r.location : [first(r.name), r.location].filter(Boolean).join(' • ')
+                        return (
+                          <div key={r.id} className="wr-card bg-white rounded-2xl p-4 flex flex-col justify-between shadow-sm border border-stone-200">
+                            <div className="flex items-start gap-3">
+                              <div className={'w-12 h-16 rounded-lg shrink-0 flex items-center justify-center p-1 border text-[9px] font-bold text-center ' + t.bg + ' ' + t.bd + ' ' + t.tx}>
+                                <span className="line-clamp-3">{String(r.title || '').split(/\s+/)[0]}</span>
+                              </div>
+                              <div className="min-w-0">
+                                {r.mine && <span className="inline-flex w-fit px-1.5 rounded bg-[#EA580C] text-white font-bold text-[9px] mb-1">You</span>}
+                                <h3 className="font-bold text-[14px] text-stone-900 leading-snug line-clamp-2">{r.title}</h3>
+                                {r.maxPrice ? <span className="text-[12px] text-stone-600 font-semibold">Up to ₹{r.maxPrice}</span> : null}
+                                {who && <div className="text-[11px] text-stone-500 truncate">{who}</div>}
+                              </div>
+                            </div>
+                            <div className="mt-3 flex items-center justify-between">
+                              <span className="text-[11px] text-stone-400">{ago(r.createdAt)}</span>
+                              {r.mine
+                                ? <span className="text-[12px] text-amber-800 font-bold">Awaiting offers</span>
+                                : <button type="button" onClick={goSell} className="wr-btn px-5 py-2 rounded-full bg-[#fbbf24] hover:bg-amber-400 text-stone-900 font-bold text-[12px] transition-colors">I have this</button>}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h1 className="text-[26px] font-black tracking-tight text-stone-900">Books students are looking for</h1>
+                    <p className="text-[14px] text-stone-600 font-medium mt-0.5">Have one of these? Sell it in a minute.</p>
+                  </div>
+                  <button type="button" onClick={() => router.push('/requests')} className="wr-btn px-5 py-2.5 rounded-full bg-stone-900 text-white font-bold text-[13px] flex items-center gap-2">
+                    <i className="fa-solid fa-plus text-[11px]" />Request a book
+                  </button>
+                </div>
+                {reqs.length === 0 ? (
+                  <div className="bg-white rounded-2xl p-10 text-center border border-stone-200 shadow-sm">
+                    <h2 className="text-[17px] font-black mb-1">No open requests right now</h2>
+                    <p className="text-[14px] text-stone-600 mb-5">Can&apos;t find a book? Ask and sellers nearby will see it.</p>
+                    <button type="button" onClick={() => router.push('/requests')} className="px-6 py-2.5 bg-stone-900 text-white text-[13px] font-bold rounded-full">Request a book</button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-3 gap-4">
+                    {reqs.map((r, i) => {
+                      const t = REQ_TINTS[i % REQ_TINTS.length]
+                      const who = r.mine ? r.location : [first(r.name), r.location].filter(Boolean).join(' • ')
+                      return (
+                        <div key={r.id} className="wr-card bg-white rounded-2xl p-4 flex flex-col justify-between gap-3 shadow-sm border border-stone-200">
+                          <div className="flex items-start gap-3">
+                            <div className={'w-12 h-16 rounded-lg shrink-0 flex items-center justify-center p-1 border text-[9px] font-bold text-center ' + t.bg + ' ' + t.bd + ' ' + t.tx}>
+                              <span className="line-clamp-3">{String(r.title || '').split(/\s+/)[0]}</span>
+                            </div>
+                            <div className="min-w-0">
+                              {r.mine && <span className="inline-flex w-fit px-1.5 rounded bg-[#EA580C] text-white font-bold text-[9px] mb-1">You</span>}
+                              <h3 className="font-bold text-[14px] text-stone-900 leading-snug line-clamp-2">{r.title}</h3>
+                              <div className="text-[12px] text-stone-500 truncate">{[who, r.maxPrice ? 'Up to ₹' + r.maxPrice : '', ago(r.createdAt)].filter(Boolean).join(' • ')}</div>
+                            </div>
+                          </div>
+                          {r.mine
+                            ? <span className="text-[12px] text-amber-800 font-bold flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />Awaiting offers</span>
+                            : <button type="button" onClick={goSell} className="wr-btn w-full py-2 rounded-full bg-[#fbbf24] hover:bg-amber-400 text-stone-900 font-bold text-[12px] transition-colors">I have this</button>}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </main>
+        <DesktopFooter />
+      </div>
+
       {/* Floating "Sell a book" button (stays inside the phone-width column) */}
-      <div className="fixed inset-x-0 z-40 mx-auto w-full max-w-[430px] px-4 pointer-events-none flex justify-end" style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 68px)' }}>
+      <div className="fixed inset-x-0 z-40 mx-auto w-full max-w-[430px] px-4 pointer-events-none flex justify-end lg:hidden" style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 68px)' }}>
         <button type="button" onClick={goSell} className="pointer-events-auto bg-stone-900 hover:bg-black text-amber-300 px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs active:scale-95 transition-transform">
           <i className="fa-solid fa-plus text-xs" />
           <span className="font-bold tracking-tight">Sell a book</span>
