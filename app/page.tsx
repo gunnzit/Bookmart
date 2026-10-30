@@ -7,6 +7,7 @@ import LocationSheet, { useDeliveryPlace } from '@/components/LocationSheet'
 import { SETS_OPEN } from '@/lib/features'
 import Logo from '@/components/Logo'
 import DesktopFooter from '@/components/DesktopFooter'
+import MobileFooter from '@/components/MobileFooter'
 
 // ── Contact (change here only) ────────────────────────────────────────────
 const WHATSAPP_NUMBER = '918872235738'
@@ -1012,6 +1013,7 @@ export default function HomePage() {
             </div>
           </section>
         </main>
+        <MobileFooter className="-mb-28" />
         <DesktopFooter />
       </div>
 

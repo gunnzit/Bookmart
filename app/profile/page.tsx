@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useUser, SignInButton, useClerk } from '@clerk/nextjs'
 import SoldSheet from '@/components/SoldSheet'
 import RatePending from '@/components/RatePending'
+import MobileFooter from '@/components/MobileFooter'
 import { useDeliveryPlace, type Saved } from '@/components/LocationSheet'
 import { LOCATIONS, QUICK_SECTORS } from '@/lib/locations'
 
@@ -532,6 +533,7 @@ export default function ProfilePage() {
           </button>
         </section>
         </div>
+        <MobileFooter className="-mx-5 -mb-[130px]" />
       </main>
     </div>
   )

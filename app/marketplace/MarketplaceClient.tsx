@@ -5,6 +5,7 @@ import { useUser } from '@clerk/nextjs'
 import LocationSheet, { useDeliveryPlace } from '@/components/LocationSheet'
 import Logo from '@/components/Logo'
 import DesktopFooter from '@/components/DesktopFooter'
+import MobileFooter from '@/components/MobileFooter'
 
 // Category chips under the header. "free" is a special one (price 0)
 const CATS: { key: string; label: string }[] = [
@@ -1058,6 +1059,7 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
             )}
           </div>
         </main>
+        <MobileFooter className="-mb-28" />
         <DesktopFooter />
       </div>
 
