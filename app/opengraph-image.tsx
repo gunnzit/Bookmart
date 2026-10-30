@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
-export const alt = 'Pageplus — Buy & Sell Second-Hand Books in Chandigarh'
+export const alt = 'wrap&read — Buy & Sell Second-Hand Books in Chandigarh'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -52,7 +52,7 @@ export default async function Image() {
           <span style={{
             color: 'white', fontSize: '38px', fontWeight: '700', letterSpacing: '-0.5px',
           }}>
-            Page<span style={{ color: '#ff743b' }}>plus</span>
+            wrap<span style={{ color: '#ff743b' }}>&amp;</span>read
           </span>
         </div>
 

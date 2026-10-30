@@ -33,7 +33,7 @@ async function send(phone: string, listing: { id: string; title: string; price: 
     // Plain text only reaches people who messaged the business number in the last 24 hours
     await sendWhatsApp(
       phone,
-      '📚 *A book you asked for is now on Pageplus!*\n\n' + listing.title + '\n' + (listing.price === 0 ? 'Free' : '₹' + listing.price) + '\n\nOpen it here: ' + link
+      '📚 *A book you asked for is now on wrap&read!*\n\n' + listing.title + '\n' + (listing.price === 0 ? 'Free' : '₹' + listing.price) + '\n\nOpen it here: ' + link
     )
   }
 }

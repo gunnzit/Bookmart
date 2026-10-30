@@ -149,7 +149,7 @@ export default function RequestsPage() {
 
   async function share() {
     const url = 'https://pageplus.in/requests'
-    const text = 'Books wanted near you on Pageplus. Have one? List it.'
+    const text = 'Books wanted near you on wrap&read. Have one? List it.'
     try {
       if (navigator.share) { await navigator.share({ title: 'Book Requests', text, url }); return }
     } catch { return }

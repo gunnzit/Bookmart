@@ -18,25 +18,25 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
   title: {
-    default: 'Pageplus — Buy & Sell Second-Hand Books in Chandigarh',
-    template: '%s | Pageplus Chandigarh',
+    default: 'wrap&read — Buy & Sell Second-Hand Books in Chandigarh',
+    template: '%s | wrap&read Chandigarh',
   },
   description: 'Buy and sell second-hand textbooks, novels, notebooks and stationery from students near you in Chandigarh, Mohali and Panchkula. Save up to 60% on school books.',
   keywords: [
     'buy books Chandigarh', 'sell books Chandigarh', 'second hand books Chandigarh',
     'used textbooks Chandigarh', 'NCERT books Chandigarh', 'second hand books Mohali',
     'buy sell books Panchkula', 'student marketplace Chandigarh', 'school books Chandigarh',
-    'cheap books Chandigarh', 'Pageplus', 'BuddyBooks', 'Bedi Book Store', 'Sector 40 Chandigarh books',
+    'cheap books Chandigarh', 'wrap&read', 'wrap and read', 'Pageplus', 'BuddyBooks', 'Bedi Book Store', 'Sector 40 Chandigarh books',
     'DPS books Chandigarh', 'Shivalik Public School books', 'JEE books Chandigarh',
     'NEET books Chandigarh', 'school kit Chandigarh', 'notebook stationery Chandigarh',
   ],
-  authors: [{ name: 'Pageplus', url: APP_URL }],
+  authors: [{ name: 'wrap&read', url: APP_URL }],
   creator: 'Bedi Book Store',
-  publisher: 'Pageplus',
-  applicationName: 'Pageplus',
+  publisher: 'wrap&read',
+  applicationName: 'wrap&read',
   appleWebApp: {
     capable: true,
-    title: 'Pageplus',
+    title: 'wrap&read',
     statusBarStyle: 'default',
   },
   robots: {
@@ -48,19 +48,19 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_IN',
     url: APP_URL,
-    siteName: 'Pageplus',
-    title: 'Pageplus — Buy & Sell Second-Hand Books in Chandigarh',
+    siteName: 'wrap&read',
+    title: 'wrap&read — Buy & Sell Second-Hand Books in Chandigarh',
     description: 'Student marketplace for second-hand books, notebooks and stationery in Chandigarh Tricity. Save up to 60% on school and college books.',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Pageplus — Buy & Sell Second-Hand Books in Chandigarh',
+    title: 'wrap&read — Buy & Sell Second-Hand Books in Chandigarh',
     description: 'Student marketplace for second-hand books in Chandigarh Tricity. Free to list, no commission.',
   },
   // The manifest comes from app/manifest.ts, which Next adds by itself
   icons: {
-    icon: [{ url: '/pwa-icon/192', sizes: '192x192', type: 'image/png' }],
-    apple: [{ url: '/pwa-icon/180', sizes: '180x180', type: 'image/png' }],
+    icon: [{ url: '/pwa-icon/192?v=2', sizes: '192x192', type: 'image/png' }],
+    apple: [{ url: '/pwa-icon/180?v=2', sizes: '180x180', type: 'image/png' }],
   },
   // './' means: each page's canonical is its own address (the home page is /, the marketplace is /marketplace ...)
   alternates: {
@@ -68,7 +68,7 @@ export const metadata: Metadata = {
   },
 }
 
-// Pageplus look for the sign-in and sign-up boxes (pop-up and pages)
+// wrap&read look for the sign-in and sign-up boxes (pop-up and pages)
 const clerkAppearance = {
   variables: {
     colorPrimary: '#E8632B',
@@ -136,7 +136,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               __html: JSON.stringify({
                 '@context': 'https://schema.org',
                 '@type': 'LocalBusiness',
-                name: 'Pageplus — Bedi Book Store',
+                name: 'wrap&read — Bedi Book Store',
                 description: 'Student marketplace for buying and selling second-hand books, notebooks and stationery in Chandigarh.',
                 url: APP_URL,
                 telephone: '+919914735738',
@@ -170,7 +170,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               __html: JSON.stringify({
                 '@context': 'https://schema.org',
                 '@type': 'WebSite',
-                name: 'Pageplus',
+                name: 'wrap&read',
                 url: APP_URL,
                 potentialAction: {
                   '@type': 'SearchAction',

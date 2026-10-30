@@ -20,8 +20,8 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const u = await loadSeller(id).catch(() => null)
   const name = u ? firstName(u.name) : 'Seller'
   return {
-    title: name + ' on Pageplus',
-    description: 'Books listed by ' + name + ' on Pageplus.',
+    title: name + ' on wrap&read',
+    description: 'Books listed by ' + name + ' on wrap&read.',
     // Thin personal pages are for buyers who are already looking at a book, not for Google
     robots: { index: false, follow: true },
   }

@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { kits } from '@/lib/kit-prices'
 
 const ADMIN_ID = 'user_3KzRslgyuOOk5UY4fABoZ67plzS'
-const STORE_NAME = 'Pageplus'
+const STORE_NAME = 'wrap&read'
 
 // Build the unique item list once, with which classes each item appears in.
 function buildItemIndex() {

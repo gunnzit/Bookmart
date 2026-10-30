@@ -161,7 +161,7 @@ export default function AdminPage() {
         <nav style={{ background: '#13151F', borderBottom: '1.5px solid #2A2D3E', padding: '0 24px', height: '56px', display: 'flex', alignItems: 'center', gap: '12px', position: 'sticky', top: 0, zIndex: 50 }}>
           <button onClick={() => router.push('/marketplace')} style={{ background: '#1A1D27', border: '1.5px solid #2A2D3E', width: '34px', height: '34px', borderRadius: '10px', cursor: 'pointer', fontSize: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#E8E6F0' }}>←</button>
           <span className="kalam" style={{ fontSize: '18px', color: '#1D9E75', fontWeight: '700' }}>⚙️ Admin Panel</span>
-          <span style={{ fontSize: '11px', color: '#555878', background: '#1A1D27', padding: '3px 10px', borderRadius: '99px', border: '1px solid #2A2D3E' }}>Pageplus</span>
+          <span style={{ fontSize: '11px', color: '#555878', background: '#1A1D27', padding: '3px 10px', borderRadius: '99px', border: '1px solid #2A2D3E' }}>wrap&amp;read</span>
           {pendingCount > 0 && (
             <span style={{ background: '#F59E0B', color: '#000', fontSize: '11px', fontWeight: '700', padding: '2px 8px', borderRadius: '99px' }}>
               {pendingCount} pending
@@ -402,7 +402,7 @@ export default function AdminPage() {
           )}
 
           <div style={{ marginTop: '16px', fontSize: '11px', color: '#2A2D3E', textAlign: 'center' }}>
-            Admin panel · Pageplus · {new Date().toLocaleDateString()}
+            Admin panel · wrap&amp;read · {new Date().toLocaleDateString()}
           </div>
         </div>
       </div>

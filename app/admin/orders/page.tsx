@@ -284,7 +284,7 @@ export default function AdminOrdersPage() {
                                 </button>
                               )
                             })}
-                            <button onClick={() => window.open('https://wa.me/91' + order.buyerPhone.replace(/\D/g, '') + '?text=' + encodeURIComponent('Hi ' + order.buyerName + ', your Class ' + order.class + ' kit is ' + statusConfig[order.status]?.label?.toLowerCase() + '. — Pageplus 📚'), '_blank')}
+                            <button onClick={() => window.open('https://wa.me/91' + order.buyerPhone.replace(/\D/g, '') + '?text=' + encodeURIComponent('Hi ' + order.buyerName + ', your Class ' + order.class + ' kit is ' + statusConfig[order.status]?.label?.toLowerCase() + '. — wrap&read 📚'), '_blank')}
                               style={{ marginLeft: 'auto', background: '#E8F7F2', color: '#1D9E75', border: '1.5px solid #C0E8D8', borderRadius: '10px', padding: '7px 14px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
                               💬 WhatsApp buyer
                             </button>

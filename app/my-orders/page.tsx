@@ -6,7 +6,7 @@ import { schools } from '@/lib/kit-prices'
 
 const SHADOW = 'shadow-[0_6px_20px_rgba(28,28,25,0.08)]'
 const ADMIN_WA = '919914735738'
-const WA_HELP = 'https://wa.me/' + ADMIN_WA + '?text=' + encodeURIComponent('Hi, I need help with my Pageplus order')
+const WA_HELP = 'https://wa.me/' + ADMIN_WA + '?text=' + encodeURIComponent('Hi, I need help with my wrap&read order')
 const LOOSE = 'Books and stationery'
 
 type Tab = 'all' | 'active' | 'past' | 'chats'

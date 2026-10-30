@@ -164,9 +164,9 @@ function CheckoutInner() {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: order.amount,
         currency: 'INR',
-        name: 'Pageplus',
-        description: isLoose || hasLoose ? 'Pageplus order' : 'School Kit — Class ' + classLabel + ' (' + schoolLabel + ')',
-        image: '/pageplus-logo.png',
+        name: 'wrap&read',
+        description: isLoose || hasLoose ? 'wrap&read order' : 'School Kit — Class ' + classLabel + ' (' + schoolLabel + ')',
+        image: '/pwa-icon/192?v=2',
         order_id: order.id,
         handler: async (response: any) => {
           try {

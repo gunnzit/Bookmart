@@ -53,7 +53,7 @@ export async function GET(request: Request) {
         } else {
           await sendWhatsApp(
             u.phone,
-            `Hi ${first}, you started listing a book on Pageplus but did not finish. It takes about a minute: add two photos and your price, and students nearby can find it.\n\nFinish your listing: ${link}\n\nFree to list. You keep the full price.`
+            `Hi ${first}, you started listing a book on wrap&read but did not finish. It takes about a minute: add two photos and your price, and students nearby can find it.\n\nFinish your listing: ${link}\n\nFree to list. You keep the full price.`
           )
         }
         sent++

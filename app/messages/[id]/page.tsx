@@ -77,7 +77,7 @@ export default function ChatPage() {
       if (!res.ok) { if (initial) setStatus('error'); return }
       const d = await res.json()
       // The book is reloaded every time, so a buyer sees "Sold" as soon as the seller marks it
-      setInfo({ meId: d.me, isBuyer: d.isBuyer, otherName: d.other?.name || 'Pageplus user', listing: d.listing })
+      setInfo({ meId: d.me, isBuyer: d.isBuyer, otherName: d.other?.name || 'wrap&read user', listing: d.listing })
       setOtherReadAt(d.otherReadAt || null)
       if (initial) setStatus('ready')
       if (Array.isArray(d.messages) && d.messages.length) {

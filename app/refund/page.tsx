@@ -6,7 +6,7 @@ export default function RefundPage() {
     <PageShell title="Refund & Cancellation Policy" subtitle="Last updated: May 2026">
 
       <p className="text-[15px] text-[#4f4633] leading-relaxed mb-5">
-        BuddyBooks processes payments for two types of products — featured listings and Bedi Book Store school kit bundles. Our refund policy for each is outlined below.
+        wrap&amp;read processes payments for two types of products — featured listings and Bedi Book Store school kit bundles. Our refund policy for each is outlined below.
       </p>
 
       <div className="bg-white rounded-[2rem] p-6 shadow-[0_2px_12px_rgba(28,28,25,0.06)] text-[14px] leading-[1.8] text-[#4f4633] [&_h2]:text-[17px] [&_h2]:font-bold [&_h2]:text-[#1c1c19] [&_h2]:mt-7 [&_h2]:mb-2 [&_h2:first-child]:mt-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-2 [&_li]:mb-1 [&_li]:marker:text-[#fbbf24] [&_a]:font-semibold [&_a]:text-[#795900] [&_a:hover]:underline [&_strong]:text-[#1c1c19] !p-5 mb-3">
@@ -44,7 +44,7 @@ export default function RefundPage() {
       <div className="bg-white rounded-[2rem] p-6 shadow-[0_2px_12px_rgba(28,28,25,0.06)] text-[14px] leading-[1.8] text-[#4f4633] [&_h2]:text-[17px] [&_h2]:font-bold [&_h2]:text-[#1c1c19] [&_h2]:mt-7 [&_h2]:mb-2 [&_h2:first-child]:mt-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-2 [&_li]:mb-1 [&_li]:marker:text-[#fbbf24] [&_a]:font-semibold [&_a]:text-[#795900] [&_a:hover]:underline [&_strong]:text-[#1c1c19] !p-5 mb-3">
         <span className="inline-block text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#ffdf9f] text-[#5c4300] mb-2.5">❌ Peer-to-Peer Listings</span>
         <h2 className="!mt-0">Buying from Other Students</h2>
-        <p>BuddyBooks does not process payments for peer-to-peer listings between students. Payments happen directly between buyer and seller via cash on meeting. BuddyBooks is not responsible for and cannot mediate disputes arising from student-to-student transactions. Please follow our safety guidelines and inspect items before paying.</p>
+        <p>wrap&amp;read does not process payments for peer-to-peer listings between students. Payments happen directly between buyer and seller via cash on meeting. wrap&amp;read is not responsible for and cannot mediate disputes arising from student-to-student transactions. Please follow our safety guidelines and inspect items before paying.</p>
       </div>
 
       <div className="bg-white rounded-[2rem] p-6 shadow-[0_2px_12px_rgba(28,28,25,0.06)] text-[14px] leading-[1.8] text-[#4f4633] [&_h2]:text-[17px] [&_h2]:font-bold [&_h2]:text-[#1c1c19] [&_h2]:mt-7 [&_h2]:mb-2 [&_h2:first-child]:mt-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-2 [&_li]:mb-1 [&_li]:marker:text-[#fbbf24] [&_a]:font-semibold [&_a]:text-[#795900] [&_a:hover]:underline [&_strong]:text-[#1c1c19] !p-5 !bg-[#ffdf9f]/50 mt-2">

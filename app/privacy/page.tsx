@@ -7,7 +7,7 @@ export default function PrivacyPage() {
       <div className="bg-white rounded-[2rem] p-6 shadow-[0_2px_12px_rgba(28,28,25,0.06)] text-[14px] leading-[1.8] text-[#4f4633] [&_h2]:text-[17px] [&_h2]:font-bold [&_h2]:text-[#1c1c19] [&_h2]:mt-7 [&_h2]:mb-2 [&_h2:first-child]:mt-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-2 [&_li]:mb-1 [&_li]:marker:text-[#fbbf24] [&_a]:font-semibold [&_a]:text-[#795900] [&_a:hover]:underline [&_strong]:text-[#1c1c19]">
 
         <h2>1. Information We Collect</h2>
-        <p>When you use BuddyBooks, we collect the following information:</p>
+        <p>When you use wrap&amp;read, we collect the following information:</p>
         <ul>
           <li><strong>Account info:</strong> Your name, email address, and profile photo via Google Sign-In (through Clerk).</li>
           <li><strong>Phone number:</strong> Your WhatsApp number, which you provide when posting a listing. This is used so buyers can contact you directly.</li>
@@ -18,7 +18,7 @@ export default function PrivacyPage() {
         <h2>2. How We Use Your Information</h2>
         <p>We use the information we collect to:</p>
         <ul>
-          <li>Display your listings to potential buyers on the BuddyBooks marketplace.</li>
+          <li>Display your listings to potential buyers on the wrap&amp;read marketplace.</li>
           <li>Allow buyers to contact you via WhatsApp when they tap the contact button on your listing.</li>
           <li>Send you notifications about your listings (approvals, inquiries).</li>
           <li>Improve the platform and prevent misuse.</li>
@@ -48,16 +48,16 @@ export default function PrivacyPage() {
         <p>To exercise these rights, contact us at <a href="mailto:support@buddybooks.in">support@buddybooks.in</a>.</p>
 
         <h2>6. Cookies</h2>
-        <p>BuddyBooks uses cookies for authentication (via Clerk) and to remember your preferences. You can disable cookies in your browser settings, but this may affect functionality.</p>
+        <p>wrap&amp;read uses cookies for authentication (via Clerk) and to remember your preferences. You can disable cookies in your browser settings, but this may affect functionality.</p>
 
         <h2>7. Children&apos;s Privacy</h2>
-        <p>BuddyBooks is intended for users aged 13 and above. We do not knowingly collect personal information from children under 13. If you believe a child has provided us with personal information, please contact us immediately.</p>
+        <p>wrap&amp;read is intended for users aged 13 and above. We do not knowingly collect personal information from children under 13. If you believe a child has provided us with personal information, please contact us immediately.</p>
 
         <h2>8. Changes to This Policy</h2>
-        <p>We may update this Privacy Policy from time to time. We will notify users of significant changes via a notice on the platform. Continued use of BuddyBooks after changes constitutes acceptance of the updated policy.</p>
+        <p>We may update this Privacy Policy from time to time. We will notify users of significant changes via a notice on the platform. Continued use of wrap&amp;read after changes constitutes acceptance of the updated policy.</p>
       </div>
       <div className="mt-6 text-center text-[12px] text-[#817661]">
-        BuddyBooks · Bedi Book Store · Sector 40-C, Chandigarh
+        wrap&amp;read · Bedi Book Store · Sector 40-C, Chandigarh
       </div>
     </PageShell>
   )

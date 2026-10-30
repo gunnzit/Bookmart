@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     const lang = process.env.META_OTP_TEMPLATE_LANG || process.env.META_LISTING_TEMPLATE_LANG || 'en'
     const ok = template
       ? await sendWhatsAppOtp(phone, template, lang, code)
-      : await sendWhatsApp(phone, `${code} is your Pageplus verification code. It expires in ${OTP_MINUTES} minutes. Do not share it with anyone.`)
+      : await sendWhatsApp(phone, `${code} is your wrap&read verification code. It expires in ${OTP_MINUTES} minutes. Do not share it with anyone.`)
     if (!ok) return NextResponse.json({ error: 'send_failed' }, { status: 502 })
 
     return NextResponse.json({ ok: true, resendIn: RESEND_SECONDS })

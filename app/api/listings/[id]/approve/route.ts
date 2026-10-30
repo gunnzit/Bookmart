@@ -40,10 +40,10 @@ export async function GET(request: Request, context: any) {
       userId = null
     }
     if (!userId) {
-      return page(401, 'Sign in first', `<p>Sign in to Pageplus as the admin, then open this link again.</p><a href="${APP_BASE}" style="background:#E8632B">Open Pageplus</a>`, '#E24B4A')
+      return page(401, 'Sign in first', `<p>Sign in to wrap&amp;read as the admin, then open this link again.</p><a href="${APP_BASE}" style="background:#E8632B">Open wrap&amp;read</a>`, '#E24B4A')
     }
     if (userId !== ADMIN_ID) {
-      return page(403, 'Not allowed', '<p>Only the Pageplus admin can approve or reject listings.</p>', '#E24B4A')
+      return page(403, 'Not allowed', '<p>Only the wrap&amp;read admin can approve or reject listings.</p>', '#E24B4A')
     }
 
     const { id } = await context.params

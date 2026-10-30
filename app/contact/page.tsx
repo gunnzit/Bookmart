@@ -8,7 +8,7 @@ export default function ContactPage() {
   const router = useRouter()
 
   const ways = [
-    { href: 'https://wa.me/918872235738?text=Hi%2C%20I%20have%20a%20query%20about%20BuddyBooks', icon: 'chat', title: 'Chat on WhatsApp', sub: '+91 88722 35738 · Fastest response', tint: 'bg-[#25D366] text-white', external: true },
+    { href: 'https://wa.me/918872235738?text=Hi%2C%20I%20have%20a%20query%20about%20wrap%26read', icon: 'chat', title: 'Chat on WhatsApp', sub: '+91 88722 35738 · Fastest response', tint: 'bg-[#25D366] text-white', external: true },
     { href: 'tel:+918872235738', icon: 'call', title: 'Call us', sub: '+91 88722 35738 · Mon–Sat, 9am–7pm', tint: 'bg-[#fbbf24] text-[#6c4f00]' },
     { href: 'mailto:buddybookx@gmail.com', icon: 'mail', title: 'Email us', sub: 'buddybookx@gmail.com', tint: 'bg-[#ffdbce] text-[#a73a00]' },
   ]

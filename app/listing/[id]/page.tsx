@@ -201,9 +201,9 @@ export default function ListingPage() {
 
   async function shareBook() {
     const url = SHARE_BASE + '/listing/' + id
-    const text = listing ? 'Check out this book on Pageplus: ' + listing.title : 'Check out this book on Pageplus'
+    const text = listing ? 'Check out this book on wrap&read: ' + listing.title : 'Check out this book on wrap&read'
     try {
-      if (navigator.share) { await navigator.share({ title: listing?.title || 'Pageplus', text, url }); return }
+      if (navigator.share) { await navigator.share({ title: listing?.title || 'wrap&read', text, url }); return }
     } catch { return }
     try {
       await navigator.clipboard.writeText(url)
@@ -288,9 +288,9 @@ export default function ListingPage() {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: order.amount,
         currency: 'INR',
-        name: 'Pageplus',
+        name: 'wrap&read',
         description: 'Feature listing — ' + (TIERS.find(t => t.tier === tier)?.desc || ''),
-        image: '/pwa-icon/192',
+        image: '/pwa-icon/192?v=2',
         order_id: order.id,
         handler: async (response: any) => {
           const verify = await fetch('/api/payment/verify', {
@@ -577,7 +577,7 @@ export default function ListingPage() {
               <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start">
                 {live && (
                   <span className="bg-white/90 backdrop-blur-md text-[#795900] text-[11px] font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
-                    <span className="material-symbols-outlined text-[15px] text-[#6e5e0d]" style={fill}>verified</span>Checked by Pageplus
+                    <span className="material-symbols-outlined text-[15px] text-[#6e5e0d]" style={fill}>verified</span>Checked by wrap&amp;read
                   </span>
                 )}
                 {listing.featured && !sold && (

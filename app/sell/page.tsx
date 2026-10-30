@@ -211,7 +211,7 @@ export default function SellPage() {
 
   const OTP_ERRORS: Record<string, string> = {
     bad_number: 'Enter a valid 10-digit mobile number.',
-    phone_taken: 'This number is already verified on another Pageplus account.',
+    phone_taken: 'This number is already verified on another wrap&read account.',
     too_many: 'Too many codes sent. Please try again in an hour.',
     send_failed: 'We could not send the code. Check that this number is on WhatsApp and try again.',
     expired: 'That code has expired. Tap Resend to get a new one.',

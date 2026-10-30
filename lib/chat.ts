@@ -14,7 +14,7 @@ const APP_BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://pageplus.in'
 // First name only — chats never reveal full names, phones or emails.
 export function firstName(name?: string | null): string {
   const n = String(name || '').trim().split(/\s+/)[0]
-  return n || 'Pageplus user'
+  return n || 'wrap&read user'
 }
 
 export function cleanBody(input: unknown): string {
@@ -54,7 +54,7 @@ export async function getMe(): Promise<{ id: string; name: string } | null> {
       return byEmail
     }
     return await prisma.user.create({
-      data: { id: userId, clerkId: userId, name: cu.fullName || cu.firstName || 'Pageplus user', email },
+      data: { id: userId, clerkId: userId, name: cu.fullName || cu.firstName || 'wrap&read user', email },
       select,
     })
   } catch {
@@ -70,7 +70,7 @@ async function notifyNewMessage(phone: string, senderName: string, bookTitle: st
     if (template) {
       await sendWhatsAppTemplate(phone, template, process.env.META_CHAT_TEMPLATE_LANG || 'en', [senderName, bookTitle, link])
     } else {
-      await sendWhatsApp(phone, '💬 New message on Pageplus\n\n' + senderName + ' wrote about "' + bookTitle + '".\n\nOpen the chat: ' + link)
+      await sendWhatsApp(phone, '💬 New message on wrap&read\n\n' + senderName + ' wrote about "' + bookTitle + '".\n\nOpen the chat: ' + link)
     }
   } catch {
     // Alerts are best-effort. The in-app unread badge always works.

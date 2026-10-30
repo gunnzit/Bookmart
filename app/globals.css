@@ -13,7 +13,7 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* ── Pageplus design tokens (from DESIGN.md) ───────────────────────────── */
+/* ── wrap&read design tokens (from DESIGN.md) ───────────────────────────── */
 @theme {
   --color-surface: #fef8f4;
   --color-surface-dim: #dfd9d5;

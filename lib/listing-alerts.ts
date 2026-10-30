@@ -54,14 +54,14 @@ export async function notifySellerDecision(listingId: string, approved: boolean)
         phone,
         process.env.META_LISTING_LIVE_TEMPLATE,
         [listing.title, priceText(listing.price), link],
-        `✅ Your listing is live on Pageplus!\n\n📚 ${listing.title}\n💰 ${priceText(listing.price)}\n\nView it here: ${link}\n\nBedi Book Store · Pageplus`
+        `✅ Your listing is live on wrap&read!\n\n📚 ${listing.title}\n💰 ${priceText(listing.price)}\n\nView it here: ${link}\n\nBedi Book Store · wrap&read`
       )
     } else {
       await send(
         phone,
         process.env.META_LISTING_REJECTED_TEMPLATE,
         [listing.title],
-        `❌ Your listing was not approved.\n\n📚 ${listing.title}\n\nPlease check your photos (the cover and the MRP tag must be visible) and list it again.\n\nQuestions? Chat with us: https://wa.me/919914735738\n\nBedi Book Store · Pageplus`
+        `❌ Your listing was not approved.\n\n📚 ${listing.title}\n\nPlease check your photos (the cover and the MRP tag must be visible) and list it again.\n\nQuestions? Chat with us: https://wa.me/919914735738\n\nBedi Book Store · wrap&read`
       )
     }
   } catch (e) {
