@@ -114,7 +114,7 @@ const clerkAppearance = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <ClerkProvider appearance={clerkAppearance}>
-      <html lang="en">
+      <html lang="en" suppressHydrationWarning>
         <head>
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -128,7 +128,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           />
           <link
             rel="stylesheet"
-            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
+          />
+          {/* Hide icon words (menu_book ...) until the icon font is ready; 3s fallback so icons never stay hidden */}
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `(function(){var d=document.documentElement;d.classList.add('icons-loading');var done=function(){d.classList.remove('icons-loading')};setTimeout(done,3000);try{document.fonts.load('24px "Material Symbols Outlined"','menu_book').then(done,done)}catch(e){done()}})()`,
+            }}
           />
           <script
             type="application/ld+json"
