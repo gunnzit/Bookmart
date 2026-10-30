@@ -230,7 +230,7 @@ export default function BooksPage() {
     const oos = isOOS(it)
     const grey = [it.kind === 'Register' ? 'Register' : it.kind, classLabel(it.classes)].filter(Boolean).join(' · ')
     return (
-      <article key={it.id} className={'bg-white rounded-[22px] p-2.5 flex flex-col justify-between ' + SHADOW}>
+      <article key={it.id} className={'bg-white rounded-[22px] p-2.5 flex flex-col justify-between lg:rounded-2xl lg:border lg:border-stone-200 lg:p-3 ' + SHADOW}>
         <div className="relative w-full aspect-[4/5] rounded-[18px] overflow-hidden bg-[#F8EDE6]">
           <Cover item={it} dim={oos} />
           {oos ? (
@@ -286,7 +286,7 @@ export default function BooksPage() {
             <button onClick={() => setCat(goto)} className="text-[13px] font-medium text-[#9A908A] active:opacity-70">See all</button>
           )}
         </div>
-        <div className="grid grid-cols-2 gap-3.5">
+        <div className="grid grid-cols-2 gap-3.5 lg:grid-cols-4 lg:gap-4">
           {shown.map(renderCard)}
         </div>
       </section>
@@ -297,7 +297,7 @@ export default function BooksPage() {
 
   return (
     <div
-      className="min-h-screen text-[#1E1B19] antialiased font-['Plus_Jakarta_Sans',sans-serif]"
+      className="min-h-screen text-[#1E1B19] antialiased font-['Plus_Jakarta_Sans',sans-serif] lg:bg-none! lg:bg-[#fcf9f4]!"
       style={{ background: 'linear-gradient(180deg, #FDEADF 0%, #FFF7F2 100%)' }}
     >
       <LocationSheet open={sheetOpen} onClose={() => setSheetOpen(false)} place={place} onSelect={setPlace} />
@@ -368,12 +368,12 @@ export default function BooksPage() {
       )}
 
       <main
-        className="w-full max-w-md md:max-w-5xl mx-auto px-5 pb-[190px] lg:pb-16"
+        className="w-full max-w-md md:max-w-5xl mx-auto px-5 pb-[190px] lg:pb-16 lg:max-w-[1200px] lg:px-6 lg:pt-8!"
         style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
       >
         {/* App bar (same as Home, Sets and Market) */}
         <header className="mb-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between lg:hidden">
             <a href="/" className="text-[26px] font-extrabold tracking-tight leading-none active:scale-95 transition-transform">
               Page<span className="text-[#E8632B]">plus</span>
             </a>
@@ -410,7 +410,7 @@ export default function BooksPage() {
         </header>
 
         {/* Search */}
-        <div className={'flex items-center w-full h-12 bg-white rounded-full pl-4 pr-2 gap-2.5 mb-4 ' + SHADOW}>
+        <div className={'flex items-center w-full h-12 bg-white rounded-full pl-4 pr-2 gap-2.5 mb-4 lg:max-w-xl lg:border lg:border-stone-200 ' + SHADOW}>
           <span className="material-symbols-outlined text-[20px] text-[#9A908A] shrink-0">search</span>
           <input
             value={q}
