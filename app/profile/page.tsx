@@ -301,10 +301,10 @@ export default function ProfilePage() {
         </div>
       )}
 
-      <main className="w-full max-w-md md:max-w-2xl mx-auto px-5 pb-[130px] lg:pb-16" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
+      <main className="w-full max-w-md md:max-w-2xl mx-auto px-5 pb-[130px] lg:pb-16 lg:max-w-[1100px] lg:px-6 lg:pt-8! lg:grid lg:grid-cols-[400px_1fr] lg:gap-x-8 lg:items-start" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
 
         {/* Title row */}
-        <header className="flex items-center justify-between mb-7 h-12">
+        <header className="flex items-center justify-between mb-7 h-12 lg:col-span-2">
           <div className="min-w-0">
             <h1 className="text-[20px] font-bold tracking-tight">My profile</h1>
             <p className="text-[12px] text-[#4f4633] mt-0.5 truncate">{user?.primaryEmailAddress?.emailAddress}</p>
@@ -314,6 +314,7 @@ export default function ProfilePage() {
           </a>
         </header>
 
+        <div className="contents lg:block">
         {/* Identity card */}
         <section className={'bg-white rounded-[2rem] p-[18px] mb-7 ' + SHADOW}>
           <div className="flex items-center gap-4">
@@ -416,6 +417,8 @@ export default function ProfilePage() {
           )}
         </section>
 
+        </div>
+        <div className="contents lg:block">
         {/* My book listings */}
         <section className="mb-7">
           <div className="flex items-center justify-between mb-2 px-1">
@@ -438,7 +441,7 @@ export default function ProfilePage() {
           </div>
 
           {loading ? (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-4">
               {[0, 1].map(i => <div key={i} className="h-[132px] rounded-[2rem] bg-white/70 animate-pulse" />)}
             </div>
           ) : tabListings.length === 0 ? (
@@ -450,7 +453,7 @@ export default function ProfilePage() {
               )}
             </div>
           ) : (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-4">
               {tabListings.map(l => {
                 const note = l.status && l.status !== 'active' ? STATUS_NOTE[l.status] : ''
                 return (
@@ -528,6 +531,7 @@ export default function ProfilePage() {
             <p className="flex-1 text-[14px] text-[#4f4633]">Log out</p>
           </button>
         </section>
+        </div>
       </main>
     </div>
   )
