@@ -24,9 +24,9 @@ const LOAD_TEXT: Record<Key, string> = {
   sell: 'Opening Sell a book',
 }
 
-// Pages that show the bar (Profile and My Orders still show it, with no tab lit)
+// Pages that show the bar (Profile shows it with no tab lit)
 function showsBar(path: string) {
-  return path === '/' || path.startsWith('/school-sets') || path.startsWith('/books') || path.startsWith('/marketplace') || path.startsWith('/sell') || path.startsWith('/my-orders') || path.startsWith('/profile')
+  return path === '/' || path.startsWith('/marketplace') || path.startsWith('/profile')
 }
 
 function derive(path: string): Key | '' {
