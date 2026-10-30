@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser, SignInButton } from '@clerk/nextjs'
+import Logo from '@/components/Logo'
 import LocationSheet, { useDeliveryPlace } from '@/components/LocationSheet'
 import { catalog, catalogClasses, classLabel, type CatalogItem } from '@/lib/catalog'
 
@@ -374,8 +375,8 @@ export default function BooksPage() {
         {/* App bar (same as Home, Sets and Market) */}
         <header className="mb-4">
           <div className="flex items-center justify-between">
-            <a href="/" className="text-[26px] font-extrabold tracking-tight leading-none active:scale-95 transition-transform">
-              Page<span className="text-[#E8632B]">plus</span>
+            <a href="/" aria-label="wrap&read home" className="flex items-center active:scale-95 transition-transform">
+              <Logo height={28} />
             </a>
             <div className="flex items-center gap-2.5">
               <nav className="hidden md:flex items-center gap-1 mr-2">
@@ -387,7 +388,7 @@ export default function BooksPage() {
               <button aria-label={bagCount > 0 ? 'Bag, ' + bagCount + ' items' : 'Bag'} onClick={() => router.push('/school-sets?bag=1')} className={iconBtn}>
                 <span className="material-symbols-outlined text-[20px]">shopping_bag</span>
                 {bagCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#E8632B] text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-[#FFF7F2]">{bagCount}</span>
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#F7CF65] text-[#1c1c19] text-[10px] font-bold flex items-center justify-center ring-2 ring-[#FFF7F2]">{bagCount}</span>
                 )}
               </button>
               {isSignedIn ? (
