@@ -334,7 +334,7 @@ export default function ChatPage() {
         <div className="flex flex-col w-full max-w-xl mx-auto pb-44 lg:max-w-none lg:pb-6">
 
           {/* Pinned book card */}
-          <div className="sticky z-30 px-5 pt-1 pb-2 lg:top-[140px]!bg-gradient-to-b from-[#fcf9f4] via-[#fcf9f4]/95 to-transparent backdrop-blur-sm" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 64px)' }}>
+          <div className="sticky z-30 px-5 pt-1 pb-2 lg:top-[140px]! bg-gradient-to-b from-[#fcf9f4] via-[#fcf9f4]/95 to-transparent backdrop-blur-sm" style={{ top: 'calc(env(safe-area-inset-top, 0px) + 64px)' }}>
             <div className={'bg-white rounded-[2rem] p-2 flex flex-col gap-1 ' + SHADOW}>
               <div className="flex items-center gap-2">
                 <div className="relative w-12 h-14 rounded-[10px] overflow-hidden bg-[#f0ede9] shrink-0 flex items-center justify-center">
