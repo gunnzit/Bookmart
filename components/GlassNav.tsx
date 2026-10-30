@@ -104,7 +104,7 @@ export default function GlassNav() {
         <nav
           aria-label="Main"
           // Phones: all pages. Larger screens: Home only (other pages have their own header menu).
-          className={'fixed inset-x-0 flex justify-center pointer-events-none px-5 ' + (pathname === '/' || loadingOn ? '' : 'md:hidden')}
+          className={'fixed inset-x-0 flex justify-center pointer-events-none px-5 ' + (pathname === '/' || loadingOn ? '' : 'md:hidden') + ' lg:hidden'}
           style={{ zIndex: 300, bottom: 'calc(env(safe-area-inset-bottom, 0px) + 12px)' }}
         >
           <div
