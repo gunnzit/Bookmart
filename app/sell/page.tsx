@@ -465,7 +465,7 @@ export default function SellPage() {
                   {resendIn > 0 ? `Resend in ${resendIn}s` : 'Resend code'}
                 </button>
               </div>
-              <a href="https://wa.me/919914735738" className="block text-center text-[12px] text-[#4f4633] mt-2">Not getting the code? Chat with us</a>
+              <a href="https://wa.me/918872235738" className="block text-center text-[12px] text-[#4f4633] mt-2">Not getting the code? Chat with us</a>
             </>
           )}
           <button onClick={() => router.push('/marketplace')} className="w-full mt-2 py-3 text-[14px] text-[#4f4633]">Not now</button>

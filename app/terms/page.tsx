@@ -48,7 +48,7 @@ export default function TermsPage() {
         <ul>
           <li><strong>Featured listings:</strong> Non-refundable once activated.</li>
           <li><strong>School kit bundles:</strong> Full refund if cancelled before dispatch. No refund after delivery unless items are incorrect or damaged — contact us within 48 hours of delivery.</li>
-          <li>To request a refund, contact <a href="mailto:buddybookx@gmail.com">buddybookx@gmail.com</a> or WhatsApp <a href="https://wa.me/919914735738">+91 99147 35738</a>.</li>
+          <li>To request a refund, contact <a href="mailto:buddybookx@gmail.com">buddybookx@gmail.com</a> or WhatsApp <a href="https://wa.me/918872235738">+91 88722 35738</a>.</li>
         </ul>
 
         <h2>8. Prohibited Conduct</h2>

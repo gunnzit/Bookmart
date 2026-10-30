@@ -52,7 +52,7 @@ export default function RefundPage() {
         <p>Contact us and we'll resolve it quickly:</p>
         <ul>
           <li>Email: <a href="mailto:buddybookx@gmail.com">buddybookx@gmail.com</a></li>
-          <li>WhatsApp: <a href="https://wa.me/919914735738">+91 99147 35738</a></li>
+          <li>WhatsApp: <a href="https://wa.me/918872235738">+91 88722 35738</a></li>
           <li>Visit: Bedi Book Store, Sector 40-C, Chandigarh</li>
         </ul>
       </div>

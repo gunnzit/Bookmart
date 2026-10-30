@@ -6,7 +6,7 @@ import { DELIVERY_FEE } from '@/lib/kit-prices'
 import { useDeliveryPlace, type Saved } from '@/components/LocationSheet'
 
 const SCHOOL = 'Shivalik Public School'
-const ADMIN_WA = '919914735738'
+const ADMIN_WA = '918872235738'
 const LOOSE = 'Books and stationery'
 const SHADOW = 'shadow-[0_6px_20px_rgba(28,28,25,0.08)]'
 const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')

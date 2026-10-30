@@ -61,7 +61,7 @@ export async function notifySellerDecision(listingId: string, approved: boolean)
         phone,
         process.env.META_LISTING_REJECTED_TEMPLATE,
         [listing.title],
-        `❌ Your listing was not approved.\n\n📚 ${listing.title}\n\nPlease check your photos (the cover and the MRP tag must be visible) and list it again.\n\nQuestions? Chat with us: https://wa.me/919914735738\n\nBedi Book Store · wrap&read`
+        `❌ Your listing was not approved.\n\n📚 ${listing.title}\n\nPlease check your photos (the cover and the MRP tag must be visible) and list it again.\n\nQuestions? Chat with us: https://wa.me/918872235738\n\nBedi Book Store · wrap&read`
       )
     }
   } catch (e) {

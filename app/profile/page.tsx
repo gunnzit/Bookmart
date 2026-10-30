@@ -8,7 +8,7 @@ import { useDeliveryPlace, type Saved } from '@/components/LocationSheet'
 import { LOCATIONS, QUICK_SECTORS } from '@/lib/locations'
 
 const SHADOW = 'shadow-[0_6px_20px_rgba(28,28,25,0.08)]'
-const ADMIN_WA = '919914735738'
+const ADMIN_WA = '918872235738'
 const conditions = ['New', 'Good', 'Fair']
 const ADDR_LABELS = ['Home', 'Office', "Parents' Home", 'Other']
 const ADDR_ICON: Record<string, string> = { Home: 'home', Office: 'business', "Parents' Home": 'family_restroom', Other: 'location_on' }

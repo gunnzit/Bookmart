@@ -139,7 +139,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 name: 'wrap&read — Bedi Book Store',
                 description: 'Student marketplace for buying and selling second-hand books, notebooks and stationery in Chandigarh.',
                 url: APP_URL,
-                telephone: '+919914735738',
+                telephone: '+918872235738',
                 address: {
                   '@type': 'PostalAddress',
                   streetAddress: 'Sector 40-C',
@@ -157,7 +157,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   { '@type': 'OpeningHoursSpecification', dayOfWeek: ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'], opens: '09:00', closes: '19:00' },
                   { '@type': 'OpeningHoursSpecification', dayOfWeek: ['Sunday'], opens: '10:00', closes: '17:00' },
                 ],
-                sameAs: [`https://wa.me/919914735738`],
+                sameAs: [`https://wa.me/918872235738`],
                 priceRange: '₹',
                 currenciesAccepted: 'INR',
                 paymentAccepted: 'Cash, UPI, Credit Card',
