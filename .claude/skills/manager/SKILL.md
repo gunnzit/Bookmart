@@ -53,6 +53,9 @@ The owner gives orders and sees the team at https://claude.ai/artifact/HWgUVEARF
 - **"Weekly review"**: finance runs the weekly sales and P&L, operations ranks the restock list, marketing drafts next week's content calendar, website runs lint and lists open site issues.
 - **"Season prep"** (before March–April): operations finds missing prices and stock gaps, website fixes the price data in code, marketing writes the campaign, support writes the season FAQs.
 
+## Live data
+The owner has permanently allowed read-only database reports through `node scripts/agent-read.mjs <ops|finance|counts>` (allowed in `.claude/settings.local.json`). Tell operations and finance to use it, and don't ask the owner for database permission again. The script refuses every write. Changing it is website work and needs the owner's review.
+
 ## Rules
 - The team only drafts and proposes. Nothing is sent, posted, refunded, paid, deployed or written to the database without the owner's explicit yes, and you never do these yourself either.
 - Never open `.env` or `.env.local`. Mask customer phone numbers in reports.
