@@ -57,6 +57,7 @@ const condCls = (c: string) =>
 const WR_CSS = `
 @keyframes wr-pop{0%{opacity:0;transform:translateY(24px) scale(.88)}60%{opacity:1;transform:translateY(-4px) scale(1.04)}100%{opacity:1;transform:none}}
 @keyframes wr-shine{0%{transform:translateX(-130%)}45%,100%{transform:translateX(130%)}}
+@keyframes wr-sk{0%{background-position:100% 0}100%{background-position:-100% 0}}
 @keyframes wr-floaty{0%,100%{translate:0 0}50%{translate:0 -5px}}
 @keyframes wr-blink{0%,45%{opacity:1}50%,95%{opacity:0}100%{opacity:1}}
 @keyframes wr-hp{0%{transform:scale(1)}35%{transform:scale(1.6)}70%{transform:scale(.9)}100%{transform:scale(1)}}
@@ -77,11 +78,12 @@ const WR_CSS = `
 .wr-slideup{animation:wr-su .55s cubic-bezier(.34,1.56,.64,1) both}
 .wr-sheet{animation:wr-sheet .3s cubic-bezier(.22,1,.36,1) both}
 .wr-pulse{animation:wr-ring 1.8s ease-out infinite}
+.wr-skel{background:linear-gradient(90deg,#f1ede6 25%,#fbf8f1 40%,#f1ede6 60%);background-size:300% 100%;animation:wr-sk 1.4s ease-in-out infinite}
 .wr-snap{scroll-snap-type:x proximity;scroll-padding-left:14px}
 .wr-snap-item{scroll-snap-align:start}
 @media (prefers-reduced-motion:reduce){
 .wr-pre{opacity:1}
-.wr-anim,.wr-btn::after,.wr-float,.wr-float2,.wr-caret,.wr-heart,.wr-slideup,.wr-pulse,.wr-sheet{animation:none!important}
+.wr-anim,.wr-btn::after,.wr-float,.wr-float2,.wr-caret,.wr-heart,.wr-skel,.wr-slideup,.wr-pulse,.wr-sheet{animation:none!important}
 }
 `
 
@@ -115,6 +117,8 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
   const [place, setPlace] = useDeliveryPlace()
 
   const [listings, setListings] = useState<any[]>(initial)
+  // True once we have books to show (from the server, or from the first fetch). Until then the grid shows placeholders.
+  const [loaded, setLoaded] = useState(initial.length > 0)
   const [reqs, setReqs] = useState<any[]>([])
   const [tab, setTab] = useState<'browse' | 'requests'>('browse')
   const [search, setSearch] = useState('')
@@ -199,7 +203,7 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
           else if (first) setError('Could not load listings')
         })
         .catch(() => { if (first) setError('Could not connect. Check your internet and try again.') })
-        .finally(() => { first = false })
+        .finally(() => { first = false; setLoaded(true) })
     }
     load()
     const onVisible = () => { if (document.visibilityState === 'visible') load() }
@@ -553,6 +557,21 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
                     <p className="text-[13px] text-stone-600 mb-4">{error}</p>
                     <button type="button" onClick={() => window.location.reload()} className="px-5 py-2.5 bg-[#FBBF24] text-stone-900 text-[13px] font-bold rounded-full active:scale-95 transition-transform">Try again</button>
                   </div>
+                ) : !loaded ? (
+                  <div className="grid grid-cols-2 gap-3" aria-busy="true" aria-label="Loading books">
+                    {[0, 1, 2, 3, 4, 5].map(k => (
+                      <div key={k} className="flex flex-col bg-white rounded-2xl p-3 shadow-sm border border-stone-200">
+                        <div className="h-6 mb-1.5" />
+                        <div className="w-full h-44 rounded-xl wr-skel mb-2" />
+                        <div className="h-3.5 w-12 rounded wr-skel" />
+                        <div className="h-3.5 rounded wr-skel mt-2" />
+                        <div className="h-3.5 w-2/3 rounded wr-skel mt-1.5" />
+                        <div className="h-3 w-1/2 rounded wr-skel mt-2" />
+                        <div className="h-5 w-16 rounded wr-skel mt-2" />
+                        <div className="h-9 w-full rounded-full wr-skel mt-3" />
+                      </div>
+                    ))}
+                  </div>
                 ) : filtered.length === 0 ? (
                   <div className="bg-white rounded-2xl p-6 text-center border border-stone-200 shadow-sm">
                     <h2 className="text-[15px] font-black mb-1">Nothing found</h2>
@@ -563,7 +582,7 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
                     </div>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-2.5">
+                  <div className="grid grid-cols-2 gap-3">
                     {filtered.map((l: any) => {
                       const sold = !!l.sold
                       const isFree = Number(l.price) === 0
@@ -573,7 +592,7 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
                       const metaLine = [seller, place2].filter(Boolean).join(' • ')
                       const mine = !!user?.id && user.id === l.sellerId
                       return (
-                        <div key={l.id} data-pop onClick={() => router.push('/listing/' + l.id)} className="wr-pre wr-card flex flex-col bg-white rounded-2xl p-2.5 shadow-sm border border-stone-200 relative justify-between cursor-pointer">
+                        <div key={l.id} data-pop onClick={() => router.push('/listing/' + l.id)} className="wr-pre wr-card flex flex-col bg-white rounded-2xl p-3 shadow-sm border border-stone-200 relative justify-between cursor-pointer">
                           <div>
                             <div className="flex items-center justify-between mb-1.5 min-h-6">
                               {sold ? <span className="px-1.5 py-0.5 rounded-md bg-stone-500 text-white font-bold text-[9px] uppercase tracking-wide">Sold</span>
@@ -583,17 +602,17 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
                                 : <span />}
                               {heart(l)}
                             </div>
-                            <div className="relative w-full h-32 rounded-xl bg-stone-50 overflow-hidden flex items-center justify-center mb-2 text-4xl">
+                            <div className="relative w-full h-44 rounded-xl bg-stone-50 overflow-hidden flex items-center justify-center mb-2 text-4xl">
                               {l.images?.[0]
                                 ? <img src={l.images[0]} alt={l.title} className={'w-full h-full object-cover ' + (sold ? 'opacity-50' : '')} />
                                 : <span>{l.emoji || '📚'}</span>}
                             </div>
                             <div className="flex flex-col gap-0.5 min-w-0">
                               {l.condition && <span className={'w-fit px-1.5 py-0.5 rounded font-bold text-[9px] border ' + condCls(l.condition)}>{condLabel(l.condition)}</span>}
-                              <h3 className={'font-bold text-xs truncate mt-0.5 ' + (sold ? 'text-stone-400' : 'text-stone-900')}>
+                              <h3 className={'font-bold text-[13px] leading-snug line-clamp-2 min-h-[2.6em] mt-0.5 ' + (sold ? 'text-stone-400' : 'text-stone-900')}>
                                 <a href={'/listing/' + l.id} onClick={e => e.stopPropagation()}>{l.title}</a>
                               </h3>
-                              {metaLine && <div className="text-stone-500 text-[10px] truncate">{metaLine}</div>}
+                              {metaLine && <div className="text-stone-500 text-[11px] truncate">{metaLine}</div>}
                               <div className="flex items-baseline gap-1 mt-0.5">
                                 {isFree ? (
                                   <>
@@ -602,7 +621,7 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
                                   </>
                                 ) : (
                                   <>
-                                    <span className={'text-sm font-black ' + (sold ? 'text-stone-400' : 'text-stone-900')}>₹{l.price}</span>
+                                    <span className={'text-base font-black ' + (sold ? 'text-stone-400' : 'text-stone-900')}>₹{l.price}</span>
                                     {Number(l.origPrice) > Number(l.price) && <span className="text-[10px] text-stone-400 line-through">₹{l.origPrice}</span>}
                                   </>
                                 )}
@@ -610,7 +629,7 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
                             </div>
                           </div>
                           <button type="button" disabled={sold || (!!chatBusy && !mine)} onClick={e => openChat(l, e)}
-                            className={'wr-btn mt-2 w-full py-1.5 rounded-full font-bold text-xs flex items-center justify-center gap-1 active:scale-95 transition-transform disabled:opacity-50 ' + (isFree ? 'bg-orange-100 hover:bg-orange-200 text-[#a73a00]' : 'bg-[#fbbf24] hover:bg-amber-400 text-stone-900')}>
+                            className={'wr-btn mt-3 w-full py-2.5 rounded-full font-bold text-[13px] flex items-center justify-center gap-1 active:scale-95 transition-transform disabled:opacity-50 ' + (isFree ? 'bg-orange-100 hover:bg-orange-200 text-[#a73a00]' : 'bg-[#fbbf24] hover:bg-amber-400 text-stone-900')}>
                             {chatBusy === l.id
                               ? <i className="fa-solid fa-spinner fa-spin text-[11px]" />
                               : <i className={(isFree ? 'fa-solid fa-gift' : 'fa-regular fa-comment') + ' text-[11px]'} />}
