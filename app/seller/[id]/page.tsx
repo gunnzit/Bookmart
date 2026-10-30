@@ -74,7 +74,7 @@ export default async function SellerPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="min-h-screen text-[#1c1c19] antialiased font-['Plus_Jakarta_Sans',sans-serif]" style={{ background: '#fcf9f4' }}>
-      <main className="w-full max-w-md md:max-w-3xl mx-auto px-5 pb-16" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
+      <main className="w-full max-w-md md:max-w-3xl mx-auto px-5 pb-16 lg:max-w-[1100px] lg:px-6 lg:pt-8! lg:pb-20" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}>
 
         {/* Top bar */}
         <header className="flex items-center gap-3 h-12 mb-4">
@@ -85,8 +85,8 @@ export default async function SellerPage({ params }: { params: Promise<{ id: str
         </header>
 
         {/* Who */}
-        <section className={'bg-white rounded-[2rem] p-5 ' + SHADOW}>
-          <div className="flex items-center gap-4">
+        <section className={'bg-white rounded-[2rem] p-5 lg:flex lg:items-center lg:gap-8 lg:p-7 ' + SHADOW}>
+          <div className="flex items-center gap-4 lg:flex-1 lg:min-w-0">
             <div className="w-16 h-16 rounded-full bg-[#ffdf9f] text-[#795900] flex items-center justify-center text-[24px] font-bold shrink-0">{name.charAt(0).toUpperCase()}</div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 min-w-0">
@@ -98,7 +98,7 @@ export default async function SellerPage({ params }: { params: Promise<{ id: str
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2.5 mt-5">
+          <div className="grid grid-cols-3 gap-2.5 mt-5 lg:mt-0 lg:w-[460px] lg:shrink-0">
             {tiles.map(t => (
               <div key={t.icon} className="bg-[#f0ede9] rounded-[1rem] py-3 px-1 flex flex-col items-center gap-0.5 text-center">
                 <span className="material-symbols-outlined text-[18px] text-[#795900]">{t.icon}</span>
@@ -119,9 +119,9 @@ export default async function SellerPage({ params }: { params: Promise<{ id: str
               <a href="/marketplace" className="mt-4 flex items-center justify-center h-[52px] bg-[#fbbf24] text-[#6c4f00] text-[15px] font-bold shadow-[0_4px_14px_rgba(251,191,36,0.35)] rounded-full active:scale-[0.98] transition-transform">Browse books</a>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 lg:grid-cols-4 lg:gap-4">
               {listings.map(l => (
-                <a key={l.id} href={'/listing/' + l.id} className={'bg-white rounded-[2rem] p-3 block active:scale-[0.99] transition-transform ' + SHADOW}>
+                <a key={l.id} href={'/listing/' + l.id} className={'bg-white rounded-[2rem] p-3 block active:scale-[0.99] transition-transform lg:rounded-2xl lg:border lg:border-stone-200 ' + SHADOW}>
                   <div className="w-full aspect-[4/5] rounded-[1rem] overflow-hidden bg-[#f6f3ee] flex items-center justify-center text-[36px] mb-2.5">
                     {l.images?.[0] ? <img src={l.images[0]} alt={l.title} className="w-full h-full object-cover" /> : <span>{l.emoji || '📚'}</span>}
                   </div>
@@ -146,7 +146,7 @@ export default async function SellerPage({ params }: { params: Promise<{ id: str
               <span className="text-[13px] font-semibold">{reviewAvg}</span>
               <span className="text-[12px] text-[#817661]">from {reviewTotal}</span>
             </div>
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-3 lg:grid lg:grid-cols-2 lg:gap-4">
               {reviews.map(r => (
                 <div key={r.id} className="bg-[#fcf9f4] rounded-2xl p-3.5">
                   <div className="flex items-center justify-between gap-2 mb-1">
