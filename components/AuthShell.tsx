@@ -1,5 +1,6 @@
 'use client'
 import { SignIn, SignUp, useAuth } from '@clerk/nextjs'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Logo from '@/components/Logo'
 
@@ -92,6 +93,11 @@ export default function AuthShell({ mode }: { mode: 'in' | 'up' }) {
   const router = useRouter()
   const { isLoaded } = useAuth()
   const isIn = mode === 'in'
+  // /sell sends signed-out visitors here with ?from=sell
+  const [fromSell, setFromSell] = useState(false)
+  useEffect(() => {
+    try { setFromSell(new URLSearchParams(window.location.search).get('from') === 'sell') } catch {}
+  }, [])
 
   // Back goes to the page the person came from (only our own pages), else Home
   function goBack() {
@@ -132,10 +138,12 @@ export default function AuthShell({ mode }: { mode: 'in' | 'up' }) {
               </div>
             </a>
             <h1 className="wrau-pop text-[30px] leading-9 font-extrabold tracking-tight mt-2 mb-1" style={delay(160)}>
-              {isIn ? 'Welcome back, reader.' : 'Join the readers.'}
+              {fromSell ? 'Sign in to list your book' : isIn ? 'Welcome back, reader.' : 'Join the readers.'}
             </h1>
             <p className="wrau-pop text-[15px] text-[#4f4633] max-w-[310px] leading-relaxed" style={delay(240)}>
-              Your neighbourhood student bookstore &amp; peer-to-peer exchange.
+              {fromSell
+                ? 'It takes a minute. Then you can sell your book to another student.'
+                : <>Your neighbourhood student bookstore &amp; peer-to-peer exchange.</>}
             </p>
           </header>
 

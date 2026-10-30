@@ -158,7 +158,8 @@ export default function SellPage() {
   }, [form, donate])
 
   useEffect(() => {
-    if (isSignedIn === false) router.push('/')
+    // Signed-out visitors sign in first, then Clerk brings them back here
+    if (isSignedIn === false) router.replace('/sign-in?redirect_url=%2Fsell&from=sell')
   }, [isSignedIn, router])
 
   useEffect(() => {
@@ -202,7 +203,12 @@ export default function SellPage() {
     }
   }, [suggested, priceTouched])
 
-  if (!isSignedIn) return null
+  // Clerk still loading, or sending a signed-out visitor to sign in
+  if (!isSignedIn) return (
+    <div className="min-h-screen bg-[#fcf9f4] flex items-center justify-center">
+      <div className="w-6 h-6 rounded-full border-[3px] border-[#fbbf24] border-t-transparent animate-spin" />
+    </div>
+  )
 
   function update(field: string, value: string) {
     setError('')
