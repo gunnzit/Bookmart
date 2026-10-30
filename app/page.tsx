@@ -799,10 +799,10 @@ export default function HomePage() {
         <main className="max-w-[1200px] mx-auto px-6 pt-8">
 
           {/* Hero */}
-          <section className="rounded-[2rem] bg-gradient-to-br from-[#F7CF65] via-[#F9D571] to-[#F5BF3B] p-10 grid grid-cols-[1.15fr_1fr] gap-10 items-center shadow-sm">
+          <section className="rounded-[2rem] bg-[#F7CF65] p-10 grid grid-cols-[1.15fr_1fr] gap-10 items-center shadow-sm">
             <div>
-              <h1 className="text-[52px] leading-[1.05] font-black tracking-tight text-stone-900">Sell a book.<br />Give it a second life.</h1>
-              <p className="text-[17px] text-stone-800 font-medium leading-snug mt-4 max-w-[480px]">Find school books near you in Chandigarh, Mohali and Panchkula, and list your own in under 60 seconds.</p>
+              <h1 className="text-[28px] leading-[1.15] font-black text-stone-900">Sell a book.<br />Give it a second life.</h1>
+              <p className="text-[14px] text-stone-800 font-medium leading-snug mt-4 max-w-[480px]">Find school books near you in Chandigarh, Mohali and Panchkula, and list your own in under 60 seconds.</p>
               <div className="flex items-center gap-3 mt-7">
                 <button type="button" onClick={goSell} className="wr-btn inline-flex items-center gap-2 bg-stone-900 hover:bg-black text-white text-[14px] font-bold px-6 py-3 rounded-full shadow transition">
                   <span>Start selling</span>
@@ -891,7 +891,7 @@ export default function HomePage() {
           <section className="mt-10">
             <div className="flex items-end justify-between mb-5">
               <div>
-                <h2 className="text-[28px] font-black tracking-tight text-stone-900">Books at Bedi Book Store</h2>
+                <h2 className="text-[22px] font-black text-stone-900">Books at Bedi Book Store</h2>
                 <p className="text-[14px] text-stone-600 font-medium mt-0.5">Pre-loved books from our community, ready for pickup.</p>
               </div>
               {seeAll('/marketplace', 'See all')}
@@ -934,7 +934,7 @@ export default function HomePage() {
                       </div>
                       <div className="mt-2">
                         <div className="flex items-baseline gap-1.5">
-                          <span className="text-[17px] font-black text-stone-900">{priceText(l.price)}</span>
+                          <span className="text-[16px] font-black text-stone-900">{priceText(l.price)}</span>
                           {Number(l.origPrice) > Number(l.price) && <span className="text-[11px] text-stone-400 line-through">₹{l.origPrice}</span>}
                         </div>
                         {l.location && <p className="text-[11px] text-stone-500 truncate mt-1"><i className="fa-solid fa-location-dot text-[9px] mr-1" />{l.location}</p>}
@@ -955,7 +955,7 @@ export default function HomePage() {
             <section className="mt-14">
               <div className="flex items-end justify-between mb-5">
                 <div>
-                  <h2 className="text-[28px] font-black tracking-tight text-stone-900">People are looking for</h2>
+                  <h2 className="text-[22px] font-black text-stone-900">People are looking for</h2>
                   <p className="text-[14px] text-stone-600 font-medium mt-0.5">Have one of these books? Sell it directly.</p>
                 </div>
                 <div className="flex items-center gap-5">

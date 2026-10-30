@@ -880,7 +880,7 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
             {tab === 'browse' ? (
               <>
                 <div>
-                  <h1 className="text-[26px] font-black tracking-tight text-stone-900">Books from students near you</h1>
+                  <h1 className="text-[22px] font-black tracking-tight text-stone-900">Books from students near you</h1>
                   <p className="text-[14px] text-stone-600 font-medium mt-0.5">Checked listings, pickups in Chandigarh, Mohali and Panchkula</p>
                 </div>
 
@@ -1015,7 +1015,7 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h1 className="text-[26px] font-black tracking-tight text-stone-900">Books students are looking for</h1>
+                    <h1 className="text-[22px] font-black tracking-tight text-stone-900">Books students are looking for</h1>
                     <p className="text-[14px] text-stone-600 font-medium mt-0.5">Have one of these? Sell it in a minute.</p>
                   </div>
                   <button type="button" onClick={() => router.push('/requests')} className="wr-btn px-5 py-2.5 rounded-full bg-stone-900 text-white font-bold text-[13px] flex items-center gap-2">

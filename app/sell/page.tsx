@@ -525,7 +525,7 @@ export default function SellPage() {
 
         {/* Desktop page title */}
         <div className="hidden lg:block lg:col-span-2">
-          <h1 className="text-[40px] leading-[46px] font-black tracking-tight">Sell a book</h1>
+          <h1 className="text-[28px] leading-[34px] font-bold tracking-tight">Sell a book</h1>
           <p className="text-[15px] text-[#4f4633] mt-1">Free to list. You keep the full price.</p>
         </div>
 
