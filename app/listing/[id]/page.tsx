@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useUser, useClerk } from '@clerk/nextjs'
 import SoldSheet from '@/components/SoldSheet'
+import FeatureSheet from '@/components/FeatureSheet'
 import VerifiedBadge from '@/components/VerifiedBadge'
 import { FEATURE_TIERS } from '@/lib/featured'
 
@@ -78,7 +79,6 @@ export default function ListingPage() {
   const [savingWishlist, setSavingWishlist] = useState(false)
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [showTiers, setShowTiers] = useState(false)
-  const featureRef = useRef<HTMLDivElement>(null)
   const [chatBusy, setChatBusy] = useState('')
   const [toast, setToast] = useState('')
 
@@ -104,8 +104,6 @@ export default function ListingPage() {
   useEffect(() => {
     if (!loadedId || !new URLSearchParams(window.location.search).has('feature')) return
     setShowTiers(true)
-    const t = setTimeout(() => featureRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
-    return () => clearTimeout(t)
   }, [loadedId])
 
   useEffect(() => {
@@ -290,7 +288,7 @@ export default function ListingPage() {
         body: JSON.stringify({ listingId: id, tier }),
       })
       const order = await res.json()
-      if (order.error) { alert('Payment failed: ' + JSON.stringify(order.error)); setPaymentLoading(false); return }
+      if (order.error) { alert('Could not start the payment. Please try again in a minute.'); setPaymentLoading(false); return }
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: order.amount,
@@ -309,7 +307,7 @@ export default function ListingPage() {
           if (result.success) {
             const days = TIERS.find(t => t.tier === tier)?.days || 0
             setListing({ ...listing, featured: true, featuredDaysLeft: (listing.featured ? listing.featuredDaysLeft || 0 : 0) + days })
-            setShowTiers(false); setToast('Your listing is now featured')
+            setShowTiers(false); setToast('Featured until ' + new Date(Date.now() + days * 86400000).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }))
           }
           else alert('Payment verification failed. Contact support.')
         },
@@ -528,6 +526,14 @@ export default function ListingPage() {
       )}
 
       {/* Mark as sold: pick who bought it */}
+      {showTiers && isOwner && (
+        <FeatureSheet
+          book={listing}
+          busy={paymentLoading}
+          onPay={t => handleFeaturePayment(t)}
+          onClose={() => { if (!paymentLoading) setShowTiers(false) }}
+        />
+      )}
       {soldSheet && (
         <SoldSheet
           listingId={id}
@@ -700,24 +706,10 @@ export default function ListingPage() {
                     {listing.featuredDaysLeft ? `Featured, ${listing.featuredDaysLeft} ${listing.featuredDaysLeft === 1 ? 'day' : 'days'} left. Showing at the top of the marketplace.` : 'Featured. Showing at the top of the marketplace.'}
                   </p>
                 ) : (
-                  <div ref={featureRef}>
-                    <button onClick={() => setShowTiers(s => !s)} className={primaryBtn + ' w-full'}>
+                  <div>
+                    <button onClick={() => setShowTiers(true)} className={primaryBtn + ' w-full'}>
                       <span className="material-symbols-outlined text-[20px]" style={fill}>star</span>Feature this listing
                     </button>
-                    {showTiers && (
-                      <div className="mt-3 flex flex-col gap-2">
-                        {TIERS.map(t => (
-                          <button key={t.tier} onClick={() => handleFeaturePayment(t.tier)} disabled={paymentLoading}
-                            className={'w-full rounded-[1rem] px-4 py-3 flex items-center justify-between text-left active:scale-[0.99] transition-transform disabled:opacity-50 ' + (t.popular ? 'bg-[#ffdf9f]/50 border-2 border-[#fbbf24]' : 'bg-[#f6f3ee] border border-[#e5e2dd]')}>
-                            <div>
-                              <div className="text-[15px] font-bold">{t.label}</div>
-                              <div className="text-[12px] text-[#4f4633]">{t.desc}</div>
-                            </div>
-                            <span className="text-[16px] font-extrabold shrink-0">{priceText(t.price)}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 ))}
 
