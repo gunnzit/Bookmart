@@ -71,12 +71,20 @@ export default function GlassNav() {
           if (cancelled) return
           window.scrollTo(0, 0)
           setOverlay('out')
-          timers.push(setTimeout(() => { if (!cancelled) setOverlay('off') }, 280))
         }, SETTLE_MS))
       }))
     }, wait))
     return () => { cancelled = true; timers.forEach(clearTimeout) }
   }, [pathname, overlay])
+
+  // Fade-out finished: take the loading screen away. This lives in its own effect because the
+  // one above is cleaned up as soon as the overlay leaves "on", which used to cancel this timer
+  // and leave the screen (and the bar) stuck on pages that do not show the bar, such as /sell.
+  useEffect(() => {
+    if (overlay !== 'out') return
+    const t = setTimeout(() => setOverlay('off'), 280)
+    return () => clearTimeout(t)
+  }, [overlay])
 
   // Safety: the loading screen can never get stuck
   useEffect(() => {
