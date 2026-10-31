@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server'
 import { prisma, getMe } from '@/lib/chat'
 import { notifyRequestMatches } from '@/lib/request-alerts'
 import { notifySellerDecision } from '@/lib/listing-alerts'
+import { withFeaturedNow, isFeaturedNow, featuredDaysLeft } from '@/lib/featured'
 
 export const dynamic = 'force-dynamic'
 
@@ -80,7 +81,9 @@ export async function GET(request: Request, context: any) {
         : null
 
     return NextResponse.json({
-      ...listing,
+      ...withFeaturedNow(listing),
+      // Days left on a paid feature, for the seller's "Featured, X days left"
+      ...((who.isOwner || who.isAdmin) && isFeaturedNow(listing) ? { featuredDaysLeft: featuredDaysLeft(listing) } : {}),
       seller,
       views: counted ? listing.views + 1 : listing.views,
       ...(stats ? { stats } : {}),
@@ -155,7 +158,8 @@ export async function PATCH(request: Request, context: any) {
 
     // Admin only
     if (who.isAdmin) {
-      if (typeof body.featured === 'boolean') data.featured = body.featured
+      // Featuring by hand has no end date; unfeaturing clears any paid one too
+      if (typeof body.featured === 'boolean') { data.featured = body.featured; data.featuredUntil = null }
       if (body.status !== undefined) {
         if (!STATUSES.includes(body.status)) return NextResponse.json({ error: 'Unknown status' }, { status: 400 })
         data.status = body.status

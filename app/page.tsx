@@ -547,13 +547,14 @@ export default function HomePage() {
                   const off = Number(l.origPrice) > Number(l.price) ? Math.round((1 - Number(l.price) / Number(l.origPrice)) * 100) : 0
                   const sub = l.author || l.subtitle || l.condition || ''
                   return (
-                    <div key={l.id} data-pop onClick={() => router.push('/listing/' + l.id)} className="wr-pre wr-card wr-snap-item w-36 flex-shrink-0 bg-white p-2 rounded-2xl border border-stone-200 shadow-2xs relative flex flex-col justify-between cursor-pointer">
+                    <div key={l.id} data-pop onClick={() => router.push('/listing/' + l.id)} className="wr-pre wr-card wr-snap-item w-36 flex-shrink-0 bg-white p-2 rounded-2xl border-2 border-[#FBBF24] shadow-2xs relative flex flex-col justify-between cursor-pointer">
                       <div className={'relative rounded-xl p-1 mb-1.5 aspect-[3/4] flex items-center justify-center overflow-hidden border ' + t.bg + ' ' + t.bd}>
                         {l.images?.[0]
                           ? <img src={l.images[0]} alt={l.title} className="absolute inset-0 w-full h-full object-cover" />
                           : <div className="text-center p-1"><span className={'block text-[12px] font-black tracking-tight leading-tight line-clamp-3 ' + t.tx}>{l.title}</span></div>}
                         {off > 0 && <span className="absolute top-1 left-1 bg-[#EA580C] text-white text-[9px] font-black px-1 py-0.5 rounded z-10">{off}% OFF</span>}
                         {heart(l, 'absolute top-1 right-1 w-5 h-5 bg-white/80 rounded-full flex items-center justify-center text-stone-400 hover:text-red-500 z-10', 'text-[11px]')}
+                        <span className="absolute bottom-1 left-1 bg-[#FBBF24] text-stone-900 text-[9px] font-black px-1.5 py-0.5 rounded flex items-center gap-1 z-10"><i className="fa-solid fa-star text-[8px]" />FEATURED</span>
                       </div>
                       <div>
                         <h3 className="text-[13px] font-bold text-stone-900 leading-snug line-clamp-2 min-h-[2.6em]">{l.title}</h3>

@@ -1,6 +1,7 @@
 import Razorpay from 'razorpay'
 import { NextResponse } from 'next/server'
 import { validateKitOrder } from '@/lib/kit-prices'
+import { FEATURE_TIERS } from '@/lib/featured'
 
 // NOTE: Razorpay is created INSIDE the handler (not at the top of the file),
 // so it only runs at request time when the secret keys exist — not during the
@@ -12,11 +13,10 @@ function getRazorpay() {
   })
 }
 
-const TIERS: Record<string, { amount: number; days: number; label: string }> = {
-  basic:    { amount: 1900, days: 3,  label: 'Basic — 3 days'   },
-  standard: { amount: 2900, days: 7,  label: 'Standard — 7 days' },
-  premium:  { amount: 4900, days: 15, label: 'Premium — 15 days' },
-}
+// Featured packages come from lib/featured.ts (amounts in paise)
+const TIERS: Record<string, { amount: number; days: number; label: string }> = Object.fromEntries(
+  FEATURE_TIERS.map(t => [t.tier, { amount: t.price * 100, days: t.days, label: t.label + ' — ' + t.days + ' days' }])
+)
 
 export async function POST(request: Request) {
   try {

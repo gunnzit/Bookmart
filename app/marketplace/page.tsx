@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Suspense } from 'react'
 import { prisma } from '@/lib/chat'
 import MarketplaceClient from './MarketplaceClient'
+import { withFeaturedNow } from '@/lib/featured'
 
 // The first batch of books is put into the page on the server, so Google (and slow phones) see real books straight away
 export const revalidate = 60
@@ -22,7 +23,7 @@ export default async function MarketplacePage() {
       take: 200,
     })
     // Plain data for the browser part (dates become text)
-    initial = JSON.parse(JSON.stringify(rows))
+    initial = JSON.parse(JSON.stringify(rows.map(withFeaturedNow)))
   } catch {
     initial = []
   }

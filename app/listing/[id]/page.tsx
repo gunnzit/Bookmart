@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useUser, useClerk } from '@clerk/nextjs'
 import SoldSheet from '@/components/SoldSheet'
 import VerifiedBadge from '@/components/VerifiedBadge'
+import { FEATURE_TIERS } from '@/lib/featured'
 
 // ── Contact / links (change here only) ────────────────────────────────────
 const ADMIN_WA = '918872235738'
@@ -28,11 +29,7 @@ const CONDITION_DESC: Record<string, string> = {
   Fair: 'Used but fully readable, may have marks.',
 }
 
-const TIERS = [
-  { tier: 'basic', price: 19, label: 'Basic', desc: '3 days at the top' },
-  { tier: 'standard', price: 29, label: 'Standard', desc: '7 days, most popular', popular: true },
-  { tier: 'premium', price: 49, label: 'Premium', desc: '15 days, maximum visibility' },
-]
+const TIERS = FEATURE_TIERS
 
 function Stars({ rating, size = 14 }: { rating: number; size?: number }) {
   return (
@@ -81,6 +78,7 @@ export default function ListingPage() {
   const [savingWishlist, setSavingWishlist] = useState(false)
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [showTiers, setShowTiers] = useState(false)
+  const featureRef = useRef<HTMLDivElement>(null)
   const [chatBusy, setChatBusy] = useState('')
   const [toast, setToast] = useState('')
 
@@ -100,6 +98,15 @@ export default function ListingPage() {
   const [reportNote, setReportNote] = useState('')
   const [reportBusy, setReportBusy] = useState(false)
   const [reportError, setReportError] = useState('')
+
+  // "Feature from ₹19" in My listings links here with ?feature=1: open the packages straight away
+  const loadedId = listing?.id
+  useEffect(() => {
+    if (!loadedId || !new URLSearchParams(window.location.search).has('feature')) return
+    setShowTiers(true)
+    const t = setTimeout(() => featureRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300)
+    return () => clearTimeout(t)
+  }, [loadedId])
 
   useEffect(() => {
     fetch('/api/listings/' + id + '?track=true')
@@ -299,7 +306,11 @@ export default function ListingPage() {
             body: JSON.stringify({ ...response, listingId: id }),
           })
           const result = await verify.json()
-          if (result.success) { setListing({ ...listing, featured: true }); setShowTiers(false); setToast('Your listing is now featured') }
+          if (result.success) {
+            const days = TIERS.find(t => t.tier === tier)?.days || 0
+            setListing({ ...listing, featured: true, featuredDaysLeft: (listing.featured ? listing.featuredDaysLeft || 0 : 0) + days })
+            setShowTiers(false); setToast('Your listing is now featured')
+          }
           else alert('Payment verification failed. Contact support.')
         },
         prefill: { name: user?.fullName, email: user?.primaryEmailAddress?.emailAddress },
@@ -682,12 +693,14 @@ export default function ListingPage() {
                   <span className="material-symbols-outlined text-[18px]">forum</span>Messages
                 </button>
 
-                {!sold && (listing.featured ? (
+                {/* Featuring is offered once the book is live (fees are non-refundable) */}
+                {!sold && live && (listing.featured ? (
                   <p className="text-[13px] text-[#4f4633] flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-[16px] text-[#795900]" style={fill}>star</span>Featured. Showing at the top of the marketplace.
+                    <span className="material-symbols-outlined text-[16px] text-[#795900]" style={fill}>star</span>
+                    {listing.featuredDaysLeft ? `Featured, ${listing.featuredDaysLeft} ${listing.featuredDaysLeft === 1 ? 'day' : 'days'} left. Showing at the top of the marketplace.` : 'Featured. Showing at the top of the marketplace.'}
                   </p>
                 ) : (
-                  <div>
+                  <div ref={featureRef}>
                     <button onClick={() => setShowTiers(s => !s)} className={primaryBtn + ' w-full'}>
                       <span className="material-symbols-outlined text-[20px]" style={fill}>star</span>Feature this listing
                     </button>

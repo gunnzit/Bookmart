@@ -4,6 +4,7 @@ import { auth } from '@clerk/nextjs/server'
 import { notifyAdminNewListing } from '@/lib/listing-alerts'
 import { PHONE_OTP_REQUIRED } from '@/lib/features'
 import { getMe } from '@/lib/chat'
+import { withFeaturedNow, isFeaturedNow, featuredDaysLeft } from '@/lib/featured'
 
 export const dynamic = 'force-dynamic'
 
@@ -113,13 +114,15 @@ export async function GET() {
               ...l,
               seller: { id: l.seller.id, name: l.seller.name, phone: l.seller.phone },
               stats: { chats: chatCount.get(l.id) || 0, saves: saveCount.get(l.id) || 0 },
+              featuredDaysLeft: isFeaturedNow(l) ? featuredDaysLeft(l) : null,
             }
           : {
               ...l,
               seller: { id: l.seller.id, name: l.seller.name },
             })
 
-    return NextResponse.json(out)
+    // Paid features that have run out are sent as not featured
+    return NextResponse.json(out.map(withFeaturedNow))
   } catch (error) {
     console.error('GET error:', error)
     return NextResponse.json({ error: String(error) }, { status: 500 })

@@ -7,6 +7,7 @@ import RatePending from '@/components/RatePending'
 import MobileFooter from '@/components/MobileFooter'
 import { useDeliveryPlace, type Saved } from '@/components/LocationSheet'
 import { LOCATIONS, QUICK_SECTORS } from '@/lib/locations'
+import { FEATURE_FROM } from '@/lib/featured'
 
 const SHADOW = 'shadow-[0_6px_20px_rgba(28,28,25,0.08)]'
 const ADMIN_WA = '918872235738'
@@ -491,6 +492,18 @@ export default function ProfilePage() {
                       <button onClick={() => startEdit(l)} className={smallPill + 'bg-[#f6f3ee] text-[#1c1c19]'}>Edit</button>
                       <button onClick={() => handleDelete(l.id)} className={smallPill + 'ml-auto text-[#ba1a1a] bg-transparent'}>Delete</button>
                     </div>
+                    {/* Featuring: offered on live, unsold books */}
+                    {!l.sold && (!l.status || l.status === 'active') && (l.featured ? (
+                      <p className="mt-3 rounded-full bg-[#ffdf9f]/50 border border-[#fbbf24] px-3.5 py-2 text-[12px] font-semibold text-[#5c4300] flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-[16px] text-[#795900]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+                        {l.featuredDaysLeft ? `Featured, ${l.featuredDaysLeft} ${l.featuredDaysLeft === 1 ? 'day' : 'days'} left` : 'Featured'}
+                      </p>
+                    ) : (
+                      <button onClick={() => router.push('/listing/' + l.id + '?feature=1')}
+                        className="mt-3 w-full h-11 rounded-full bg-[#fbbf24] text-[#6c4f00] text-[13px] font-bold flex items-center justify-center gap-1.5 shadow-[0_4px_14px_rgba(251,191,36,0.3)] active:scale-[0.98] transition-transform">
+                        <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>Get seen first, from ₹{FEATURE_FROM}
+                      </button>
+                    ))}
                   </article>
                 )
               })}

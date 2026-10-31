@@ -4,6 +4,7 @@ import crypto from 'crypto'
 import Razorpay from 'razorpay'
 import { validateKitOrder } from '@/lib/kit-prices'
 import { sendOrderAlert } from '@/lib/notify'
+import { tierByPaise, nextFeaturedUntil } from '@/lib/featured'
 
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 const prisma = globalForPrisma.prisma ?? new PrismaClient()
@@ -16,7 +17,6 @@ function getRazorpay() {
   })
 }
 
-const VALID_TIER_AMOUNTS = new Set([1900, 2900, 4900])
 
 export async function POST(request: Request) {
   try {
@@ -148,16 +148,20 @@ export async function POST(request: Request) {
           { status: 400 }
         )
       }
-      if (!VALID_TIER_AMOUNTS.has(orderAmount)) {
+      const paidTier = tierByPaise(orderAmount)
+      if (!paidTier) {
         return NextResponse.json(
           { error: 'Invalid featured amount.' },
           { status: 400 }
         )
       }
 
+      // Runs for the package's days, added on top of any feature still running
+      const current = await prisma.listing.findUnique({ where: { id: listingId }, select: { featured: true, featuredUntil: true } })
+      const stillRunning = current?.featured && current.featuredUntil ? current.featuredUntil : null
       await prisma.listing.update({
         where: { id: listingId },
-        data: { featured: true },
+        data: { featured: true, featuredUntil: nextFeaturedUntil(stillRunning, paidTier.days) },
       })
       return NextResponse.json({ success: true, type: 'featured' })
     }

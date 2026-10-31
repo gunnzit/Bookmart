@@ -46,6 +46,7 @@ model Listing {
   images    String[]   @default([])
   views     Int        @default(0)
   featured  Boolean    @default(false)
+  featuredUntil DateTime? // paid features end here; empty = featured by the admin with no end
   createdAt DateTime   @default(now())
   sellerId  String
   seller    User       @relation(fields: [sellerId], references: [id])

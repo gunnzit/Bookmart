@@ -5,6 +5,7 @@ import { useUser } from '@clerk/nextjs'
 import { createClient } from '@supabase/supabase-js'
 import { PHONE_OTP_REQUIRED } from '@/lib/features'
 import DesktopFooter from '@/components/DesktopFooter'
+import { FEATURE_FROM } from '@/lib/featured'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -487,6 +488,13 @@ export default function SellPage() {
         <p className="text-[14px] text-[#4f4633] leading-[20px] mb-6">
           We are checking it now. It goes live once approved, usually within a few hours.
         </p>
+        {/* Featuring is offered once the book is live, from My listings */}
+        <div className="mb-6 rounded-[1.25rem] bg-[#ffdf9f]/40 border border-[#fbbf24] px-4 py-3 text-left flex items-start gap-3">
+          <span className="material-symbols-outlined text-[20px] text-[#795900] mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>star</span>
+          <p className="text-[13px] leading-[19px] text-[#5c4300]">
+            <span className="font-bold">Want it to sell faster?</span> Once it is live, feature it from ₹{FEATURE_FROM} in <a href="/profile" className="font-bold underline">My listings</a>. It shows first on Home and Marketplace.
+          </p>
+        </div>
         <button onClick={() => router.push('/marketplace')}
           className="w-full h-[52px] rounded-full bg-[#fbbf24] text-[#6c4f00] text-[15px] font-bold shadow-[0_4px_14px_rgba(251,191,36,0.35)] active:scale-[0.98] transition-transform">
           Back to marketplace

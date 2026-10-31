@@ -600,13 +600,13 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
                       const metaLine = [seller, place2].filter(Boolean).join(' • ')
                       const mine = !!user?.id && user.id === l.sellerId
                       return (
-                        <div key={l.id} data-pop onClick={() => router.push('/listing/' + l.id)} className="wr-pre wr-card flex flex-col bg-white rounded-2xl p-3 shadow-sm border border-stone-200 relative justify-between cursor-pointer">
+                        <div key={l.id} data-pop onClick={() => router.push('/listing/' + l.id)} className={'wr-pre wr-card flex flex-col bg-white rounded-2xl p-3 shadow-sm relative justify-between cursor-pointer ' + (l.featured && !sold ? 'border-2 border-[#FBBF24]' : 'border border-stone-200')}>
                           <div>
                             <div className="flex items-center justify-between mb-1.5 min-h-6">
                               {sold ? <span className="px-1.5 py-0.5 rounded-md bg-stone-500 text-white font-bold text-[9px] uppercase tracking-wide">Sold</span>
+                                : l.featured ? <span className="px-1.5 py-0.5 rounded-md bg-[#FBBF24] text-stone-900 font-bold text-[9px] uppercase tracking-wide flex items-center gap-1"><i className="fa-solid fa-star text-[8px]" />Featured</span>
                                 : isFree ? <span className="px-1.5 py-0.5 rounded-md bg-[#a73a00] text-white font-bold text-[9px] uppercase tracking-wide">Free</span>
                                 : off > 0 ? <span className="px-1.5 py-0.5 rounded-md bg-[#795900] text-white font-bold text-[9px] uppercase tracking-wide">{off}% off MRP</span>
-                                : l.featured ? <span className="px-1.5 py-0.5 rounded-md bg-stone-900 text-white font-bold text-[9px] uppercase tracking-wide">Featured</span>
                                 : <span />}
                               {heart(l)}
                             </div>
@@ -928,13 +928,13 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
                       const metaLine = [seller, place2].filter(Boolean).join(' • ')
                       const mine = !!user?.id && user.id === l.sellerId
                       return (
-                        <div key={l.id} onClick={() => router.push('/listing/' + l.id)} className="wr-card flex flex-col bg-white rounded-2xl p-3 shadow-sm border border-stone-200 relative justify-between cursor-pointer">
+                        <div key={l.id} onClick={() => router.push('/listing/' + l.id)} className={'wr-card flex flex-col bg-white rounded-2xl p-3 shadow-sm relative justify-between cursor-pointer ' + (l.featured && !sold ? 'border-2 border-[#FBBF24]' : 'border border-stone-200')}>
                           <div>
                             <div className="flex items-center justify-between mb-1.5 min-h-6">
                               {sold ? <span className="px-1.5 py-0.5 rounded-md bg-stone-500 text-white font-bold text-[10px] uppercase tracking-wide">Sold</span>
+                                : l.featured ? <span className="px-1.5 py-0.5 rounded-md bg-[#FBBF24] text-stone-900 font-bold text-[10px] uppercase tracking-wide flex items-center gap-1"><i className="fa-solid fa-star text-[8px]" />Featured</span>
                                 : isFree ? <span className="px-1.5 py-0.5 rounded-md bg-[#a73a00] text-white font-bold text-[10px] uppercase tracking-wide">Free</span>
                                 : off > 0 ? <span className="px-1.5 py-0.5 rounded-md bg-[#795900] text-white font-bold text-[10px] uppercase tracking-wide">{off}% off MRP</span>
-                                : l.featured ? <span className="px-1.5 py-0.5 rounded-md bg-stone-900 text-white font-bold text-[10px] uppercase tracking-wide">Featured</span>
                                 : <span />}
                               {heart(l)}
                             </div>
