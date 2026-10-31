@@ -3,6 +3,7 @@ import { SignIn, SignUp, useAuth } from '@clerk/nextjs'
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Logo from '@/components/Logo'
+import WhatsAppLogin from '@/components/WhatsAppLogin'
 
 // The wrap&read sign-in / sign-up page. Clerk does the real work (Google, email, codes,
 // new accounts); this file only gives it the wrap&read look.
@@ -158,6 +159,7 @@ export default function AuthShell({ mode }: { mode: 'in' | 'up' }) {
                   {isIn
                     ? <SignIn routing="path" path="/sign-in" signUpUrl="/sign-up" appearance={appearance} />
                     : <SignUp routing="path" path="/sign-up" signInUrl="/sign-in" appearance={appearance} />}
+                  <WhatsAppLogin />
                 </div>
               ) : (
                 /* shows the same shapes while Clerk loads, so nothing jumps in */
