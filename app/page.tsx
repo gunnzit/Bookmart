@@ -1,11 +1,12 @@
 'use client'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { schools, isRegister } from '@/lib/kit-prices'
 import LocationSheet, { useDeliveryPlace } from '@/components/LocationSheet'
 import { SETS_OPEN } from '@/lib/features'
 import Logo from '@/components/Logo'
+import { useFeaturePreview, withFeaturePreview, useScrollToYours } from '@/lib/useFeaturePreview'
 import DesktopFooter from '@/components/DesktopFooter'
 import MobileFooter from '@/components/MobileFooter'
 
@@ -149,7 +150,10 @@ export default function HomePage() {
   const [search, setSearch] = useState('')
   const [school, setSchool] = useState('Shivalik Public School')
   const [cls, setCls] = useState(5)
-  const [listings, setListings] = useState<any[]>([])
+  const [allListings, setListings] = useState<any[]>([])
+  // Feature sheet preview: the seller's own book shown as featured, in that window only
+  const previewId = useFeaturePreview()
+  const listings = useMemo(() => withFeaturePreview(allListings, previewId, user?.id), [allListings, previewId, user?.id])
   const [chatBusy, setChatBusy] = useState('')
   const [saved, setSaved] = useState<Set<string>>(new Set())
   const [cart, setCart] = useState<{ selectedClass: number; items: string[]; kitSubtotal: number }[]>([])
@@ -161,6 +165,7 @@ export default function HomePage() {
   const [loaded, setLoaded] = useState(false)
   const [popId, setPopId] = useState('')
   const [dcat, setDcat] = useState('all') // desktop category pills
+  useScrollToYours(loaded && !!user, previewId)
 
   useEffect(() => {
     fetch('/api/listings')
@@ -541,13 +546,14 @@ export default function HomePage() {
                 <h2 className="text-base font-black text-stone-900">Featured Books</h2>
                 {seeAll('/marketplace')}
               </div>
-              <div className="wr-snap flex space-x-2.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+              <div className={'wr-snap flex space-x-2.5 overflow-x-auto pb-1' + (previewId ? ' pt-3' : '')} style={{ scrollbarWidth: 'none' }}>
                 {featured.map((l, i) => {
                   const t = TINTS[i % TINTS.length]
                   const off = Number(l.origPrice) > Number(l.price) ? Math.round((1 - Number(l.price) / Number(l.origPrice)) * 100) : 0
                   const sub = l.author || l.subtitle || l.condition || ''
                   return (
-                    <div key={l.id} data-pop onClick={() => router.push('/listing/' + l.id)} className="wr-pre wr-card wr-snap-item w-36 flex-shrink-0 bg-white p-2 rounded-2xl border-2 border-[#FBBF24] shadow-2xs relative flex flex-col justify-between cursor-pointer">
+                    <div key={l.id} data-pop data-yours={l.yours ? '' : undefined} onClick={() => router.push('/listing/' + l.id)} className="wr-pre wr-card wr-snap-item w-36 flex-shrink-0 bg-white p-2 rounded-2xl border-2 border-[#FBBF24] shadow-2xs relative flex flex-col justify-between cursor-pointer">
+                      {l.yours && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap bg-stone-900 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">Your book</span>}
                       <div className={'relative rounded-xl p-1 mb-1.5 aspect-[3/4] flex items-center justify-center overflow-hidden border ' + t.bg + ' ' + t.bd}>
                         {l.images?.[0]
                           ? <img src={l.images[0]} alt={l.title} className="absolute inset-0 w-full h-full object-cover" />

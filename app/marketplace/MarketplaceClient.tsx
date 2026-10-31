@@ -1,9 +1,10 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import LocationSheet, { useDeliveryPlace } from '@/components/LocationSheet'
 import Logo from '@/components/Logo'
+import { useFeaturePreview, withFeaturePreview, useScrollToYours } from '@/lib/useFeaturePreview'
 import DesktopFooter from '@/components/DesktopFooter'
 import MobileFooter from '@/components/MobileFooter'
 
@@ -118,7 +119,11 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
   const { isSignedIn, user } = useUser()
   const [place, setPlace] = useDeliveryPlace()
 
-  const [listings, setListings] = useState<any[]>(initial)
+  const [allListings, setListings] = useState<any[]>(initial)
+  // Feature sheet preview: the seller's own book shown as featured, in that window only
+  const previewId = useFeaturePreview()
+  const listings = useMemo(() => withFeaturePreview(allListings, previewId, user?.id), [allListings, previewId, user?.id])
+  useScrollToYours(!!user && listings.length > 0, previewId)
   // True once we have books to show (from the server, or from the first fetch). Until then the grid shows placeholders.
   const [loaded, setLoaded] = useState(initial.length > 0)
   const [reqs, setReqs] = useState<any[]>([])
@@ -600,7 +605,8 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
                       const metaLine = [seller, place2].filter(Boolean).join(' • ')
                       const mine = !!user?.id && user.id === l.sellerId
                       return (
-                        <div key={l.id} data-pop onClick={() => router.push('/listing/' + l.id)} className={'wr-pre wr-card flex flex-col bg-white rounded-2xl p-3 shadow-sm relative justify-between cursor-pointer ' + (l.featured && !sold ? 'border-2 border-[#FBBF24]' : 'border border-stone-200')}>
+                        <div key={l.id} data-pop data-yours={l.yours ? '' : undefined} onClick={() => router.push('/listing/' + l.id)} className={'wr-pre wr-card flex flex-col bg-white rounded-2xl p-3 shadow-sm relative justify-between cursor-pointer ' + (l.featured && !sold ? 'border-2 border-[#FBBF24]' : 'border border-stone-200')}>
+                          {l.yours && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap bg-stone-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Your book</span>}
                           <div>
                             <div className="flex items-center justify-between mb-1.5 min-h-6">
                               {sold ? <span className="px-1.5 py-0.5 rounded-md bg-stone-500 text-white font-bold text-[9px] uppercase tracking-wide">Sold</span>

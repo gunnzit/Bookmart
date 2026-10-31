@@ -525,15 +525,17 @@ export default function ListingPage() {
         </div>
       )}
 
-      {/* Mark as sold: pick who bought it */}
+      {/* Feature your book: preview and packages, for the seller only */}
       {showTiers && isOwner && (
         <FeatureSheet
+          listingId={id}
           book={listing}
           busy={paymentLoading}
           onPay={t => handleFeaturePayment(t)}
           onClose={() => { if (!paymentLoading) setShowTiers(false) }}
         />
       )}
+      {/* Mark as sold: pick who bought it */}
       {soldSheet && (
         <SoldSheet
           listingId={id}

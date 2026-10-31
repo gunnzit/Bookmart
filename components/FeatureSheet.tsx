@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { FEATURE_TIERS, type FeatureTier } from '@/lib/featured'
 
 type Book = {
@@ -21,9 +21,64 @@ function priceText(n: number) {
   return n === 0 ? 'Free' : '₹' + n.toLocaleString('en-IN')
 }
 
+// A small phone screen showing the real page (390px wide, shrunk to fit), with the seller's book
+// shown as featured in it. The page itself blocks taps in this mode, so it is look-only.
+const PHONE_W = 390
+const PHONE_H = 640
+function PhoneWindow({ src, onFailed }: { src: string; onFailed: () => void }) {
+  const box = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(0.75)
+  const [ready, setReady] = useState(false)
+  const failed = useRef(onFailed)
+  failed.current = onFailed
+
+  useEffect(() => {
+    const el = box.current
+    if (!el) return
+    const fit = () => setScale(el.clientWidth / PHONE_W)
+    fit()
+    const ro = new ResizeObserver(fit)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  // Slow or failed load: show the simple preview instead
+  useEffect(() => {
+    if (ready) return
+    const t = setTimeout(() => failed.current(), 12000)
+    return () => clearTimeout(t)
+  }, [ready])
+
+  return (
+    <div className="mx-auto w-full max-w-[300px] rounded-[2.25rem] bg-[#1c1c19] p-2 shadow-[0_12px_30px_rgba(28,28,25,0.25)]">
+      <div ref={box} className="relative w-full overflow-hidden rounded-[1.75rem] bg-[#fcf9f4]" style={{ height: PHONE_H * scale }}>
+        <iframe
+          src={src}
+          title="Preview of your featured book"
+          tabIndex={-1}
+          onLoad={() => setTimeout(() => setReady(true), 1200)}
+          className="absolute top-0 left-0 border-0 origin-top-left"
+          style={{ width: PHONE_W, height: PHONE_H, transform: `scale(${scale})` }}
+        />
+        {!ready && (
+          <div className="absolute inset-0 bg-[#fcf9f4] p-4 flex flex-col gap-3" aria-hidden>
+            <div className="h-8 rounded-full bg-[#ebe8e3] animate-pulse" />
+            <div className="h-6 w-2/3 rounded-full bg-[#ebe8e3] animate-pulse" />
+            <div className="grid grid-cols-2 gap-3 mt-2">
+              {[0, 1, 2, 3].map(k => <div key={k} className="aspect-[3/4] rounded-2xl bg-[#ebe8e3] animate-pulse" />)}
+            </div>
+          </div>
+        )}
+      </div>
+      <p className="text-center text-[10px] text-white/70 py-1.5">Live preview · only you can see this</p>
+    </div>
+  )
+}
+
 // "Feature your book" bottom sheet (designed in Stitch). Shows the seller how their own book will look,
 // where it shows and until when, before they pay. Used on the book page; My listings opens it via ?feature=1.
-export default function FeatureSheet({ book, busy, onPay, onClose }: {
+export default function FeatureSheet({ listingId, book, busy, onPay, onClose }: {
+  listingId?: string
   book: Book
   busy: boolean
   onPay: (tier: FeatureTier) => void
@@ -31,6 +86,8 @@ export default function FeatureSheet({ book, busy, onPay, onClose }: {
 }) {
   const [view, setView] = useState<'market' | 'home'>('market')
   const [tier, setTier] = useState<FeatureTier>('standard')
+  // The live window falls back to the simple cards if it cannot load
+  const [windowState, setWindowState] = useState<'ok' | 'failed'>('ok')
   const chosen = FEATURE_TIERS.find(t => t.tier === tier)!
   const until = endDate(chosen.days)
 
@@ -98,6 +155,13 @@ export default function FeatureSheet({ book, busy, onPay, onClose }: {
               ))}
             </div>
 
+            {listingId && windowState !== 'failed' ? (
+              <PhoneWindow
+                key={view}
+                src={(view === 'home' ? '/' : '/marketplace') + '?featurePreview=' + encodeURIComponent(listingId)}
+                onFailed={() => setWindowState('failed')}
+              />
+            ) : (
             <div className="bg-white rounded-[1.5rem] p-3.5 shadow-[0_4px_20px_rgba(28,28,25,0.05)]">
               {view === 'market' ? (
                 <>
@@ -138,6 +202,7 @@ export default function FeatureSheet({ book, busy, onPay, onClose }: {
                 </>
               )}
             </div>
+            )}
           </section>
 
           {/* 2. Where it shows */}
