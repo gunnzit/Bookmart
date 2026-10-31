@@ -260,6 +260,24 @@ model PhoneOtp {
   lastSentAt  DateTime @default(now())
 }
 
+// "Continue with WhatsApp" sign-in: one code at a time per number (the code itself is never stored)
+model LoginOtp {
+  phone       String   @id
+  codeHash    String
+  expiresAt   DateTime
+  attempts    Int      @default(0)
+  sentCount   Int      @default(1)
+  windowStart DateTime @default(now())
+  lastSentAt  DateTime @default(now())
+}
+
+// How many sign-in codes one internet connection asked for this hour (stops someone flooding many numbers)
+model LoginOtpIp {
+  ip          String   @id
+  sentCount   Int      @default(1)
+  windowStart DateTime @default(now())
+}
+
 // A buyer flagging a listing. One report per person per listing.
 // Who bought a book, recorded when the seller marks it sold. Never sent to the public.
 model Sale {
