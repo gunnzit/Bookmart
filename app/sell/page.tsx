@@ -416,8 +416,6 @@ export default function SellPage() {
   if (!hasPhone) return (
     <div className={shell} style={bg}>
       <header className="px-5 pt-4 flex items-center gap-3">
-        <button onClick={() => router.push('/marketplace')} aria-label="Back"
-          className="w-10 h-10 rounded-full bg-[#f0ede9] flex items-center justify-center active:scale-95 transition-transform"><span className="material-symbols-outlined text-[22px]">arrow_back</span></button>
         <h1 className="text-[20px] font-bold">{PHONE_OTP_REQUIRED ? 'Verify your WhatsApp' : 'Your WhatsApp number'}</h1>
       </header>
       <div className="max-w-md mx-auto px-5 mt-6">
