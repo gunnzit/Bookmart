@@ -122,6 +122,8 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
   // True once we have books to show (from the server, or from the first fetch). Until then the grid shows placeholders.
   const [loaded, setLoaded] = useState(initial.length > 0)
   const [reqs, setReqs] = useState<any[]>([])
+  // Requests still loading: show no count yet, so the tab never says (0) for a moment
+  const [reqsLoaded, setReqsLoaded] = useState(false)
   const [tab, setTab] = useState<'browse' | 'requests'>('browse')
   const [search, setSearch] = useState('')
   // The desktop top bar writes the search text into the address (?q=); follow it
@@ -195,6 +197,7 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
       .then(r => r.json())
       .then(d => { if (Array.isArray(d?.requests)) setReqs(d.requests.filter((r: any) => r.status === 'open')) })
       .catch(() => {})
+      .finally(() => setReqsLoaded(true))
   }, [isSignedIn])
 
   // Load listings, and refresh quietly when the tab becomes visible again
@@ -519,7 +522,7 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
           <div className="flex flex-col gap-2.5">
             <div className="flex p-1 bg-stone-100 rounded-full border border-stone-200">
               <button type="button" onClick={() => setTab('browse')} className={'flex-1 py-1.5 rounded-full text-xs text-center transition-all ' + (tab === 'browse' ? 'bg-white text-stone-900 font-bold shadow-sm' : 'text-stone-500 font-medium hover:text-stone-800')}>Browse Books (P2P)</button>
-              <button type="button" onClick={() => setTab('requests')} className={'flex-1 py-1.5 rounded-full text-xs text-center transition-all ' + (tab === 'requests' ? 'bg-white text-stone-900 font-bold shadow-sm' : 'text-stone-500 font-medium hover:text-stone-800')}>Student Requests ({reqs.length})</button>
+              <button type="button" onClick={() => setTab('requests')} className={'flex-1 py-1.5 rounded-full text-xs text-center transition-all ' + (tab === 'requests' ? 'bg-white text-stone-900 font-bold shadow-sm' : 'text-stone-500 font-medium hover:text-stone-800')}>Student Requests{reqsLoaded && ` (${reqs.length})`}</button>
             </div>
 
             {tab === 'browse' && (
@@ -868,7 +871,7 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
             <div className="bg-white rounded-3xl border border-stone-200 shadow-sm p-3 flex items-center justify-between gap-4">
               <div className="flex p-1 bg-stone-100 rounded-full border border-stone-200">
                 <button type="button" onClick={() => setTab('browse')} className={'px-5 py-2 rounded-full text-[13px] transition-all ' + (tab === 'browse' ? 'bg-[#F7CF65] text-stone-900 font-bold shadow-sm' : 'text-stone-500 font-medium hover:text-stone-800')}>Books for sale</button>
-                <button type="button" onClick={() => setTab('requests')} className={'px-5 py-2 rounded-full text-[13px] transition-all ' + (tab === 'requests' ? 'bg-[#F7CF65] text-stone-900 font-bold shadow-sm' : 'text-stone-500 font-medium hover:text-stone-800')}>Student requests ({reqs.length})</button>
+                <button type="button" onClick={() => setTab('requests')} className={'px-5 py-2 rounded-full text-[13px] transition-all ' + (tab === 'requests' ? 'bg-[#F7CF65] text-stone-900 font-bold shadow-sm' : 'text-stone-500 font-medium hover:text-stone-800')}>Student requests{reqsLoaded && ` (${reqs.length})`}</button>
               </div>
               <div className="flex items-center gap-4 pr-2">
                 <span className="text-[13px] font-bold text-stone-800">{anyFilter ? filtered.length + ' found' : activeCount + ' available'}</span>
