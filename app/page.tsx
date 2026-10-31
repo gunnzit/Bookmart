@@ -926,13 +926,15 @@ export default function HomePage() {
                   const off = Number(l.origPrice) > Number(l.price) && Number(l.price) > 0 ? Math.round((1 - Number(l.price) / Number(l.origPrice)) * 100) : 0
                   const sub = l.author || l.subtitle || ''
                   return (
-                    <div key={l.id} onClick={() => router.push('/listing/' + l.id)} className="wr-card bg-white p-3 rounded-2xl border border-stone-200 shadow-2xs flex flex-col justify-between cursor-pointer">
+                    <div key={l.id} data-yours={l.yours ? '' : undefined} onClick={() => router.push('/listing/' + l.id)} className={'wr-card relative bg-white p-3 rounded-2xl shadow-2xs flex flex-col justify-between cursor-pointer ' + (l.featured ? 'border-2 border-[#FBBF24]' : 'border border-stone-200')}>
+                      {l.yours && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap bg-stone-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Your book</span>}
                       <div>
                         <div className={'relative rounded-xl aspect-[3/4] flex items-center justify-center overflow-hidden border ' + t.bg + ' ' + t.bd}>
                           {l.images?.[0]
                             ? <img src={l.images[0]} alt={l.title} className="absolute inset-0 w-full h-full object-cover" />
                             : <div className={'text-center p-2 text-[13px] font-black line-clamp-4 ' + t.tx}>{l.title}</div>}
                           {off > 0 && <span className="absolute bottom-2 right-2 bg-[#EA580C] text-white text-[10px] font-black px-1.5 py-0.5 rounded z-10">{off}% off</span>}
+                          {l.featured && <span className="absolute bottom-2 left-2 bg-[#FBBF24] text-stone-900 text-[10px] font-black px-1.5 py-0.5 rounded flex items-center gap-1 z-10"><i className="fa-solid fa-star text-[8px]" />FEATURED</span>}
                           {l.condition && <span className={'absolute top-2 left-2 text-[10px] font-bold px-1.5 py-0.5 rounded border bg-white/90 z-10 ' + condCls(String(l.condition))}>{l.condition}</span>}
                           {heart(l, 'absolute top-2 right-2 w-7 h-7 bg-white/90 rounded-full flex items-center justify-center text-stone-400 hover:text-red-500 z-10', 'text-[12px]')}
                         </div>

@@ -21,13 +21,18 @@ function priceText(n: number) {
   return n === 0 ? 'Free' : '₹' + n.toLocaleString('en-IN')
 }
 
-// A small phone screen showing the real page (390px wide, shrunk to fit), with the seller's book
-// shown as featured in it. The page itself blocks taps in this mode, so it is look-only.
-const PHONE_W = 390
-const PHONE_H = 640
-function PhoneWindow({ src, onFailed }: { src: string; onFailed: () => void }) {
+// A small screen showing the real page, shrunk to fit, with the seller's book shown as featured in it.
+// Phone: 390px wide. Computer: 1280px wide. The page itself blocks taps in this mode, so it is look-only.
+const SCREENS = {
+  phone: { w: 390, h: 640 },
+  computer: { w: 1280, h: 800 },
+}
+type Device = keyof typeof SCREENS
+
+function DeviceWindow({ src, device, onFailed }: { src: string; device: Device; onFailed: () => void }) {
+  const { w, h } = SCREENS[device]
   const box = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState(0.75)
+  const [scale, setScale] = useState(device === 'phone' ? 0.75 : 0.3)
   const [ready, setReady] = useState(false)
   const failed = useRef(onFailed)
   failed.current = onFailed
@@ -35,42 +40,57 @@ function PhoneWindow({ src, onFailed }: { src: string; onFailed: () => void }) {
   useEffect(() => {
     const el = box.current
     if (!el) return
-    const fit = () => setScale(el.clientWidth / PHONE_W)
+    const fit = () => setScale(el.clientWidth / w)
     fit()
     const ro = new ResizeObserver(fit)
     ro.observe(el)
     return () => ro.disconnect()
-  }, [])
+  }, [w])
 
   // Slow or failed load: show the simple preview instead
   useEffect(() => {
     if (ready) return
-    const t = setTimeout(() => failed.current(), 12000)
+    const t = setTimeout(() => failed.current(), 15000)
     return () => clearTimeout(t)
   }, [ready])
 
-  return (
-    <div className="mx-auto w-full max-w-[300px] rounded-[2.25rem] bg-[#1c1c19] p-2 shadow-[0_12px_30px_rgba(28,28,25,0.25)]">
-      <div ref={box} className="relative w-full overflow-hidden rounded-[1.75rem] bg-[#fcf9f4]" style={{ height: PHONE_H * scale }}>
-        <iframe
-          src={src}
-          title="Preview of your featured book"
-          tabIndex={-1}
-          onLoad={() => setTimeout(() => setReady(true), 1200)}
-          className="absolute top-0 left-0 border-0 origin-top-left"
-          style={{ width: PHONE_W, height: PHONE_H, transform: `scale(${scale})` }}
-        />
-        {!ready && (
-          <div className="absolute inset-0 bg-[#fcf9f4] p-4 flex flex-col gap-3" aria-hidden>
-            <div className="h-8 rounded-full bg-[#ebe8e3] animate-pulse" />
-            <div className="h-6 w-2/3 rounded-full bg-[#ebe8e3] animate-pulse" />
-            <div className="grid grid-cols-2 gap-3 mt-2">
-              {[0, 1, 2, 3].map(k => <div key={k} className="aspect-[3/4] rounded-2xl bg-[#ebe8e3] animate-pulse" />)}
-            </div>
+  const screen = (
+    <div ref={box} className={'relative w-full overflow-hidden bg-[#fcf9f4] ' + (device === 'phone' ? 'rounded-[1.75rem]' : 'rounded-[6px]')} style={{ height: h * scale }}>
+      <iframe
+        src={src}
+        title="Preview of your featured book"
+        tabIndex={-1}
+        onLoad={() => setTimeout(() => setReady(true), 1200)}
+        className="absolute top-0 left-0 border-0 origin-top-left"
+        style={{ width: w, height: h, transform: `scale(${scale})` }}
+      />
+      {!ready && (
+        <div className="absolute inset-0 bg-[#fcf9f4] p-4 flex flex-col gap-3" aria-hidden>
+          <div className="h-8 rounded-full bg-[#ebe8e3] animate-pulse" />
+          <div className="h-6 w-2/3 rounded-full bg-[#ebe8e3] animate-pulse" />
+          <div className={'grid gap-3 mt-2 ' + (device === 'phone' ? 'grid-cols-2' : 'grid-cols-5')}>
+            {Array.from({ length: device === 'phone' ? 4 : 5 }, (_, k) => <div key={k} className="aspect-[3/4] rounded-2xl bg-[#ebe8e3] animate-pulse" />)}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+    </div>
+  )
+
+  if (device === 'phone') return (
+    <div className="mx-auto w-full max-w-[300px] rounded-[2.25rem] bg-[#1c1c19] p-2 shadow-[0_12px_30px_rgba(28,28,25,0.25)]">
+      {screen}
       <p className="text-center text-[10px] text-white/70 py-1.5">Live preview · only you can see this</p>
+    </div>
+  )
+
+  // Computer: a laptop screen with a base
+  return (
+    <div className="mx-auto w-full">
+      <div className="rounded-[14px] bg-[#1c1c19] p-2 pb-1.5 shadow-[0_12px_30px_rgba(28,28,25,0.25)]">
+        {screen}
+        <p className="text-center text-[10px] text-white/70 pt-1.5">Live preview · only you can see this</p>
+      </div>
+      <div className="mx-auto h-2.5 w-[112%] -ml-[6%] rounded-b-[10px] bg-gradient-to-b from-[#3a3a36] to-[#1c1c19]" />
     </div>
   )
 }
@@ -85,6 +105,8 @@ export default function FeatureSheet({ listingId, book, busy, onPay, onClose }: 
   onClose: () => void
 }) {
   const [view, setView] = useState<'market' | 'home'>('market')
+  // Computers start on the computer view, phones on the phone view
+  const [device, setDevice] = useState<Device>(() => (typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches ? 'computer' : 'phone'))
   const [tier, setTier] = useState<FeatureTier>('standard')
   // The live window falls back to the simple cards if it cannot load
   const [windowState, setWindowState] = useState<'ok' | 'failed'>('ok')
@@ -123,7 +145,7 @@ export default function FeatureSheet({ listingId, book, busy, onPay, onClose }: 
         aria-modal="true"
         aria-labelledby="feature-title"
         onClick={e => e.stopPropagation()}
-        className="bg-[#fcf9f4] rounded-t-[28px] md:rounded-[28px] w-full max-w-md max-h-[92vh] flex flex-col shadow-[0_-10px_35px_rgba(30,27,25,0.2)] font-['Plus_Jakarta_Sans',sans-serif] text-[#1c1c19]"
+        className="bg-[#fcf9f4] rounded-t-[28px] md:rounded-[28px] w-full max-w-md md:max-w-2xl max-h-[92vh] flex flex-col shadow-[0_-10px_35px_rgba(30,27,25,0.2)] font-['Plus_Jakarta_Sans',sans-serif] text-[#1c1c19]"
       >
         {/* Header */}
         <div className="px-5 pt-3 pb-3 shrink-0">
@@ -145,6 +167,14 @@ export default function FeatureSheet({ listingId, book, busy, onPay, onClose }: 
           <section>
             <div className="flex items-center justify-between mb-2.5">
               <h3 className="text-[15px] font-bold">How your book will look</h3>
+              <div className="bg-[#f0ede9] rounded-full p-1 flex" role="tablist" aria-label="Screen">
+                {([['phone', 'smartphone', 'Phone'], ['computer', 'laptop', 'Computer']] as const).map(([k, icon, label]) => (
+                  <button key={k} role="tab" aria-selected={device === k} aria-label={label} title={label} onClick={() => setDevice(k)}
+                    className={'h-8 px-2.5 rounded-full flex items-center gap-1 text-[12px] transition-all ' + (device === k ? 'bg-white font-bold shadow-sm' : 'text-[#4f4633] font-medium')}>
+                    <span className="material-symbols-outlined text-[16px]">{icon}</span><span className="hidden sm:inline">{label}</span>
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="bg-[#f0ede9] rounded-full p-1 flex mb-3" role="tablist">
               {([['market', 'Marketplace'], ['home', 'Home']] as const).map(([k, label]) => (
@@ -156,8 +186,9 @@ export default function FeatureSheet({ listingId, book, busy, onPay, onClose }: 
             </div>
 
             {listingId && windowState !== 'failed' ? (
-              <PhoneWindow
-                key={view}
+              <DeviceWindow
+                key={view + device}
+                device={device}
                 src={(view === 'home' ? '/' : '/marketplace') + '?featurePreview=' + encodeURIComponent(listingId)}
                 onFailed={() => setWindowState('failed')}
               />

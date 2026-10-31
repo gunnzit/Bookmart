@@ -605,7 +605,8 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
                       const metaLine = [seller, place2].filter(Boolean).join(' • ')
                       const mine = !!user?.id && user.id === l.sellerId
                       return (
-                        <div key={l.id} data-pop data-yours={l.yours ? '' : undefined} onClick={() => router.push('/listing/' + l.id)} className={'wr-pre wr-card flex flex-col bg-white rounded-2xl p-3 shadow-sm relative justify-between cursor-pointer ' + (l.featured && !sold ? 'border-2 border-[#FBBF24]' : 'border border-stone-200')}>
+                        // The preview card turns gold after the fade-in has run, so it skips the fade-in (wr-pre would hide it again)
+                        <div key={l.id} data-pop data-yours={l.yours ? '' : undefined} onClick={() => router.push('/listing/' + l.id)} className={(l.yours ? '' : 'wr-pre ') + 'wr-card flex flex-col bg-white rounded-2xl p-3 shadow-sm relative justify-between cursor-pointer ' + (l.featured && !sold ? 'border-2 border-[#FBBF24]' : 'border border-stone-200')}>
                           {l.yours && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap bg-stone-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Your book</span>}
                           <div>
                             <div className="flex items-center justify-between mb-1.5 min-h-6">
@@ -934,7 +935,8 @@ export default function MarketplaceClient({ initial }: { initial: any[] }) {
                       const metaLine = [seller, place2].filter(Boolean).join(' • ')
                       const mine = !!user?.id && user.id === l.sellerId
                       return (
-                        <div key={l.id} onClick={() => router.push('/listing/' + l.id)} className={'wr-card flex flex-col bg-white rounded-2xl p-3 shadow-sm relative justify-between cursor-pointer ' + (l.featured && !sold ? 'border-2 border-[#FBBF24]' : 'border border-stone-200')}>
+                        <div key={l.id} data-yours={l.yours ? '' : undefined} onClick={() => router.push('/listing/' + l.id)} className={'wr-card flex flex-col bg-white rounded-2xl p-3 shadow-sm relative justify-between cursor-pointer ' + (l.featured && !sold ? 'border-2 border-[#FBBF24]' : 'border border-stone-200')}>
+                          {l.yours && <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap bg-stone-900 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Your book</span>}
                           <div>
                             <div className="flex items-center justify-between mb-1.5 min-h-6">
                               {sold ? <span className="px-1.5 py-0.5 rounded-md bg-stone-500 text-white font-bold text-[10px] uppercase tracking-wide">Sold</span>

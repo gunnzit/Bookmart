@@ -41,13 +41,14 @@ export function useScrollToYours(ready: boolean, previewId: string) {
     if (!ready || !previewId) return
     // Scrolls this page only (scrollIntoView would also scroll the sheet around the window)
     const t = setTimeout(() => {
-      const el = document.querySelector('[data-yours]')
+      // Phone and computer layouts are both on the page; use the one on screen
+      const el = Array.from(document.querySelectorAll<HTMLElement>('[data-yours]')).find(e => e.getClientRects().length > 0)
       if (!el) return
       const r = el.getBoundingClientRect()
       window.scrollTo({ top: window.scrollY + r.top - (window.innerHeight - r.height) / 2 })
       // Home shows featured books in a sideways row: bring the card into that row's view too
       const row = el.parentElement
-      if (row && row.scrollWidth > row.clientWidth) row.scrollLeft = (el as HTMLElement).offsetLeft - 8
+      if (row && row.scrollWidth > row.clientWidth) row.scrollLeft = el.offsetLeft - 8
     }, 400)
     return () => clearTimeout(t)
   }, [ready, previewId])
