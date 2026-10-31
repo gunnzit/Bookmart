@@ -24,9 +24,9 @@ const LOAD_TEXT: Record<Key, string> = {
   sell: 'Opening Sell a book',
 }
 
-// Pages that show the bar (Profile shows it with no tab lit)
+// Pages that show the bar (Profile shows it with no tab lit). Sell lifts its publish button above it.
 function showsBar(path: string) {
-  return path === '/' || path.startsWith('/marketplace') || path.startsWith('/profile')
+  return path === '/' || path.startsWith('/marketplace') || path.startsWith('/sell') || path.startsWith('/profile')
 }
 
 function derive(path: string): Key | '' {

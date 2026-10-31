@@ -510,8 +510,6 @@ export default function SellPage() {
     <div className={shell} style={bg}>
       <header className="lg:hidden fixed top-0 inset-x-0 z-50 backdrop-blur-xl bg-[#fcf9f4]/85 shadow-[0_1px_8px_rgba(0,0,0,0.04)]">
         <div className="h-16 px-4 flex items-center gap-3 max-w-md mx-auto">
-          <button onClick={() => router.back()} aria-label="Back"
-            className="w-10 h-10 rounded-full bg-[#f0ede9] flex items-center justify-center active:scale-95 transition-transform"><span className="material-symbols-outlined text-[22px]">arrow_back</span></button>
           <div className="min-w-0">
             <h1 className="text-[20px] leading-[24px] font-bold tracking-tight">Sell a book</h1>
             <p className="text-[12px] text-[#4f4633]">Free to list. You keep the full price.</p>
@@ -519,7 +517,7 @@ export default function SellPage() {
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-4 pt-20 pb-40 flex flex-col gap-7 lg:max-w-[1200px] lg:px-6 lg:pt-8 lg:pb-8 lg:grid lg:grid-cols-[400px_1fr] lg:gap-x-12 lg:items-start">
+      <main className="max-w-md mx-auto px-4 pt-20 pb-56 md:pb-40 flex flex-col gap-7 lg:max-w-[1200px] lg:px-6 lg:pt-8 lg:pb-8 lg:grid lg:grid-cols-[400px_1fr] lg:gap-x-12 lg:items-start">
 
         {/* Desktop page title */}
         <div className="hidden lg:block lg:col-span-2">
@@ -791,8 +789,9 @@ export default function SellPage() {
         </div>
       </main>
 
-      {/* Publish bar (on desktop it sits at the end of the form, under the right column, and does not stick) */}
-      <div className="fixed bottom-0 inset-x-0 z-40 bg-[#fcf9f4]/95 backdrop-blur-md px-5 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(28,28,25,0.06)] lg:static lg:bg-transparent lg:backdrop-blur-none lg:shadow-none lg:max-w-[1200px] lg:mx-auto lg:px-6 lg:pt-0 lg:pb-0">
+      {/* Publish bar (on desktop it sits at the end of the form, under the right column, and does not stick).
+          On phones (where the bottom nav shows) the button sits above its pill: 12px gap + 44px pill + 12px. */}
+      <div className="fixed bottom-0 inset-x-0 z-40 bg-[#fcf9f4]/95 backdrop-blur-md px-5 pt-3 pb-[calc(env(safe-area-inset-bottom,0px)+68px)] md:pb-[max(12px,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(28,28,25,0.06)] lg:static lg:bg-transparent lg:backdrop-blur-none lg:shadow-none lg:max-w-[1200px] lg:mx-auto lg:px-6 lg:pt-0 lg:pb-0">
         <div className="max-w-md mx-auto lg:max-w-none lg:mx-0 lg:ml-[448px]">
           {error && <p className="text-[12px] text-[#ba1a1a] mb-2 text-center">{error}</p>}
           {uploadProgress && <p className="text-[12px] text-[#4f4633] mb-2 text-center">{uploadProgress}</p>}
