@@ -8,53 +8,53 @@ datasource db {
 }
 
 model User {
-  id        String     @id @default(cuid())
-  name      String
-  email     String     @unique
-  phone     String?
-  location  String?
-  createdAt DateTime   @default(now())
-  clerkId   String?    @unique
+  id              String         @id @default(cuid())
+  name            String
+  email           String         @unique
+  phone           String?
+  location        String?
+  createdAt       DateTime       @default(now())
+  clerkId         String?        @unique
   // For the "you did not finish your listing" reminder
   phoneSavedAt    DateTime?
   phoneVerifiedAt DateTime?
   draftReminderAt DateTime?
-  listings  Listing[]
-  orders    Order[]
-  wishlist  Wishlist[]
-  bookRequests BookRequest[]
-  reviewsGiven    Review[] @relation("ReviewsGiven")
-  reviewsReceived Review[] @relation("ReviewsReceived")
-  kitOrders KitOrder[]
-  convsAsBuyer  Conversation[] @relation("ConvBuyer")
-  convsAsSeller Conversation[] @relation("ConvSeller")
-  messagesSent  Message[]
-  savedAddresses SavedAddress[]
+  listings        Listing[]
+  orders          Order[]
+  wishlist        Wishlist[]
+  bookRequests    BookRequest[]
+  reviewsGiven    Review[]       @relation("ReviewsGiven")
+  reviewsReceived Review[]       @relation("ReviewsReceived")
+  kitOrders       KitOrder[]
+  convsAsBuyer    Conversation[] @relation("ConvBuyer")
+  convsAsSeller   Conversation[] @relation("ConvSeller")
+  messagesSent    Message[]
+  savedAddresses  SavedAddress[]
 }
 
 model Listing {
-  id        String     @id @default(cuid())
-  title     String
-  subtitle  String?
-  price     Int
-  origPrice Int?
-  condition String
-  category  String
-  emoji     String?
-  location  String
-  sold      Boolean    @default(false)
-  images    String[]   @default([])
-  views     Int        @default(0)
-  featured  Boolean    @default(false)
+  id            String         @id @default(cuid())
+  title         String
+  subtitle      String?
+  price         Int
+  origPrice     Int?
+  condition     String
+  category      String
+  emoji         String?
+  location      String
+  sold          Boolean        @default(false)
+  images        String[]       @default([])
+  views         Int            @default(0)
+  featured      Boolean        @default(false)
   featuredUntil DateTime? // paid features end here; empty = featured by the admin with no end
-  createdAt DateTime   @default(now())
-  sellerId  String
-  seller    User       @relation(fields: [sellerId], references: [id])
-  orders    Order[]
-  wishlist  Wishlist[]
-  status    String     @default("pending")
+  createdAt     DateTime       @default(now())
+  sellerId      String
+  seller        User           @relation(fields: [sellerId], references: [id])
+  orders        Order[]
+  wishlist      Wishlist[]
+  status        String         @default("pending")
   conversations Conversation[]
-  sale      Sale?
+  sale          Sale?
 }
 
 model Wishlist {
@@ -155,7 +155,7 @@ model playing_with_neon {
 
 model ProjectRequest {
   id          String   @id @default(cuid())
-  userId      String                        // Clerk user id of the student
+  userId      String // Clerk user id of the student
   buyerName   String   @default("")
   phone       String
   category    String
@@ -165,15 +165,15 @@ model ProjectRequest {
   size        String?
   description String?
   photoUrl    String?
- 
-  status      String   @default("quote_requested")
+
+  status String @default("quote_requested")
   // quote_requested -> quoted -> in_progress -> ready -> delivered (or cancelled)
- 
+
   // Quote (admin-set, rupees)
   quotePrice    Int?
   advanceAmount Int?
   quoteNote     String?
- 
+
   // Payments (stored in paise)
   advancePaidPaise Int     @default(0)
   balancePaidPaise Int     @default(0)
@@ -181,10 +181,10 @@ model ProjectRequest {
   advancePaymentId String?
   balanceOrderId   String?
   balancePaymentId String?
- 
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
- 
+
   @@index([userId])
   @@index([status])
 }
@@ -201,10 +201,10 @@ model Conversation {
   buyerReadAt     DateTime?
   sellerReadAt    DateTime?
   createdAt       DateTime  @default(now())
-  listing  Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  buyer    User      @relation("ConvBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
-  seller   User      @relation("ConvSeller", fields: [sellerId], references: [id], onDelete: Cascade)
-  messages Message[]
+  listing         Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyer           User      @relation("ConvBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  seller          User      @relation("ConvSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  messages        Message[]
 
   @@unique([listingId, buyerId])
   @@index([buyerId, lastMessageAt])
@@ -212,11 +212,11 @@ model Conversation {
 }
 
 model Message {
-  id             String   @id @default(cuid())
+  id             String       @id @default(cuid())
   conversationId String
   senderId       String
   body           String
-  createdAt      DateTime @default(now())
+  createdAt      DateTime     @default(now())
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender         User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
@@ -303,4 +303,98 @@ model Report {
   @@unique([listingId, reporterId])
   @@index([listingId])
   @@index([reporterId, createdAt])
+}
+
+// ── Stock register (pageplus.in/stock) ─────────────────────────────────
+// Shop stock for Bedi Book Store. Bills are photographed, read by AI, checked by a person,
+// then added. Quantity changes are always recorded as StockMove rows.
+
+model Supplier {
+  id        String            @id @default(cuid())
+  name      String
+  nameKey   String            @unique // lower-case name without spaces/punctuation, to match the same supplier
+  gstin     String?
+  phone     String?
+  createdAt DateTime          @default(now())
+  bills     StockBill[]
+  payments  SupplierPayment[]
+}
+
+model StockItem {
+  id        String          @id @default(cuid())
+  name      String
+  nameKey   String          @unique
+  category  String          @default("other") // book | stationery | other
+  hsn       String?
+  gstRate   Float?
+  mrp       Float?
+  costPrice Float?
+  qty       Int             @default(0)
+  lowAt     Int             @default(5)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  lines     StockBillLine[]
+  moves     StockMove[]
+}
+
+model StockBill {
+  id           String          @id @default(cuid())
+  supplierId   String?
+  supplier     Supplier?       @relation(fields: [supplierId], references: [id])
+  supplierName String          @default("")
+  gstin        String?
+  billNo       String?
+  billDate     DateTime?
+  dueDate      DateTime?
+  total        Float?
+  status       String          @default("reading") // reading | check | added | failed
+  photos       String[]        @default([])
+  readError    String?
+  uploadedBy   String
+  createdAt    DateTime        @default(now())
+  addedAt      DateTime?
+  lines        StockBillLine[]
+}
+
+model StockBillLine {
+  id        String     @id @default(cuid())
+  billId    String
+  bill      StockBill  @relation(fields: [billId], references: [id], onDelete: Cascade)
+  position  Int        @default(0)
+  name      String
+  qty       Float      @default(1)
+  unitPrice Float?
+  mrp       Float?
+  gstRate   Float?
+  hsn       String?
+  amount    Float?
+  category  String     @default("other")
+  unsure    Boolean    @default(false)
+  itemId    String?
+  item      StockItem? @relation(fields: [itemId], references: [id])
+}
+
+model StockMove {
+  id        String    @id @default(cuid())
+  itemId    String
+  item      StockItem @relation(fields: [itemId], references: [id])
+  change    Int
+  reason    String // bill | sold | adjust
+  billId    String?
+  note      String?
+  by        String
+  createdAt DateTime  @default(now())
+}
+
+model SupplierPayment {
+  id         String   @id @default(cuid())
+  supplierId String
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+  amount     Float
+  mode       String // cash | upi | bank | cheque
+  note       String?
+  proofPath  String?
+  paidAt     DateTime @default(now())
+  by         String
+  createdAt  DateTime @default(now())
 }
