@@ -76,6 +76,10 @@ export default function StockHome() {
       {err && <p className="text-[14px] font-semibold text-[#c2410c] bg-[#ffedd5] rounded-2xl px-4 py-3">{err}</p>}
       <p className="text-[14px] text-[#4f4633] -mt-2 px-1">Long bill? Choose up to 4 photos together from the gallery.</p>
 
+      <Link href="/stock/count" className="w-full h-14 rounded-[20px] bg-[#1c1c19] text-white flex items-center justify-center gap-2 text-[16px] font-bold active:scale-[0.98]">
+        <span className="material-symbols-outlined text-[22px]">inventory</span>Count stock on the shelves
+      </Link>
+
       {/* Numbers */}
       <div className="grid grid-cols-3 gap-3">
         {[

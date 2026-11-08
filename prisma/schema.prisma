@@ -324,7 +324,12 @@ model StockItem {
   id        String          @id @default(cuid())
   name      String
   nameKey   String          @unique
-  category  String          @default("other") // book | stationery | other
+  category  String          @default("other") // book | notebook | stationery | other
+  barcode   String?         @unique // ISBN / EAN printed on the item, when there is one
+  publisher String?
+  className Int? // school class the book is for (1-12), when known
+  ncert     Boolean         @default(false)
+  countedAt DateTime? // last shelf count
   hsn       String?
   gstRate   Float?
   mrp       Float?

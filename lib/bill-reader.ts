@@ -76,13 +76,15 @@ const SCHEMA = {
 const num = (v: unknown) => (typeof v === 'number' && isFinite(v) ? v : null)
 const str = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null)
 
-export async function readBill(images: { mime: string; base64: string }[]): Promise<ReadBill> {
+// Sends a prompt and photos to Gemini and returns the parsed JSON answer. Tries each model twice
+// when Google is busy, then the next model. Shared by the bill reader and the item reader.
+export async function geminiJson(prompt: string, images: { mime: string; base64: string }[], schema: object, label: string): Promise<any> {
   const key = process.env.GEMINI_API_KEY
   if (!key) throw new Error('reader_not_set')
 
   const body = JSON.stringify({
-    contents: [{ role: 'user', parts: [{ text: PROMPT }, ...images.map(i => ({ inline_data: { mime_type: i.mime, data: i.base64 } }))] }],
-    generationConfig: { responseMimeType: 'application/json', responseSchema: SCHEMA, temperature: 0 },
+    contents: [{ role: 'user', parts: [{ text: prompt }, ...images.map(i => ({ inline_data: { mime_type: i.mime, data: i.base64 } }))] }],
+    generationConfig: { responseMimeType: 'application/json', responseSchema: schema, temperature: 0 },
   })
   let res: Response | null = null
   outer: for (const model of MODELS) {
@@ -94,7 +96,7 @@ export async function readBill(images: { mime: string; base64: string }[]): Prom
       })
       if (res.ok) break outer
       const text = await res.text().catch(() => '')
-      console.error('Bill reader failed', model, res.status, text.slice(0, 300))
+      console.error(label + ' failed', model, res.status, text.slice(0, 300))
       if (!BUSY.has(res.status)) {
         // 404 = this model name is not available on the account: try the next one
         if (res.status === 404) continue outer
@@ -106,14 +108,16 @@ export async function readBill(images: { mime: string; base64: string }[]): Prom
   if (!res || !res.ok) throw new Error('reader_busy')
   const data = await res.json()
   const text: string = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || '').join('') || ''
-  let raw: any
   try {
-    raw = JSON.parse(text.replace(/^```json\s*|\s*```$/g, ''))
+    return JSON.parse(text.replace(/^```json\s*|\s*```$/g, ''))
   } catch {
-    console.error('Bill reader returned non-JSON', text.slice(0, 300))
+    console.error(label + ' returned non-JSON', text.slice(0, 300))
     throw new Error('read_failed')
   }
+}
 
+export async function readBill(images: { mime: string; base64: string }[]): Promise<ReadBill> {
+  const raw = await geminiJson(PROMPT, images, SCHEMA, 'Bill reader')
   const date = str(raw.billDate)
   return {
     supplierName: str(raw.supplierName) || '',
@@ -136,3 +140,56 @@ export async function readBill(images: { mime: string; base64: string }[]): Prom
       .filter((l: ReadLine) => l.name),
   }
 }
+
+// ── One item from the shelf ────────────────────────────────────────────
+
+export type ReadItem = {
+  name: string
+  publisher: string | null
+  className: number | null
+  mrp: number | null
+  barcode: string | null
+  category: 'book' | 'notebook' | 'stationery' | 'other'
+  ncert: boolean
+}
+
+const ITEM_PROMPT = `You are looking at one product in an Indian school bookshop: a book (front cover, back cover or the price/barcode sticker) or a stationery item. Photos may show different sides of the same item.
+
+Return ONLY the JSON described by the schema.
+- name: the product name as a shop would write it, e.g. "NCERT Science Class 8", "Grammar Way 5", "Classmate Notebook 172 pages single line", "Faber-Castell Pencil Colours 24". Include the class/grade or size if printed. No invented words.
+- publisher: publisher or brand if printed (e.g. NCERT, Arihant, Oxford, Classmate), else null.
+- className: the school class 1-12 the book is for if printed, else null.
+- mrp: the printed MRP / price in rupees as a number, else null. Never guess a price.
+- barcode: the digits under the barcode (ISBN-13 or EAN, 13 digits usually starting 978 or 890) if readable, else null.
+- category: "book" for books/guides, "notebook" for notebooks/registers/copies, "stationery" for other stationery, else "other".
+- ncert: true only if it is an NCERT textbook.`
+
+const ITEM_SCHEMA = {
+  type: 'object',
+  properties: {
+    name: { type: 'string' },
+    publisher: { type: 'string', nullable: true },
+    className: { type: 'integer', nullable: true },
+    mrp: { type: 'number', nullable: true },
+    barcode: { type: 'string', nullable: true },
+    category: { type: 'string', enum: ['book', 'notebook', 'stationery', 'other'] },
+    ncert: { type: 'boolean' },
+  },
+  required: ['name', 'category', 'ncert'],
+}
+
+export async function readItem(images: { mime: string; base64: string }[]): Promise<ReadItem> {
+  const raw = await geminiJson(ITEM_PROMPT, images, ITEM_SCHEMA, 'Item reader')
+  const digits = typeof raw.barcode === 'string' ? raw.barcode.replace(/\D/g, '') : ''
+  const cls = num(raw.className)
+  return {
+    name: str(raw.name) || '',
+    publisher: str(raw.publisher),
+    className: cls != null && cls >= 1 && cls <= 12 ? Math.round(cls) : null,
+    mrp: num(raw.mrp),
+    barcode: digits.length >= 8 && digits.length <= 14 ? digits : null,
+    category: ['book', 'notebook', 'stationery', 'other'].includes(raw.category) ? raw.category : 'other',
+    ncert: !!raw.ncert,
+  }
+}
+

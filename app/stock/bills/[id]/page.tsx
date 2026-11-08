@@ -11,7 +11,7 @@ type Bill = {
 
 const dayStr = (d: string | null) => (d ? new Date(d).toISOString().slice(0, 10) : '')
 const n = (v: string) => (v.trim() === '' ? null : Number(v))
-const CAT: Record<string, string> = { book: 'Book', stationery: 'Stationery', other: 'Other' }
+const CAT: Record<string, string> = { book: 'Book', notebook: 'Notebook', stationery: 'Stationery', other: 'Other' }
 
 const Field: React.FC<{ en: string; hi: string; value: string; onChange: (v: string) => void; type?: string; inputMode?: 'numeric' | 'decimal' | 'text' }> = ({ en, hi, value, onChange, type = 'text', inputMode }) => (
   <label className="flex flex-col gap-1.5">

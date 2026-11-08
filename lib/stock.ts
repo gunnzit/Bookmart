@@ -70,5 +70,5 @@ export async function supplierBalance(supplierId: string) {
   return { billed, paid: paidSum, owed: Math.round((billed - paidSum) * 100) / 100 }
 }
 
-export const CATEGORIES = ['book', 'stationery', 'other'] as const
+export const CATEGORIES = ['book', 'notebook', 'stationery', 'other'] as const
 export const PAY_MODES = ['cash', 'upi', 'bank', 'cheque'] as const

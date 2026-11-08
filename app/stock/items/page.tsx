@@ -5,7 +5,7 @@ import { Page, Bi, BigButton, api, errText, rupees } from '@/components/stock/ui
 type Item = { id: string; name: string; category: string; qty: number; mrp: number | null; costPrice: number | null; lowAt: number }
 const FILTERS = [
   { k: 'all', en: 'All', hi: '' }, { k: 'book', en: 'Books', hi: '' },
-  { k: 'stationery', en: 'Stationery', hi: '' }, { k: 'low', en: 'Running low', hi: '' },
+  { k: 'notebook', en: 'Notebooks', hi: '' }, { k: 'stationery', en: 'Stationery', hi: '' }, { k: 'low', en: 'Running low', hi: '' },
 ]
 
 export default function StockList() {
@@ -62,7 +62,7 @@ export default function StockList() {
             <button key={i.id} onClick={() => { setOpen(i); setMsg('') }} className="bg-white rounded-[24px] p-4 flex items-center gap-3 text-left shadow-[0_4px_20px_rgba(28,28,25,0.05)] active:scale-[0.99]">
               <div className="flex-1 min-w-0">
                 <p className="text-[16px] font-bold leading-snug">{i.name}</p>
-                <p className="text-[14px] text-[#4f4633] mt-0.5">{i.category === 'book' ? 'Book' : i.category === 'stationery' ? 'Stationery' : 'Other'}{i.mrp != null ? ' · MRP ' + rupees(i.mrp) : ''}</p>
+                <p className="text-[14px] text-[#4f4633] mt-0.5">{i.category === 'book' ? 'Book' : i.category === 'notebook' ? 'Notebook' : i.category === 'stationery' ? 'Stationery' : 'Other'}{i.mrp != null ? ' · MRP ' + rupees(i.mrp) : ''}</p>
               </div>
               <div className={'shrink-0 min-w-[64px] rounded-[18px] px-3 py-2 text-center ' + (low ? 'bg-[#ffedd5] text-[#c2410c]' : 'bg-[#f6f3ee]')}>
                 <p className="text-[22px] font-extrabold leading-none">{i.qty}</p>
