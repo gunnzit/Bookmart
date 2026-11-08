@@ -46,6 +46,12 @@ export async function savePhoto(path: string, bytes: Uint8Array, contentType: st
   if (error) throw new Error('upload_failed: ' + error.message)
 }
 
+export async function loadPhoto(path: string): Promise<{ mime: string; base64: string }> {
+  const { data, error } = await storage().download(path)
+  if (error || !data) throw new Error('photo_missing')
+  return { mime: data.type || 'image/jpeg', base64: Buffer.from(await data.arrayBuffer()).toString('base64') }
+}
+
 // Short-lived links so the bill can be viewed on the check screen
 export async function photoLinks(paths: string[]): Promise<string[]> {
   if (paths.length === 0) return []

@@ -24,7 +24,12 @@ export type ReadBill = {
   lines: ReadLine[]
 }
 
-const MODEL = process.env.GEMINI_MODEL || 'gemini-3.8-flash'
+// Tried in order. On Google's free tier a model is sometimes "experiencing high demand" (503) or
+// rate-limited (429); then we wait briefly, retry once, and move on to the next model.
+const MODELS = [process.env.GEMINI_MODEL || 'gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite']
+  .filter((m, i, all) => all.indexOf(m) === i)
+const BUSY = new Set([429, 500, 503])
+const wait = (ms: number) => new Promise(r => setTimeout(r, ms))
 
 const PROMPT = `You are reading a photographed purchase bill (tax invoice or challan) from an Indian supplier of school books and stationery to a bookshop in Chandigarh. The bill may be printed or handwritten, in English, Hindi or both, and may continue across several photos (read them in order as one bill).
 
@@ -75,19 +80,30 @@ export async function readBill(images: { mime: string; base64: string }[]): Prom
   const key = process.env.GEMINI_API_KEY
   if (!key) throw new Error('reader_not_set')
 
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-    body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: PROMPT }, ...images.map(i => ({ inline_data: { mime_type: i.mime, data: i.base64 } }))] }],
-      generationConfig: { responseMimeType: 'application/json', responseSchema: SCHEMA, temperature: 0 },
-    }),
+  const body = JSON.stringify({
+    contents: [{ role: 'user', parts: [{ text: PROMPT }, ...images.map(i => ({ inline_data: { mime_type: i.mime, data: i.base64 } }))] }],
+    generationConfig: { responseMimeType: 'application/json', responseSchema: SCHEMA, temperature: 0 },
   })
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    console.error('Bill reader failed', res.status, text.slice(0, 500))
-    throw new Error('read_failed')
+  let res: Response | null = null
+  outer: for (const model of MODELS) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+        body,
+      })
+      if (res.ok) break outer
+      const text = await res.text().catch(() => '')
+      console.error('Bill reader failed', model, res.status, text.slice(0, 300))
+      if (!BUSY.has(res.status)) {
+        // 404 = this model name is not available on the account: try the next one
+        if (res.status === 404) continue outer
+        throw new Error('read_failed')
+      }
+      await wait(1500 * (attempt + 1))
+    }
   }
+  if (!res || !res.ok) throw new Error('reader_busy')
   const data = await res.json()
   const text: string = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text || '').join('') || ''
   let raw: any

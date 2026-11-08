@@ -82,6 +82,9 @@ export async function api<T = any>(url: string, init?: RequestInit): Promise<{ o
 // Plain-language messages for errors from the stock API
 export const ERR: Record<string, [string]> = {
   offline: ['No internet. Please try again.'],
+  reader_busy: ['The bill reader is busy right now. Wait a minute and tap Try reading again.'],
+  read_failed: ['The bill could not be read. Try a clearer photo, or type the items.'],
+  reader_not_set: ['The bill reader is not set up yet. Tell the owner.'],
   not_set_up: ['Stock is not set up yet: the database tables are missing. Tell the owner.'],
   no_access: ['You do not have access to stock.'],
   storage_not_set: ['Bill photos are not set up yet. Tell the owner.'],

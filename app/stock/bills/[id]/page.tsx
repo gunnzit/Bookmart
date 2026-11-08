@@ -27,7 +27,7 @@ export default function CheckBill() {
   const [photos, setPhotos] = useState<string[]>([])
   const [zoom, setZoom] = useState<string | null>(null)
   const [edit, setEdit] = useState<number | null>(null)
-  const [busy, setBusy] = useState<'' | 'saving' | 'adding'>('')
+  const [busy, setBusy] = useState<'' | 'saving' | 'adding' | 'reading'>('')
   const [msg, setMsg] = useState<{ tone: 'err' | 'ok'; text: string } | null>(null)
 
   useEffect(() => {
@@ -66,6 +66,14 @@ export default function CheckBill() {
     if (r2.ok) { set({ status: 'added' }); setMsg({ tone: 'ok', text: '✓ Added to stock' }); window.scrollTo(0, 0) }
     else setMsg({ tone: 'err', text: errText(r2.data.error).join(' · ') })
   }
+  async function readAgain() {
+    setBusy('reading'); setMsg(null)
+    const r = await api('/api/stock/bills/' + id + '/read', { method: 'POST' })
+    const fresh = await api<{ bill: Bill; photoUrls: string[] }>('/api/stock/bills/' + id)
+    setBusy('')
+    if (fresh.ok) { setBill(fresh.data.bill); setPhotos(fresh.data.photoUrls) }
+    setMsg(r.ok ? { tone: 'ok', text: 'Read again. Please check each line.' } : { tone: 'err', text: errText(r.data.error)[0] })
+  }
   async function remove() {
     if (!confirm('Delete this bill?')) return
     const r = await api('/api/stock/bills/' + id, { method: 'DELETE' })
@@ -83,7 +91,7 @@ export default function CheckBill() {
           </div>
         </div>
       )}>
-      {busy && <Busy en={busy === 'adding' ? 'Adding to stock…' : 'Saving…'} hi="" />}
+      {busy && <Busy en={busy === 'adding' ? 'Adding to stock…' : busy === 'reading' ? 'Reading your bill…' : 'Saving…'} hi="" />}
       {zoom && (
         <button onClick={() => setZoom(null)} className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-2" aria-label="Close photo">
           <img src={zoom} alt="Bill" className="max-w-full max-h-full object-contain" />
@@ -107,8 +115,13 @@ export default function CheckBill() {
 
       {!added && (
         <Card className="bg-[#fff8e6]">
-          <Bi en={bill.readError ? 'We could not read this bill. Please type the items.' : 'We read this bill. Please check each line.'} hi="" size={18} />
+          <Bi en={bill.readError ? (bill.readError === 'reader_busy' ? 'The reader was busy. Tap “Try reading again”, or type the items.' : 'We could not read this bill. Try again, or type the items.') : 'We read this bill. Please check each line.'} hi="" size={18} />
           {unsureCount > 0 && <p className="mt-2 text-[14px] font-bold text-[#c2410c]">{unsureCount} line{unsureCount > 1 ? 's' : ''} need checking (orange)</p>}
+          {photos.length > 0 && (
+            <button onClick={readAgain} disabled={!!busy} className="mt-3 h-12 px-5 rounded-full bg-[#1c1c19] text-white text-[15px] font-bold flex items-center gap-2 active:scale-95">
+              <span className="material-symbols-outlined text-[20px]">refresh</span>{bill.readError ? 'Try reading again' : 'Read again'}
+            </button>
+          )}
         </Card>
       )}
 

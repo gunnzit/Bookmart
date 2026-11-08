@@ -3,10 +3,10 @@ import { randomUUID } from 'crypto'
 import { prisma } from '@/lib/chat'
 import { stockUser } from '@/lib/stock'
 import { savePhoto } from '@/lib/stock'
-import { readBill } from '@/lib/bill-reader'
+import { readAndStore } from '@/lib/stock-read'
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 60 // reading a bill can take 10-30 seconds
+export const maxDuration = 120 // reading can take 10-30 seconds, longer when Google is busy and we retry
 
 const MAX_PHOTOS = 4
 const MAX_BYTES = 8 * 1024 * 1024
@@ -59,25 +59,7 @@ export async function POST(request: Request) {
 
   const bill = await prisma.stockBill.create({ data: { photos: paths, uploadedBy: me.name, status: 'reading' } })
 
-  // 2. Read it. If reading fails, the bill stays with its photos so it can be filled in by hand.
-  try {
-    const read = await readBill(images)
-    const billDate = read.billDate ? new Date(read.billDate + 'T00:00:00+05:30') : null
-    await prisma.stockBill.update({
-      where: { id: bill.id },
-      data: {
-        status: 'check',
-        supplierName: read.supplierName,
-        gstin: read.gstin,
-        billNo: read.billNo,
-        billDate,
-        dueDate: billDate ? new Date(billDate.getTime() + 30 * 86400000) : null,
-        total: read.total,
-        lines: { create: read.lines.map((l, i) => ({ ...l, position: i })) },
-      },
-    })
-  } catch (e: any) {
-    await prisma.stockBill.update({ where: { id: bill.id }, data: { status: 'check', readError: e?.message || 'read_failed' } })
-  }
+  // 2. Read it. If reading fails, the bill stays with its photos: "Read again" or type it in by hand.
+  await readAndStore(bill.id, images)
   return NextResponse.json({ ok: true, id: bill.id })
 }
