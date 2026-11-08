@@ -27,7 +27,8 @@ async function shrink(file: File): Promise<Blob> {
 
 export default function StockHome() {
   const router = useRouter()
-  const input = useRef<HTMLInputElement>(null)
+  const camera = useRef<HTMLInputElement>(null)
+  const gallery = useRef<HTMLInputElement>(null)
   const [s, setS] = useState<Summary | null>(null)
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
@@ -57,8 +58,10 @@ export default function StockHome() {
       {busy && <Busy en="Reading your bill…" hi="" />}
 
       {/* Add bill: the main action */}
-      <input ref={input} type="file" accept="image/*" capture="environment" multiple hidden onChange={e => { upload(e.target.files); e.target.value = '' }} />
-      <button type="button" onClick={() => input.current?.click()} className="w-full rounded-[24px] bg-[#fbbf24] text-[#6c4f00] p-4 flex items-center gap-4 text-left shadow-[0_10px_28px_rgba(251,191,36,0.45)] active:scale-[0.98] transition-transform">
+      {/* Two ways in: the camera, or photos already on the phone (gallery). "capture" forces the camera, so the gallery input has none. */}
+      <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={e => { upload(e.target.files); e.target.value = '' }} />
+      <input ref={gallery} type="file" accept="image/*" multiple hidden onChange={e => { upload(e.target.files); e.target.value = '' }} />
+      <button type="button" onClick={() => camera.current?.click()} className="w-full rounded-[24px] bg-[#fbbf24] text-[#6c4f00] p-4 flex items-center gap-4 text-left shadow-[0_10px_28px_rgba(251,191,36,0.45)] active:scale-[0.98] transition-transform">
         <span className="w-20 h-12 rounded-[24px] bg-white/60 flex items-center justify-center shrink-0">
           <span className="material-symbols-outlined text-[32px]">photo_camera</span>
         </span>
@@ -67,8 +70,11 @@ export default function StockHome() {
           <span className="text-[14px] font-semibold mt-1 opacity-80">Take a photo of the supplier bill</span>
         </span>
       </button>
+      <button type="button" onClick={() => gallery.current?.click()} className="w-full h-14 -mt-2 rounded-[20px] bg-white text-[#1c1c19] flex items-center justify-center gap-2 text-[16px] font-bold shadow-[0_4px_20px_rgba(28,28,25,0.05)] active:scale-[0.98] transition-transform">
+        <span className="material-symbols-outlined text-[22px] text-[#795900]">photo_library</span>Choose from gallery
+      </button>
       {err && <p className="text-[14px] font-semibold text-[#c2410c] bg-[#ffedd5] rounded-2xl px-4 py-3">{err}</p>}
-      <p className="text-[14px] text-[#4f4633] -mt-2 px-1">Long bill? Choose up to 4 photos together.</p>
+      <p className="text-[14px] text-[#4f4633] -mt-2 px-1">Long bill? Choose up to 4 photos together from the gallery.</p>
 
       {/* Numbers */}
       <div className="grid grid-cols-3 gap-3">
