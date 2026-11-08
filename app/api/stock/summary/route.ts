@@ -9,6 +9,16 @@ export async function GET() {
   const me = await stockUser()
   if (!me) return NextResponse.json({ error: 'no_access' }, { status: 403 })
 
+  try {
+    return await summary(me)
+  } catch (e: any) {
+    // P2021: the stock tables have not been created in the database yet
+    if (e?.code === 'P2021') return NextResponse.json({ error: 'not_set_up' }, { status: 503 })
+    throw e
+  }
+}
+
+async function summary(me: { name: string; isOwner: boolean }) {
   const now = new Date()
   const week = new Date(now.getTime() + 7 * 86400000)
   const [items, billed, paid, dueSoon, recent, low] = await Promise.all([
