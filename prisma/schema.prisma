@@ -398,3 +398,55 @@ model SupplierPayment {
   by         String
   createdAt  DateTime @default(now())
 }
+
+// ── Counter billing (pageplus.in/counter) ───────────────────────────────
+// Shop staff bill on a shared phone/tablet signed in as the owner or a parent. Each person picks
+// their name and types a 4-digit PIN. Helpers change often, so they can be added or removed.
+
+model Staff {
+  id        String        @id @default(cuid())
+  name      String
+  role      String        @default("helper") // owner | family | helper
+  pinHash   String
+  active    Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  sales     CounterSale[]
+}
+
+model CounterSale {
+  id            String            @id @default(cuid())
+  invoiceNo     Int               @unique @default(autoincrement())
+  token         String            @unique // the invoice link sent to the customer
+  staffId       String
+  staff         Staff             @relation(fields: [staffId], references: [id])
+  customerName  String?
+  customerPhone String?
+  school        String?
+  className     Int?
+  subtotal      Float
+  discount      Float             @default(0)
+  total         Float
+  taxable       Float             @default(0)
+  gst           Float             @default(0)
+  payMode       String // cash | upi
+  status        String            @default("paid") // paid | returned
+  createdAt     DateTime          @default(now())
+  lines         CounterSaleLine[]
+}
+
+model CounterSaleLine {
+  id           String      @id @default(cuid())
+  saleId       String
+  sale         CounterSale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  position     Int         @default(0)
+  name         String
+  qty          Int
+  unitPrice    Float
+  amount       Float
+  hsn          String?
+  gstRate      Float?
+  fromSet      Boolean     @default(false)
+  itemId       String?
+  pendingQty   Int         @default(0) // out of stock at the time: to hand over later
+  handedOverAt DateTime?
+}

@@ -6,9 +6,9 @@ import { useUser } from '@clerk/nextjs'
 import Logo from '@/components/Logo'
 
 // Top bar for desktop screens (lg and up). Phones keep their own headers and the bottom pill.
-// Mounted once in app/layout.tsx (inside Suspense). Hidden on admin, stock and sign-in/up pages.
+// Mounted once in app/layout.tsx (inside Suspense). Hidden on admin, stock, counter, invoice and sign-in/up pages.
 // On /marketplace typing writes ?q= into the address and the page filters; elsewhere Enter opens /marketplace?q=.
-const HIDE_ON = ['/admin', '/sign-in', '/sign-up', '/stock']
+const HIDE_ON = ['/admin', '/sign-in', '/sign-up', '/stock', '/counter', '/invoice']
 const LINKS = [
   { href: '/', label: 'Home', match: (p: string) => p === '/' },
   { href: '/marketplace', label: 'Market', match: (p: string) => p.startsWith('/marketplace') || p.startsWith('/listing') },
