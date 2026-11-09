@@ -305,7 +305,7 @@ model Report {
   @@index([reporterId, createdAt])
 }
 
-// ── Stock register (pageplus.in/stock) ─────────────────────────────────
+// ── Stock register (wrapandread.in/stock) ─────────────────────────────────
 // Shop stock for Bedi Book Store. Bills are photographed, read by AI, checked by a person,
 // then added. Quantity changes are always recorded as StockMove rows.
 

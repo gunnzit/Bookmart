@@ -99,7 +99,7 @@ export default async function Image() {
           color: 'rgba(255,255,255,0.7)', fontSize: '24px',
           display: 'flex',
         }}>
-          pageplus.in
+          wrapandread.in
         </div>
       </div>
     ),

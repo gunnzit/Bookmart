@@ -5,7 +5,7 @@ import { sendWhatsApp, sendWhatsAppTemplate } from '@/lib/whatsapp'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
 
-const APP_BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://pageplus.in'
+const APP_BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://wrapandread.in'
 const LANG = process.env.META_LISTING_TEMPLATE_LANG || 'en'
 
 const WAIT_HOURS = 3        // give people this long to finish before the reminder

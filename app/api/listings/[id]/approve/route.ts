@@ -10,7 +10,7 @@ const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 const prisma = globalForPrisma.prisma ?? new PrismaClient()
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
-const APP_BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://pageplus.in'
+const APP_BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://wrapandread.in'
 
 // Same admin as the admin pages and the listings route (set ADMIN_CLERK_ID in Vercel to override)
 const ADMIN_ID = process.env.ADMIN_CLERK_ID || 'user_3EMHmiU5Qw2vZpxYOFM7viVRYZD'

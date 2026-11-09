@@ -7,7 +7,7 @@ import { Suspense } from 'react'
 import GlassNav from '@/components/GlassNav'
 import DesktopNav from '@/components/DesktopNav'
 
-const APP_URL = 'https://pageplus.in'
+const APP_URL = 'https://wrapandread.in'
 
 // Phone status-bar colour, and notch spacing (used by the bottom bar and headers)
 export const viewport: Viewport = {

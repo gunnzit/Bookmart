@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/chat'
 import { sendWhatsApp, sendWhatsAppTemplate } from '@/lib/whatsapp'
 
-const APP_BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://pageplus.in'
+const APP_BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://wrapandread.in'
 const MAX_ALERTS_PER_LISTING = 50
 const IGNORE = new Set(['the', 'a', 'an', 'of', 'for', 'and', 'by', 'in', 'to'])
 

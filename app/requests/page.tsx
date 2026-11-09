@@ -148,7 +148,7 @@ export default function RequestsPage() {
   }
 
   async function share() {
-    const url = 'https://pageplus.in/requests'
+    const url = 'https://wrapandread.in/requests'
     const text = 'Books wanted near you on wrap&read. Have one? List it.'
     try {
       if (navigator.share) { await navigator.share({ title: 'Book Requests', text, url }); return }

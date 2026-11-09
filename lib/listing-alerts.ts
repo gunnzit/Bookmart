@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/chat'
 import { sendWhatsApp, sendWhatsAppTemplate } from '@/lib/whatsapp'
 
-const APP_BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://pageplus.in'
+const APP_BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://wrapandread.in'
 const LANG = process.env.META_LISTING_TEMPLATE_LANG || 'en'
 
 const priceText = (p: number) => (Number(p) === 0 ? 'Free' : '₹' + p)

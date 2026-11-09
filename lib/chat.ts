@@ -9,7 +9,7 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 export const MAX_MESSAGE_LENGTH = 1000
 
-const APP_BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://pageplus.in'
+const APP_BASE = process.env.NEXT_PUBLIC_APP_URL || 'https://wrapandread.in'
 
 // First name only — chats never reveal full names, phones or emails.
 export function firstName(name?: string | null): string {

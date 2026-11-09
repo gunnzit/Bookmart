@@ -9,7 +9,7 @@ export default function robots(): MetadataRoute.Robots {
         disallow: ['/admin', '/api/', '/profile', '/wishlist', '/messages', '/my-orders'],
       },
     ],
-    sitemap: 'https://pageplus.in/sitemap.xml',
-    host: 'https://pageplus.in',
+    sitemap: 'https://wrapandread.in/sitemap.xml',
+    host: 'https://wrapandread.in',
   }
 }

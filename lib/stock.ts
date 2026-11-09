@@ -2,7 +2,7 @@ import { auth, currentUser } from '@clerk/nextjs/server'
 import { createClient } from '@supabase/supabase-js'
 import { prisma } from '@/lib/chat'
 
-// Stock register (pageplus.in/stock): who may use it, where bill photos live, and shared helpers.
+// Stock register (wrapandread.in/stock): who may use it, where bill photos live, and shared helpers.
 // Only the owner (admin) and the emails in STOCK_EMAILS (Vercel, comma-separated: the owner's
 // parents) can open it. Customers never see it.
 

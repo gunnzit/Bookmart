@@ -9,7 +9,7 @@ import { FEATURE_TIERS } from '@/lib/featured'
 
 // ── Contact / links (change here only) ────────────────────────────────────
 const ADMIN_WA = '918872235738'
-const SHARE_BASE = 'https://pageplus.in'
+const SHARE_BASE = 'https://wrapandread.in'
 
 const SHADOW = 'shadow-[0_2px_12px_rgba(28,28,25,0.06)]'
 

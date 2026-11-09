@@ -10,7 +10,7 @@ const prisma = globalForPrisma.prisma ?? new PrismaClient()
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = 'https://pageplus.in'
+  const base = 'https://wrapandread.in'
   const now = new Date()
 
   const pages: MetadataRoute.Sitemap = [
