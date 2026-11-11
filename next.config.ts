@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   // Old domain → new domain, same page. /api is left alone so webhooks that
   // still point at pageplus.in (Meta, Razorpay) keep working until they are moved.
   async redirects() {
-    return ["pageplus.in", "www.pageplus.in", "www.wrapandread.in"].map((host) => ({
+    return ["pageplus.in", "www.pageplus.in"].map((host) => ({
       source: "/:path((?!api/).*)",
       has: [{ type: "host" as const, value: host }],
       destination: "https://wrapandread.in/:path",
